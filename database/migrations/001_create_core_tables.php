@@ -8,6 +8,14 @@ return new class extends Migration
     public function up(): void
     {
         $this->db->exec("
+            CREATE TABLE migrations (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                migration TEXT NOT NULL UNIQUE,
+                executed_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            )
+        ");
+
+        $this->db->exec("
             CREATE TABLE users (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 username TEXT NOT NULL UNIQUE,
