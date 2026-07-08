@@ -1,0 +1,226 @@
+{% extends "layouts/base.twig" %}
+
+{% block content %}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+
+    <h1>
+        Dashboard
+    </h1>
+
+    <span class="text-muted">
+        Supervisor Console
+    </span>
+
+</div>
+
+
+<div class="row g-4">
+
+
+<div class="col-md-3">
+
+<div class="card shadow-sm">
+
+<div class="card-body">
+
+<h6 class="text-muted">
+Employees
+</h6>
+
+<h2>
+0
+</h2>
+
+<a href="/employees"
+class="btn btn-outline-primary btn-sm">
+
+View Employees
+
+</a>
+
+</div>
+
+</div>
+
+</div>
+
+
+
+<div class="col-md-3">
+
+<div class="card shadow-sm">
+
+<div class="card-body">
+
+<h6 class="text-muted">
+Today's Punches
+</h6>
+
+<h2>
+0
+</h2>
+
+<a href="/punches"
+class="btn btn-outline-primary btn-sm">
+
+View Punches
+
+</a>
+
+</div>
+
+</div>
+
+</div>
+
+
+
+<div class="col-md-3">
+
+<div class="card shadow-sm">
+
+<div class="card-body">
+
+<h6 class="text-muted">
+Current Week
+</h6>
+
+<h2>
+0 hrs
+</h2>
+
+<a href="/payroll"
+class="btn btn-outline-primary btn-sm">
+
+Payroll
+
+</a>
+
+</div>
+
+</div>
+
+</div>
+
+
+
+<div class="col-md-3">
+
+<div class="card shadow-sm">
+
+<div class="card-body">
+
+<h6 class="text-muted">
+System
+</h6>
+
+<h2 class="text-success">
+
+Healthy
+
+</h2>
+
+<a href="/settings"
+class="btn btn-outline-primary btn-sm">
+
+Settings
+
+</a>
+
+</div>
+
+</div>
+
+</div>
+
+
+</div>
+
+
+
+<hr class="my-5">
+
+
+
+<div class="row">
+
+
+<div class="col-md-6">
+
+
+<div class="card shadow-sm">
+
+<div class="card-header">
+
+Quick Actions
+
+</div>
+
+
+<div class="card-body">
+
+
+<a href="/employees/create"
+class="btn btn-primary me-2">
+
+<i class="bi bi-person-plus"></i>
+
+Add Employee
+
+</a>
+
+
+<a href="/kiosk"
+class="btn btn-success">
+
+<i class="bi bi-display"></i>
+
+Open Kiosk
+
+</a>
+
+
+</div>
+
+</div>
+
+
+</div>
+
+
+
+<div class="col-md-6">
+
+
+<div class="card shadow-sm">
+
+<div class="card-header">
+
+Recent Activity
+
+</div>
+
+
+<div class="card-body">
+
+
+<p class="text-muted">
+
+No recent activity.
+
+</p>
+
+
+</div>
+
+</div>
+
+
+</div>
+
+
+</div>
+
+
+{% endblock %}

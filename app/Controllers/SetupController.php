@@ -5,7 +5,7 @@ namespace App\Controllers;
 
 use App\Services\AuthService;
 
-class SetupController
+class SetupController extends Controller
 {
     private AuthService $auth;
 
@@ -23,7 +23,12 @@ class SetupController
             exit;
         }
 
-        require __DIR__ . '/../Views/setup/index.php';
+        $this->render(
+            'setup/setup.twig',
+            [
+                'title' => 'Initial Setup'
+            ]
+        );
     }
 
 
