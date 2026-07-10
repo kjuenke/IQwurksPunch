@@ -1,0 +1,92 @@
+{% extends "layouts/base.twig" %}
+
+{% block content %}
+
+<h1 class="mb-4">
+    Email History
+</h1>
+
+
+<div class="card shadow-sm">
+
+<div class="card-body">
+
+<table class="table table-striped">
+
+<thead>
+
+<tr>
+<th>Date</th>
+<th>Report</th>
+<th>Recipients</th>
+<th>Status</th>
+</tr>
+
+</thead>
+
+
+<tbody>
+
+{% for email in emails %}
+
+<tr>
+
+<td>
+{{ email.sent_at|company_date }}
+</td>
+
+
+<td>
+{{ email.report_type }}
+</td>
+
+
+<td>
+{{ email.recipients }}
+</td>
+
+
+<td>
+
+{% if email.status == 'sent' %}
+
+<span class="badge bg-success">
+Sent
+</span>
+
+{% else %}
+
+<span class="badge bg-danger">
+Failed
+</span>
+
+{% endif %}
+
+</td>
+
+</tr>
+
+{% else %}
+
+<tr>
+
+<td colspan="4"
+class="text-center text-muted">
+
+No email history found.
+
+</td>
+
+</tr>
+
+{% endfor %}
+
+</tbody>
+
+</table>
+
+</div>
+
+</div>
+
+{% endblock %}

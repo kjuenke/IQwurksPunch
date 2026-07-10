@@ -1,0 +1,91 @@
+{% extends "layouts/base.twig" %}
+
+{% block content %}
+
+<h1 class="mb-4">
+Payroll Summary
+</h1>
+
+
+<div class="card shadow-sm">
+
+<div class="card-body">
+
+
+<table class="table table-striped">
+
+
+<thead>
+
+<tr>
+
+<th>
+Employee
+</th>
+
+<th>
+Employee #
+</th>
+
+<th>
+Hours Worked
+</th>
+
+</tr>
+
+</thead>
+
+
+<tbody>
+
+
+{% for employee in summary %}
+
+<tr>
+
+<td>
+{{ employee.name }}
+</td>
+
+
+<td>
+{{ employee.employee_number }}
+</td>
+
+
+<td>
+{{ employee.hours }}
+</td>
+
+
+</tr>
+
+
+{% else %}
+
+<tr>
+
+<td colspan="3"
+class="text-center text-muted">
+
+No payroll data available.
+
+</td>
+
+</tr>
+
+{% endfor %}
+
+
+</tbody>
+
+
+</table>
+
+
+</div>
+
+</div>
+
+
+{% endblock %}

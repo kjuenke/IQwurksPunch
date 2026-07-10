@@ -63,7 +63,7 @@
 
 <li class="nav-item">
 
-<a class="nav-link"
+<a class="nav-link {% if activeMenu == 'dashboard' %}active{% endif %}"
    href="/dashboard">
 
 Dashboard
@@ -75,7 +75,7 @@ Dashboard
 
 <li class="nav-item">
 
-<a class="nav-link"
+<a class="nav-link {% if activeMenu == 'employees' %}active{% endif %}"
    href="/employees">
 
 Employees
@@ -87,7 +87,7 @@ Employees
 
 <li class="nav-item">
 
-<a class="nav-link"
+<a class="nav-link {% if activeMenu == 'punches' %}active{% endif %}"
    href="/punches">
 
 Punches
@@ -99,7 +99,7 @@ Punches
 
 <li class="nav-item">
 
-<a class="nav-link"
+<a class="nav-link {% if activeMenu == 'payroll' %}active{% endif %}"
    href="/payroll">
 
 Payroll
@@ -111,7 +111,7 @@ Payroll
 
 <li class="nav-item">
 
-<a class="nav-link"
+<a class="nav-link {% if activeMenu == 'reports' %}active{% endif %}"
    href="/reports">
 
 Reports
@@ -123,8 +123,8 @@ Reports
 
 <li class="nav-item">
 
-<a class="nav-link"
-   href="/settings">
+<a class="nav-link {% if activeMenu == 'settings' %}active{% endif %}"
+   href="/admin/settings">
 
 Settings
 
@@ -181,6 +181,22 @@ Logout
 
 <main class="container py-4">
 
+{% for message in flash %}
+
+<div class="alert alert-{{ message.type }} alert-dismissible fade show"
+     role="alert">
+
+    {{ message.message }}
+
+    <button
+        type="button"
+        class="btn-close"
+        data-bs-dismiss="alert">
+    </button>
+
+</div>
+
+{% endfor %}
 
 {% block content %}
 

@@ -1,0 +1,97 @@
+{% extends "layouts/base.twig" %}
+
+{% block content %}
+
+<h1>Change Employee PIN</h1>
+
+<div class="card">
+
+    <div class="card-body">
+
+        <form method="post">
+
+            <div class="mb-3">
+                <label class="form-label">
+                    Employee
+                </label>
+
+                <input
+                    class="form-control"
+                    value="{{ employee.employee_number }} - {{ employee.first_name }} {{ employee.last_name }}"
+                    disabled
+                >
+            </div>
+
+
+            <div class="mb-3">
+                <label class="form-label">
+                    New PIN
+                </label>
+
+                <input
+                    type="password"
+                    name="pin"
+                    maxlength="4"
+                    inputmode="numeric"
+                    class="form-control"
+                    autofocus
+                >
+            </div>
+
+
+            <div class="mb-3">
+                <label class="form-label">
+                    Confirm PIN
+                </label>
+
+                <input
+                    type="password"
+                    name="confirmation"
+                    maxlength="4"
+                    inputmode="numeric"
+                    class="form-control"
+                >
+            </div>
+
+
+            {% if errors %}
+
+            <div class="alert alert-danger">
+
+                <ul class="mb-0">
+
+                {% for error in errors %}
+
+                    <li>{{ error }}</li>
+
+                {% endfor %}
+
+                </ul>
+
+            </div>
+
+            {% endif %}
+
+
+            <button
+                type="submit"
+                class="btn btn-primary"
+            >
+                Save PIN
+            </button>
+
+
+            <a
+                href="/employees"
+                class="btn btn-secondary"
+            >
+                Cancel
+            </a>
+
+        </form>
+
+    </div>
+
+</div>
+
+{% endblock %}

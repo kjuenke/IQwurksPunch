@@ -1,0 +1,83 @@
+#!/usr/bin/env php
+<?php
+declare(strict_types=1);
+
+use App\Console\ConsoleApplication;
+use App\Console\Commands\ScheduleRunCommand;
+use App\Console\Commands\VersionCommand;
+use App\Core\AppInfo;
+use App\Core\Config;
+use App\Core\Database;
+use App\Repositories\CompanySettingsRepository;
+
+require __DIR__
+    . '/vendor/autoload.php';
+
+
+Config::load();
+
+
+try {
+
+    $repository =
+        new CompanySettingsRepository(
+            Database::connection()
+        );
+
+
+    $company =
+        $repository->get();
+
+
+    $timezone =
+        $company['timezone']
+        ??
+        'America/Los_Angeles';
+
+
+    if (
+        !in_array(
+            $timezone,
+            timezone_identifiers_list(),
+            true
+        )
+    ) {
+        $timezone =
+            'America/Los_Angeles';
+    }
+
+
+    date_default_timezone_set(
+        $timezone
+    );
+
+} catch (\Throwable $e) {
+
+    date_default_timezone_set(
+        'America/Los_Angeles'
+    );
+}
+
+
+$console =
+    new ConsoleApplication(
+        AppInfo::name(),
+        AppInfo::version()
+    );
+
+
+$console->register(
+    new VersionCommand()
+);
+
+
+$console->register(
+    new ScheduleRunCommand()
+);
+
+
+exit(
+    $console->run(
+        $argv
+    )
+);

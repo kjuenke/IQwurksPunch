@@ -1,0 +1,59 @@
+{% extends "layouts/base.twig" %}
+
+{% block content %}
+
+<div class="container text-center">
+
+<h1 class="mb-4">
+Enter PIN
+</h1>
+
+
+<div class="card shadow-sm mx-auto"
+     style="max-width:400px;">
+
+<div class="card-body">
+
+
+<p class="lead">
+
+{{ employee.first_name }}
+{{ employee.last_name }}
+
+</p>
+
+
+<form method="post"
+      action="/kiosk/verify-pin">
+
+
+<input
+    type="password"
+    name="pin"
+    maxlength="4"
+    inputmode="numeric"
+    class="form-control form-control-lg text-center mb-3"
+    autofocus
+>
+
+
+<button
+    class="btn btn-success btn-lg w-100"
+    type="submit"
+>
+
+Continue
+
+</button>
+
+
+</form>
+
+
+</div>
+
+</div>
+
+</div>
+
+{% endblock %}

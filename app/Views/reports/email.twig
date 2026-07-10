@@ -1,0 +1,298 @@
+{% extends "layouts/base.twig" %}
+
+{% block content %}
+
+<h1 class="mb-4">
+    Email Reports
+</h1>
+
+
+<div class="row g-4">
+
+
+<div class="col-lg-6">
+
+<div class="card shadow-sm h-100">
+
+<div class="card-body">
+
+
+<h5 class="card-title">
+    Daily Payroll Report
+</h5>
+
+
+<p class="text-muted">
+
+Generate the current daily payroll summary and send it
+to every configured report recipient.
+
+</p>
+
+
+<div class="alert alert-info">
+
+<i class="bi bi-people"></i>
+
+{{ recipientCount }}
+configured
+{% if recipientCount == 1 %}
+recipient
+{% else %}
+recipients
+{% endif %}
+
+</div>
+
+
+<form method="post"
+      action="/reports/email/send-daily"
+      onsubmit="sendReport();">
+
+
+<button id="sendReportButton"
+        class="btn btn-primary"
+        type="submit">
+
+<i class="bi bi-envelope"></i>
+
+<span id="sendReportText">
+Send Daily Payroll Report
+</span>
+
+</button>
+
+
+<a href="/reports/email-history"
+   class="btn btn-outline-secondary ms-2">
+
+<i class="bi bi-clock-history"></i>
+
+View Email History
+
+</a>
+
+
+</form>
+
+
+</div>
+
+</div>
+
+</div>
+
+
+
+<div class="col-lg-6">
+
+<div class="card shadow-sm h-100">
+
+<div class="card-body">
+
+
+<h5 class="card-title">
+    Automatic Delivery
+</h5>
+
+
+<p class="text-muted">
+
+Automatically send the daily payroll report at the
+configured company-local time.
+
+</p>
+
+
+<form method="post"
+      action="/reports/email/schedule"
+      onsubmit="saveSchedule();">
+
+
+<div class="form-check form-switch mb-3">
+
+<input
+    class="form-check-input"
+    type="checkbox"
+    role="switch"
+    id="enabled"
+    name="enabled"
+    {% if schedule.enabled %}
+    checked
+    {% endif %}
+>
+
+<label class="form-check-label"
+       for="enabled">
+
+Enable automatic report delivery
+
+</label>
+
+</div>
+
+
+
+<div class="mb-3">
+
+<label class="form-label"
+       for="send_time">
+
+Send Time
+
+</label>
+
+<input
+    type="time"
+    class="form-control"
+    id="send_time"
+    name="send_time"
+    value="{{ schedule.send_time|default('18:00') }}"
+    required
+>
+
+<div class="form-text">
+
+Uses the timezone configured in Company Settings.
+
+</div>
+
+</div>
+
+
+
+<div class="form-check mb-3">
+
+<input
+    class="form-check-input"
+    type="checkbox"
+    id="weekdays_only"
+    name="weekdays_only"
+    {% if schedule.weekdays_only %}
+    checked
+    {% endif %}
+>
+
+<label class="form-check-label"
+       for="weekdays_only">
+
+Send Monday through Friday only
+
+</label>
+
+</div>
+
+
+
+{% if schedule.last_sent_at %}
+
+<div class="alert alert-secondary">
+
+<strong>
+Last automatic send:
+</strong>
+
+{{ schedule.last_sent_at|company_date }}
+
+</div>
+
+{% else %}
+
+<div class="alert alert-secondary">
+
+No automatic report has been sent yet.
+
+</div>
+
+{% endif %}
+
+
+
+<button id="saveScheduleButton"
+        class="btn btn-success"
+        type="submit">
+
+<i class="bi bi-save"></i>
+
+<span id="saveScheduleText">
+Save Schedule
+</span>
+
+</button>
+
+
+</form>
+
+
+</div>
+
+</div>
+
+</div>
+
+
+</div>
+
+
+
+<script>
+
+function sendReport()
+{
+    const button =
+        document.getElementById(
+            'sendReportButton'
+        );
+
+
+    const text =
+        document.getElementById(
+            'sendReportText'
+        );
+
+
+    button.disabled = true;
+
+
+    text.innerHTML =
+        'Sending Report...';
+
+
+    button.insertAdjacentHTML(
+        'afterbegin',
+        '<span class="spinner-border spinner-border-sm me-2"></span>'
+    );
+}
+
+
+function saveSchedule()
+{
+    const button =
+        document.getElementById(
+            'saveScheduleButton'
+        );
+
+
+    const text =
+        document.getElementById(
+            'saveScheduleText'
+        );
+
+
+    button.disabled = true;
+
+
+    text.innerHTML =
+        'Saving Schedule...';
+
+
+    button.insertAdjacentHTML(
+        'afterbegin',
+        '<span class="spinner-border spinner-border-sm me-2"></span>'
+    );
+}
+
+</script>
+
+
+{% endblock %}

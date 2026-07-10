@@ -1,0 +1,50 @@
+{% extends "layouts/base.twig" %}
+
+{% block content %}
+
+<div class="container text-center">
+
+    <h1 class="mb-4">
+        Employee Clock
+    </h1>
+
+
+    <div class="card shadow-sm mx-auto"
+         style="max-width:400px;">
+
+        <div class="card-body">
+
+            <form method="post"
+                  action="/kiosk/authenticate">
+
+
+                <label class="form-label">
+                    Employee Number
+                </label>
+
+
+                <input
+                    type="text"
+                    name="employee_number"
+                    class="form-control form-control-lg text-center mb-3"
+                    autofocus
+                >
+
+
+                <button
+                    class="btn btn-primary btn-lg w-100"
+                    type="submit"
+                >
+                    Continue
+                </button>
+
+
+            </form>
+
+        </div>
+
+    </div>
+
+</div>
+
+{% endblock %}

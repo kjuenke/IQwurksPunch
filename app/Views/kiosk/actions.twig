@@ -1,0 +1,112 @@
+{% extends "layouts/base.twig" %}
+
+{% block content %}
+
+<div class="container text-center">
+
+<h1>
+Hello {{ employee.first_name }}
+{{ employee.last_name }}
+</h1>
+
+
+<div class="card shadow-sm mx-auto my-4"
+     style="max-width:400px;">
+
+<div class="card-body">
+
+
+<h4>
+Current Status
+</h4>
+
+
+<h2>
+
+{% if status.state == 'working' %}
+
+<span class="text-success">
+{{ status.label }}
+</span>
+
+{% else %}
+
+<span class="text-secondary">
+{{ status.label }}
+</span>
+
+{% endif %}
+
+</h2>
+
+
+{% if status.punch %}
+
+<p>
+Last punch:
+<br>
+
+{{ status.punch.punch_time }}
+
+</p>
+
+{% endif %}
+
+
+</div>
+
+</div>
+
+
+<div class="d-grid gap-3 mx-auto"
+     style="max-width:400px;">
+
+
+{% if status.state == 'working' %}
+
+<form method="post"
+      action="/kiosk/punch">
+
+<input type="hidden"
+       name="type"
+       value="clock_out">
+
+<button
+class="btn btn-danger btn-lg w-100">
+
+Clock Out
+
+</button>
+
+</form>
+
+
+{% else %}
+
+
+<form method="post"
+      action="/kiosk/punch">
+
+<input type="hidden"
+       name="type"
+       value="clock_in">
+
+<button
+class="btn btn-success btn-lg w-100">
+
+Clock In
+
+</button>
+
+</form>
+
+
+{% endif %}
+
+
+</div>
+
+
+</div>
+
+{% endblock %}

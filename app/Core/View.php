@@ -5,6 +5,8 @@ namespace App\Core;
 
 use Twig\Environment;
 use Twig\Loader\FilesystemLoader;
+use Twig\TwigFilter;
+use App\Repositories\CompanySettingsRepository;
 
 class View
 {
@@ -17,6 +19,7 @@ class View
             __DIR__ . '/../Views'
         );
 
+
         $this->twig = new Environment(
             $loader,
             [
@@ -25,7 +28,73 @@ class View
                 'auto_reload' => true,
             ]
         );
+
+
+        $this->twig->addFilter(
+            new TwigFilter(
+                'company_date',
+                function (?string $date): string {
+
+                    if (empty($date)) {
+                        return '';
+                    }
+
+
+                    try {
+
+                        $timezone =
+                            date_default_timezone_get();
+
+
+                        $settings =
+                            new CompanySettingsRepository(
+                                Database::connection()
+                            );
+
+
+                        $company =
+                            $settings->get();
+
+
+                        if (
+                            !empty(
+                                $company['timezone']
+                            )
+                        ) {
+
+                            $timezone =
+                                $company['timezone'];
+                        }
+
+
+                        $datetime =
+                            new \DateTime(
+                                $date,
+                                new \DateTimeZone('UTC')
+                            );
+
+
+                        $datetime->setTimezone(
+                            new \DateTimeZone(
+                                $timezone
+                            )
+                        );
+
+
+                        return $datetime->format(
+                            'Y-m-d h:i A T'
+                        );
+
+
+                    } catch (\Throwable $e) {
+
+                        return $date;
+                    }
+                }
+            )
+        );
     }
+
 
 
     public function render(
@@ -36,11 +105,18 @@ class View
         $data['appName'] =
             AppInfo::name();
 
+
         $data['appVersion'] =
             AppInfo::version();
 
+
         $data['companyName'] =
             AppInfo::company();
+
+
+        $data['flash'] =
+            Flash::get();
+
 
         echo $this->twig->render(
             $template,

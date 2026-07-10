@@ -1,16 +1,45 @@
+# Composer dependencies
 /vendor/
+
+# Environment and secrets
+.env
+.env.*
+config/mail.php
+
+# Runtime databases
+/database/sqlite/*.sqlite
+/database/sqlite/*.sqlite-shm
+/database/sqlite/*.sqlite-wal
+/database/sqlite/*.sqlite-journal
+
+# Logs
 /storage/logs/*
 !/storage/logs/.gitkeep
 
+# Backups
 /storage/backups/*
 !/storage/backups/.gitkeep
 
-/storage/exports/*
-!/storage/exports/.gitkeep
+# Cache and temporary files
+/storage/cache/*
+!/storage/cache/.gitkeep
+/tmp/
+*.tmp
 
-/storage/sessions/*
-!/storage/sessions/.gitkeep
+# Development server output
+*.log
 
-/database/sqlite/*.sqlite
+# IDE files
+.idea/
+.vscode/
+*.swp
+*.swo
 
-.env
+# Operating system files
+.DS_Store
+Thumbs.db
+
+# Local backup files
+*.backup
+*.bak
+*~

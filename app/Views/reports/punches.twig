@@ -1,0 +1,108 @@
+{% extends "layouts/base.twig" %}
+
+{% block content %}
+
+<h1 class="mb-4">
+Today's Punches
+</h1>
+
+
+<div class="card shadow-sm">
+
+<div class="card-body">
+
+
+<table class="table table-striped">
+
+<thead>
+
+<tr>
+
+<th>
+Employee
+</th>
+
+<th>
+Time
+</th>
+
+<th>
+Action
+</th>
+
+</tr>
+
+</thead>
+
+
+<tbody>
+
+
+{% for punch in punches %}
+
+<tr>
+
+<td>
+{{ punch.first_name }}
+{{ punch.last_name }}
+</td>
+
+
+<td>
+{{ punch.punch_time|company_date }}
+</td>
+
+
+<td>
+
+{% if punch.punch_type == 'clock_in' %}
+
+<span class="badge bg-success">
+Clock In
+</span>
+
+{% elseif punch.punch_type == 'clock_out' %}
+
+<span class="badge bg-danger">
+Clock Out
+</span>
+
+{% else %}
+
+<span class="badge bg-secondary">
+{{ punch.punch_type }}
+</span>
+
+{% endif %}
+
+</td>
+
+</tr>
+
+
+{% else %}
+
+<tr>
+
+<td colspan="3"
+class="text-center text-muted">
+
+No punches today.
+
+</td>
+
+</tr>
+
+{% endfor %}
+
+
+</tbody>
+
+</table>
+
+
+</div>
+
+</div>
+
+{% endblock %}
