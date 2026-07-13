@@ -4,8 +4,7 @@ declare(strict_types=1);
 namespace App\Console\Commands;
 
 use App\Console\CommandInterface;
-use App\Core\Database;
-use App\Logging\LoggerFactory;
+use App\Core\Services;
 use App\Logging\LoggerInterface;
 use App\Repositories\ReportScheduleRepository;
 use App\Services\ReportEmailService;
@@ -25,7 +24,7 @@ class ScheduleRunCommand implements CommandInterface
     {
         $repository =
             new ReportScheduleRepository(
-                Database::connection()
+                Services::database()
             );
 
 
@@ -40,7 +39,7 @@ class ScheduleRunCommand implements CommandInterface
 
 
         $this->logger =
-            LoggerFactory::create(
+            Services::logger(
                 'scheduler'
             );
     }
