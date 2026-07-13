@@ -4,7 +4,7 @@ declare(strict_types=1);
 namespace App\Controllers;
 
 use App\Repositories\EmailRepository;
-use App\Core\Database;
+use App\Core\Container;
 
 class EmailHistoryController extends Controller
 {
@@ -14,9 +14,7 @@ class EmailHistoryController extends Controller
     public function __construct()
     {
         $this->emails =
-            new EmailRepository(
-                Database::connection()
-            );
+            Container::emailRepository();
     }
 
 
