@@ -4,16 +4,21 @@ declare(strict_types=1);
 namespace App\Services;
 
 use App\Core\Database;
+use App\Logging\LoggerFactory;
+use App\Logging\LoggerInterface;
 use App\Repositories\CompanySettingsRepository;
-use App\Repositories\EmailRepository;
 use App\Repositories\PunchRepository;
+use Throwable;
 
 class ReportEmailService
 {
     private PunchReportService $reports;
+
     private MailService $mail;
+
     private CompanySettingsRepository $settings;
-    private EmailRepository $emails;
+
+    private LoggerInterface $logger;
 
 
     public function __construct()
@@ -40,108 +45,179 @@ class ReportEmailService
             );
 
 
-        $this->emails =
-            new EmailRepository(
-                $db
+        $this->logger =
+            LoggerFactory::create(
+                'reports'
             );
     }
 
 
-
     public function sendDailyPayrollReport(): bool
     {
-        $summary =
-            $this->reports->dailySummary();
-
-
-        $company =
-            $this->settings->get();
-
-
-        $companyName =
-            $company['company_name']
-            ??
-            'Company';
-
-
-        $body =
-            $companyName
-            .
-            " Daily Payroll Report\n\n";
-
-
-        $body .=
-            "Date: "
-            .
-            date('Y-m-d')
-            .
-            "\n\n";
-
-
-        foreach ($summary as $employee) {
-
-            $body .=
-                $employee['name']
-                .
-                " ("
-                .
-                $employee['employee_number']
-                .
-                ")\n";
-
-
-            $body .=
-                "Hours: "
-                .
-                $employee['hours']
-                .
-                "\n\n";
-        }
-
-
-        $config =
-            require __DIR__
-            .
-            '/../../config/mail.php';
-
-
-        $recipients =
-            implode(
-                ', ',
-                $config['recipients']
+        $reportDate =
+            date(
+                'Y-m-d'
             );
+
+
+        $this->logger->info(
+            'Daily payroll report generation started.',
+            [
+                'report_type' =>
+                    'daily_payroll',
+
+                'report_date' =>
+                    $reportDate,
+            ]
+        );
 
 
         try {
 
+            $summary =
+                $this->reports->dailySummary();
+
+
+            $company =
+                $this->settings->get();
+
+
+            $companyName =
+                $company['company_name']
+                ??
+                'Company';
+
+
+            $body =
+                $companyName
+                .
+                " Daily Payroll Report\n\n";
+
+
+            $body .=
+                'Date: '
+                .
+                $reportDate
+                .
+                "\n\n";
+
+
+            foreach ($summary as $employee) {
+
+                $body .=
+                    $employee['name']
+                    .
+                    ' ('
+                    .
+                    $employee['employee_number']
+                    .
+                    ")\n";
+
+
+                $body .=
+                    'Hours: '
+                    .
+                    $employee['hours']
+                    .
+                    "\n\n";
+            }
+
+
+            $this->logger->info(
+                'Daily payroll report generated.',
+                [
+                    'report_type' =>
+                        'daily_payroll',
+
+                    'report_date' =>
+                        $reportDate,
+
+                    'employee_count' =>
+                        count(
+                            $summary
+                        ),
+                ]
+            );
+
+
             $sent =
                 $this->mail->send(
-                    $companyName . ' Daily Payroll Report',
+                    $companyName
+                    .
+                    ' Daily Payroll Report',
                     $body
                 );
 
 
-            $this->emails->create(
-                'Daily Payroll Report',
-                $recipients,
-                'sent'
+            if (!$sent) {
+
+                $this->logger->error(
+                    'Daily payroll report delivery returned a failure result.',
+                    [
+                        'report_type' =>
+                            'daily_payroll',
+
+                        'report_date' =>
+                            $reportDate,
+
+                        'employee_count' =>
+                            count(
+                                $summary
+                            ),
+                    ]
+                );
+
+
+                return false;
+            }
+
+
+            $this->logger->info(
+                'Daily payroll report delivery completed successfully.',
+                [
+                    'report_type' =>
+                        'daily_payroll',
+
+                    'report_date' =>
+                        $reportDate,
+
+                    'employee_count' =>
+                        count(
+                            $summary
+                        ),
+                ]
             );
 
 
-            return $sent;
+            return true;
 
+        } catch (Throwable $exception) {
 
-        } catch (\Throwable $e) {
+            $this->logger->error(
+                'Daily payroll report processing failed.',
+                [
+                    'report_type' =>
+                        'daily_payroll',
 
+                    'report_date' =>
+                        $reportDate,
 
-            $this->emails->create(
-                'Daily Payroll Report',
-                $recipients,
-                'failed'
+                    'exception_class' =>
+                        $exception::class,
+
+                    'exception_message' =>
+                        $exception->getMessage(),
+
+                    'exception_file' =>
+                        $exception->getFile(),
+
+                    'exception_line' =>
+                        $exception->getLine(),
+                ]
             );
 
 
-            throw $e;
+            throw $exception;
         }
     }
 }
