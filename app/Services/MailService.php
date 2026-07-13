@@ -3,7 +3,7 @@ declare(strict_types=1);
 
 namespace App\Services;
 
-use App\Core\Services;
+use App\Core\Container;
 use App\Logging\LoggerInterface;
 use App\Repositories\EmailRepository;
 use Symfony\Component\Mailer\Mailer;
@@ -30,12 +30,12 @@ class MailService
 
         $this->emails =
             new EmailRepository(
-                Services::database()
+                Container::db()
             );
 
 
         $this->logger =
-            Services::logger(
+            Container::logger(
                 'mail'
             );
     }

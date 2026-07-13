@@ -3,7 +3,7 @@ declare(strict_types=1);
 
 namespace App\Services;
 
-use App\Core\Services;
+use App\Core\Container;
 use App\Logging\LoggerInterface;
 use App\Repositories\CompanySettingsRepository;
 use App\Repositories\PunchRepository;
@@ -23,7 +23,7 @@ class ReportEmailService
     public function __construct()
     {
         $db =
-            Services::database();
+            Container::db();
 
 
         $this->reports =
@@ -45,7 +45,7 @@ class ReportEmailService
 
 
         $this->logger =
-            Services::logger(
+            Container::logger(
                 'reports'
             );
     }

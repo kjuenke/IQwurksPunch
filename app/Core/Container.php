@@ -3,90 +3,143 @@ declare(strict_types=1);
 
 namespace App\Core;
 
-use PDO;
+use App\Logging\LoggerFactory;
+use App\Logging\LoggerInterface;
 use App\Repositories\AuditRepository;
 use App\Repositories\EmployeeRepository;
+use App\Repositories\PunchRepository;
 use App\Services\AuditService;
 use App\Services\EmployeeService;
-use App\Repositories\PunchRepository;
 use App\Services\PunchService;
+use PDO;
 
-class Container
+final class Container
 {
     private static ?PDO $db = null;
 
+    /**
+     * @var array<string,LoggerInterface>
+     */
+    private static array $loggers = [];
+
     private static ?EmployeeRepository $employeeRepository = null;
+
     private static ?AuditRepository $auditRepository = null;
 
-    private static ?EmployeeService $employeeService = null;
-    private static ?AuditService $auditService = null;
     private static ?PunchRepository $punchRepository = null;
+
+    private static ?EmployeeService $employeeService = null;
+
+    private static ?AuditService $auditService = null;
+
     private static ?PunchService $punchService = null;
+
 
     public static function db(): PDO
     {
         if (self::$db === null) {
-            self::$db = Database::connection();
+
+            self::$db =
+                Database::connection();
         }
+
 
         return self::$db;
     }
 
+
+    public static function logger(
+        string $channel = 'application'
+    ): LoggerInterface
+    {
+        if (
+            !isset(
+                self::$loggers[$channel]
+            )
+        ) {
+            self::$loggers[$channel] =
+                LoggerFactory::create(
+                    $channel
+                );
+        }
+
+
+        return self::$loggers[$channel];
+    }
+
+
     public static function employeeRepository(): EmployeeRepository
     {
         if (self::$employeeRepository === null) {
-            self::$employeeRepository = new EmployeeRepository(
-                self::db()
-            );
+
+            self::$employeeRepository =
+                new EmployeeRepository(
+                    self::db()
+                );
         }
+
 
         return self::$employeeRepository;
     }
 
+
     public static function auditRepository(): AuditRepository
     {
         if (self::$auditRepository === null) {
-            self::$auditRepository = new AuditRepository(
-                self::db()
-            );
+
+            self::$auditRepository =
+                new AuditRepository(
+                    self::db()
+                );
         }
+
 
         return self::$auditRepository;
     }
 
-    public static function employeeService(): EmployeeService
-    {
-        if (self::$employeeService === null) {
-            self::$employeeService = new EmployeeService(
-                self::employeeRepository()
-            );
-        }
-
-        return self::$employeeService;
-    }
-
-    public static function auditService(): AuditService
-    {
-        if (self::$auditService === null) {
-            self::$auditService = new AuditService(
-                self::auditRepository()
-            );
-        }
-
-        return self::$auditService;
-    }
 
     public static function punchRepository(): PunchRepository
     {
         if (self::$punchRepository === null) {
 
-            self::$punchRepository = new PunchRepository(
-                self::db()
-            );
-
+            self::$punchRepository =
+                new PunchRepository(
+                    self::db()
+                );
         }
 
+
         return self::$punchRepository;
+    }
+
+
+    public static function employeeService(): EmployeeService
+    {
+        if (self::$employeeService === null) {
+
+            self::$employeeService =
+                new EmployeeService(
+                    self::employeeRepository()
+                );
+        }
+
+
+        return self::$employeeService;
+    }
+
+
+    public static function auditService(): AuditService
+    {
+        if (self::$auditService === null) {
+
+            self::$auditService =
+                new AuditService(
+                    self::auditRepository()
+                );
+        }
+
+
+        return self::$auditService;
     }
 
 
@@ -94,14 +147,33 @@ class Container
     {
         if (self::$punchService === null) {
 
-            self::$punchService = new PunchService(
-                self::punchRepository()
-            );
-
+            self::$punchService =
+                new PunchService(
+                    self::punchRepository()
+                );
         }
+
 
         return self::$punchService;
     }
 
-}
 
+    public static function clear(): void
+    {
+        self::$db = null;
+
+        self::$loggers = [];
+
+        self::$employeeRepository = null;
+
+        self::$auditRepository = null;
+
+        self::$punchRepository = null;
+
+        self::$employeeService = null;
+
+        self::$auditService = null;
+
+        self::$punchService = null;
+    }
+}
