@@ -7,7 +7,7 @@ use App\Console\Commands\ScheduleRunCommand;
 use App\Console\Commands\VersionCommand;
 use App\Core\AppInfo;
 use App\Core\Config;
-use App\Core\Database;
+use App\Core\Services;
 use App\Repositories\CompanySettingsRepository;
 
 require __DIR__
@@ -21,7 +21,7 @@ try {
 
     $repository =
         new CompanySettingsRepository(
-            Database::connection()
+            Services::database()
         );
 
 
