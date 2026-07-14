@@ -9,251 +9,513 @@
 
 <div class="card shadow-sm">
 
-<div class="card-body">
+    <div class="card-body">
 
 
-<form method="post"
-      action="/admin/settings">
+        <form method="post"
+              action="/admin/settings">
 
 
-<div class="mb-3">
+            <h2 class="h4 mb-3">
+                Company Information
+            </h2>
 
-<label class="form-label">
-Company Name
-</label>
 
-<input
-type="text"
-name="company_name"
-class="form-control"
-value="{{ settings.company_name }}"
->
+            <div class="mb-3">
 
-</div>
+                <label class="form-label">
+                    Company Name
+                </label>
 
+                <input
+                    type="text"
+                    name="company_name"
+                    class="form-control"
+                    value="{{ settings.company_name }}"
+                >
 
+            </div>
 
-<div class="mb-3">
 
-<label class="form-label">
-Address
-</label>
+            <div class="mb-3">
 
-<input
-type="text"
-name="address"
-class="form-control"
-value="{{ settings.address }}"
->
+                <label class="form-label">
+                    Address
+                </label>
 
-</div>
+                <input
+                    type="text"
+                    name="address"
+                    class="form-control"
+                    value="{{ settings.address }}"
+                >
 
+            </div>
 
 
-<div class="row">
+            <div class="row">
 
 
-<div class="col-md-5 mb-3">
+                <div class="col-md-5 mb-3">
 
-<label class="form-label">
-City
-</label>
+                    <label class="form-label">
+                        City
+                    </label>
 
-<input
-type="text"
-name="city"
-class="form-control"
-value="{{ settings.city }}"
->
+                    <input
+                        type="text"
+                        name="city"
+                        class="form-control"
+                        value="{{ settings.city }}"
+                    >
 
-</div>
+                </div>
 
 
+                <div class="col-md-3 mb-3">
 
-<div class="col-md-3 mb-3">
+                    <label class="form-label">
+                        State
+                    </label>
 
-<label class="form-label">
-State
-</label>
+                    <input
+                        type="text"
+                        name="state"
+                        class="form-control"
+                        value="{{ settings.state }}"
+                    >
 
-<input
-type="text"
-name="state"
-class="form-control"
-value="{{ settings.state }}"
->
+                </div>
 
-</div>
 
+                <div class="col-md-4 mb-3">
 
+                    <label class="form-label">
+                        ZIP
+                    </label>
 
-<div class="col-md-4 mb-3">
+                    <input
+                        type="text"
+                        name="zip"
+                        class="form-control"
+                        value="{{ settings.zip }}"
+                    >
 
-<label class="form-label">
-ZIP
-</label>
+                </div>
 
-<input
-type="text"
-name="zip"
-class="form-control"
-value="{{ settings.zip }}"
->
 
-</div>
+            </div>
 
 
-</div>
+            <div class="row">
 
 
+                <div class="col-md-6 mb-3">
 
-<div class="row">
+                    <label class="form-label">
+                        Phone
+                    </label>
 
+                    <input
+                        type="text"
+                        name="phone"
+                        class="form-control"
+                        value="{{ settings.phone }}"
+                    >
 
-<div class="col-md-6 mb-3">
+                </div>
 
-<label class="form-label">
-Phone
-</label>
 
-<input
-type="text"
-name="phone"
-class="form-control"
-value="{{ settings.phone }}"
->
+                <div class="col-md-6 mb-3">
 
-</div>
+                    <label class="form-label">
+                        Email
+                    </label>
 
+                    <input
+                        type="email"
+                        name="email"
+                        class="form-control"
+                        value="{{ settings.email }}"
+                    >
 
+                </div>
 
-<div class="col-md-6 mb-3">
 
-<label class="form-label">
-Email
-</label>
+            </div>
 
-<input
-type="email"
-name="email"
-class="form-control"
-value="{{ settings.email }}"
->
 
-</div>
+            <div class="mb-3">
 
+                <label class="form-label">
+                    Timezone
+                </label>
 
-</div>
 
+                <select
+                    name="timezone"
+                    class="form-select"
+                >
 
 
+                    <option value="America/Los_Angeles"
+                        {% if settings.timezone == 'America/Los_Angeles' %}
+                        selected
+                        {% endif %}
+                    >
+                        Pacific Time
+                    </option>
 
-<div class="mb-3">
 
-<label class="form-label">
-Timezone
-</label>
+                    <option value="America/Denver"
+                        {% if settings.timezone == 'America/Denver' %}
+                        selected
+                        {% endif %}
+                    >
+                        Mountain Time
+                    </option>
 
 
-<select
-name="timezone"
-class="form-select"
->
+                    <option value="America/Chicago"
+                        {% if settings.timezone == 'America/Chicago' %}
+                        selected
+                        {% endif %}
+                    >
+                        Central Time
+                    </option>
 
 
-<option value="America/Los_Angeles"
-{% if settings.timezone == 'America/Los_Angeles' %}
-selected
-{% endif %}
->
-Pacific Time
-</option>
+                    <option value="America/New_York"
+                        {% if settings.timezone == 'America/New_York' %}
+                        selected
+                        {% endif %}
+                    >
+                        Eastern Time
+                    </option>
 
 
-<option value="America/Denver"
-{% if settings.timezone == 'America/Denver' %}
-selected
-{% endif %}
->
-Mountain Time
-</option>
+                </select>
 
+            </div>
 
-<option value="America/Chicago"
-{% if settings.timezone == 'America/Chicago' %}
-selected
-{% endif %}
->
-Central Time
-</option>
 
+            <div class="mb-3">
 
-<option value="America/New_York"
-{% if settings.timezone == 'America/New_York' %}
-selected
-{% endif %}
->
-Eastern Time
-</option>
+                <label class="form-label">
+                    Pay Period Start
+                </label>
 
 
-</select>
+                <select
+                    name="pay_period_start"
+                    class="form-select"
+                >
 
-</div>
 
+                    <option value="monday"
+                        {% if settings.pay_period_start == 'monday' %}
+                        selected
+                        {% endif %}
+                    >
+                        Monday
+                    </option>
 
 
+                    <option value="sunday"
+                        {% if settings.pay_period_start == 'sunday' %}
+                        selected
+                        {% endif %}
+                    >
+                        Sunday
+                    </option>
 
-<div class="mb-3">
 
-<label class="form-label">
-Pay Period Start
-</label>
+                </select>
 
+            </div>
 
-<select
-name="pay_period_start"
-class="form-select"
->
 
+            <hr class="my-4">
 
-<option value="monday"
-{% if settings.pay_period_start == 'monday' %}
-selected
-{% endif %}
->
-Monday
-</option>
 
+            <h2 class="h4 mb-3">
+                Payroll Policy
+            </h2>
 
-<option value="sunday"
-{% if settings.pay_period_start == 'sunday' %}
-selected
-{% endif %}
->
-Sunday
-</option>
 
+            <div class="row">
 
-</select>
 
-</div>
+                <div class="col-md-6 mb-3">
 
+                    <label class="form-label">
+                        Daily Overtime Threshold
+                    </label>
 
+                    <div class="input-group">
 
-<button class="btn btn-primary">
+                        <input
+                            type="number"
+                            name="daily_overtime_hours"
+                            class="form-control"
+                            min="0"
+                            max="24"
+                            step="0.25"
+                            value="{{ settings.daily_overtime_hours|default(8) }}"
+                        >
 
-<i class="bi bi-save"></i>
+                        <span class="input-group-text">
+                            hours
+                        </span>
 
-Save Settings
+                    </div>
 
-</button>
+                </div>
 
 
-</form>
+                <div class="col-md-6 mb-3">
 
+                    <label class="form-label">
+                        Weekly Overtime Threshold
+                    </label>
 
-</div>
+                    <div class="input-group">
+
+                        <input
+                            type="number"
+                            name="weekly_overtime_hours"
+                            class="form-control"
+                            min="0"
+                            max="168"
+                            step="0.25"
+                            value="{{ settings.weekly_overtime_hours|default(40) }}"
+                        >
+
+                        <span class="input-group-text">
+                            hours
+                        </span>
+
+                    </div>
+
+                </div>
+
+
+            </div>
+
+
+            <div class="row">
+
+
+                <div class="col-md-6 mb-3">
+
+                    <label class="form-label">
+                        Punch Rounding Interval
+                    </label>
+
+                    {% set roundingMinutes =
+                        settings.rounding_minutes|default(15)
+                    %}
+
+                    <select
+                        name="rounding_minutes"
+                        class="form-select"
+                    >
+
+                        <option value="0"
+                            {% if roundingMinutes == 0 %}
+                            selected
+                            {% endif %}
+                        >
+                            No rounding
+                        </option>
+
+                        <option value="5"
+                            {% if roundingMinutes == 5 %}
+                            selected
+                            {% endif %}
+                        >
+                            5 minutes
+                        </option>
+
+                        <option value="6"
+                            {% if roundingMinutes == 6 %}
+                            selected
+                            {% endif %}
+                        >
+                            6 minutes
+                        </option>
+
+                        <option value="10"
+                            {% if roundingMinutes == 10 %}
+                            selected
+                            {% endif %}
+                        >
+                            10 minutes
+                        </option>
+
+                        <option value="15"
+                            {% if roundingMinutes == 15 %}
+                            selected
+                            {% endif %}
+                        >
+                            15 minutes
+                        </option>
+
+                        <option value="30"
+                            {% if roundingMinutes == 30 %}
+                            selected
+                            {% endif %}
+                        >
+                            30 minutes
+                        </option>
+
+                    </select>
+
+                </div>
+
+
+                <div class="col-md-6 mb-3">
+
+                    <label class="form-label">
+                        Punch Rounding Direction
+                    </label>
+
+                    {% set roundingMode =
+                        settings.rounding_mode|default('nearest')
+                    %}
+
+                    <select
+                        name="rounding_mode"
+                        class="form-select"
+                    >
+
+                        <option value="nearest"
+                            {% if roundingMode == 'nearest' %}
+                            selected
+                            {% endif %}
+                        >
+                            Nearest interval
+                        </option>
+
+                        <option value="up"
+                            {% if roundingMode == 'up' %}
+                            selected
+                            {% endif %}
+                        >
+                            Always round up
+                        </option>
+
+                        <option value="down"
+                            {% if roundingMode == 'down' %}
+                            selected
+                            {% endif %}
+                        >
+                            Always round down
+                        </option>
+
+                    </select>
+
+                </div>
+
+
+            </div>
+
+
+            <div class="form-check form-switch mb-3">
+
+                <input
+                    class="form-check-input"
+                    type="checkbox"
+                    id="meal_deduction_enabled"
+                    name="meal_deduction_enabled"
+                    {% if settings.meal_deduction_enabled|default(1) %}
+                    checked
+                    {% endif %}
+                >
+
+                <label
+                    class="form-check-label"
+                    for="meal_deduction_enabled"
+                >
+                    Enable automatic meal deduction
+                </label>
+
+            </div>
+
+
+            <div class="row">
+
+
+                <div class="col-md-6 mb-3">
+
+                    <label class="form-label">
+                        Automatic Meal Deduction
+                    </label>
+
+                    <div class="input-group">
+
+                        <input
+                            type="number"
+                            name="meal_deduction_minutes"
+                            class="form-control"
+                            min="0"
+                            max="240"
+                            step="1"
+                            value="{{ settings.meal_deduction_minutes|default(30) }}"
+                        >
+
+                        <span class="input-group-text">
+                            minutes
+                        </span>
+
+                    </div>
+
+                </div>
+
+
+                <div class="col-md-6 mb-3">
+
+                    <label class="form-label">
+                        Paid Break Allowance
+                    </label>
+
+                    <div class="input-group">
+
+                        <input
+                            type="number"
+                            name="paid_break_minutes"
+                            class="form-control"
+                            min="0"
+                            max="240"
+                            step="1"
+                            value="{{ settings.paid_break_minutes|default(20) }}"
+                        >
+
+                        <span class="input-group-text">
+                            minutes per day
+                        </span>
+
+                    </div>
+
+                </div>
+
+
+            </div>
+
+
+            <button class="btn btn-primary">
+
+                <i class="bi bi-save"></i>
+
+                Save Settings
+
+            </button>
+
+
+        </form>
+
+
+    </div>
 
 </div>
 

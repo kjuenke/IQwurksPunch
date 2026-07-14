@@ -65,6 +65,20 @@ class CompanySettingsRepository
 
                 pay_period_start = :pay_period_start,
 
+                daily_overtime_hours = :daily_overtime_hours,
+
+                weekly_overtime_hours = :weekly_overtime_hours,
+
+                rounding_minutes = :rounding_minutes,
+
+                rounding_mode = :rounding_mode,
+
+                meal_deduction_enabled = :meal_deduction_enabled,
+
+                meal_deduction_minutes = :meal_deduction_minutes,
+
+                paid_break_minutes = :paid_break_minutes,
+
                 updated_at = CURRENT_TIMESTAMP
 
                 WHERE id = 1
@@ -99,7 +113,28 @@ class CompanySettingsRepository
                     $data['timezone'],
 
                 'pay_period_start' =>
-                    $data['pay_period_start']
+                    $data['pay_period_start'],
+
+                'daily_overtime_hours' =>
+                    $data['daily_overtime_hours'],
+
+                'weekly_overtime_hours' =>
+                    $data['weekly_overtime_hours'],
+
+                'rounding_minutes' =>
+                    $data['rounding_minutes'],
+
+                'rounding_mode' =>
+                    $data['rounding_mode'],
+
+                'meal_deduction_enabled' =>
+                    $data['meal_deduction_enabled'],
+
+                'meal_deduction_minutes' =>
+                    $data['meal_deduction_minutes'],
+
+                'paid_break_minutes' =>
+                    $data['paid_break_minutes']
             ]
         );
     }
