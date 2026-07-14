@@ -42,8 +42,25 @@ class ReportEmailService
 
     public function sendDailyPayrollReport(): bool
     {
+        $company =
+            $this->settings->get();
+
+
+        $timezone =
+            $company['timezone']
+            ??
+            'America/Los_Angeles';
+
+
         $reportDate =
-            date(
+            (
+                new \DateTimeImmutable(
+                    'now',
+                    new \DateTimeZone(
+                        $timezone
+                    )
+                )
+            )->format(
                 'Y-m-d'
             );
 
@@ -63,11 +80,9 @@ class ReportEmailService
         try {
 
             $summary =
-                $this->reports->dailySummary();
-
-
-            $company =
-                $this->settings->get();
+                $this->reports->dailySummary(
+                    $reportDate
+                );
 
 
             $companyName =
@@ -90,24 +105,136 @@ class ReportEmailService
                 "\n\n";
 
 
-            foreach ($summary as $employee) {
+            if (empty($summary)) {
 
                 $body .=
-                    $employee['name']
-                    .
-                    ' ('
-                    .
-                    $employee['employee_number']
-                    .
-                    ")\n";
+                    "No payroll data available.\n";
+
+            } else {
+
+                foreach ($summary as $employee) {
+
+                    $body .=
+                        $employee['name']
+                        .
+                        ' ('
+                        .
+                        $employee['employee_number']
+                        .
+                        ")\n";
 
 
-                $body .=
-                    'Hours: '
-                    .
-                    $employee['hours']
-                    .
-                    "\n\n";
+                    if (
+                        !empty(
+                            $employee['department']
+                        )
+                    ) {
+                        $body .=
+                            'Department: '
+                            .
+                            $employee['department']
+                            .
+                            "\n";
+                    }
+
+
+                    $mealMinutes =
+                        (int)$employee['recorded_meal_minutes']
+                        +
+                        (int)$employee['automatic_meal_deduction_minutes'];
+
+
+                    $body .=
+                        'Gross Hours: '
+                        .
+                        number_format(
+                            (float)$employee['gross_hours'],
+                            2
+                        )
+                        .
+                        "\n";
+
+
+                    $body .=
+                        'Meal Deduction: '
+                        .
+                        $mealMinutes
+                        .
+                        " minutes\n";
+
+
+                    $body .=
+                        'Unpaid Break: '
+                        .
+                        (int)$employee['unpaid_break_minutes']
+                        .
+                        " minutes\n";
+
+
+                    $body .=
+                        'Regular Hours: '
+                        .
+                        number_format(
+                            (float)$employee['regular_hours'],
+                            2
+                        )
+                        .
+                        "\n";
+
+
+                    $body .=
+                        'Overtime Hours: '
+                        .
+                        number_format(
+                            (float)$employee['overtime_hours'],
+                            2
+                        )
+                        .
+                        "\n";
+
+
+                    $body .=
+                        'Payable Hours: '
+                        .
+                        number_format(
+                            (float)$employee['total_hours'],
+                            2
+                        )
+                        .
+                        "\n";
+
+
+                    $body .=
+                        'Status: '
+                        .
+                        (
+                            $employee['complete']
+                                ? 'Complete'
+                                : 'Needs Review'
+                        )
+                        .
+                        "\n";
+
+
+                    if (!$employee['complete']) {
+
+                        foreach (
+                            $employee['errors']
+                            as $error
+                        ) {
+                            $body .=
+                                '- '
+                                .
+                                $error
+                                .
+                                "\n";
+                        }
+                    }
+
+
+                    $body .=
+                        "\n";
+                }
             }
 
 

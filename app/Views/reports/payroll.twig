@@ -3,87 +3,202 @@
 {% block content %}
 
 <h1 class="mb-4">
-Payroll Summary
+    Payroll Summary
 </h1>
 
 
 <div class="card shadow-sm">
 
-<div class="card-body">
+    <div class="card-body">
 
 
-<table class="table table-striped">
+        <div class="table-responsive">
+
+            <table class="table table-striped align-middle">
+
+                <thead>
+
+                    <tr>
+
+                        <th>
+                            Employee
+                        </th>
+
+                        <th>
+                            Employee #
+                        </th>
+
+                        <th>
+                            Department
+                        </th>
+
+                        <th>
+                            Gross
+                        </th>
+
+                        <th>
+                            Meal Deduction
+                        </th>
+
+                        <th>
+                            Unpaid Break
+                        </th>
+
+                        <th>
+                            Regular
+                        </th>
+
+                        <th>
+                            Overtime
+                        </th>
+
+                        <th>
+                            Payable
+                        </th>
+
+                        <th>
+                            Status
+                        </th>
+
+                    </tr>
+
+                </thead>
 
 
-<thead>
-
-<tr>
-
-<th>
-Employee
-</th>
-
-<th>
-Employee #
-</th>
-
-<th>
-Hours Worked
-</th>
-
-</tr>
-
-</thead>
+                <tbody>
 
 
-<tbody>
+                    {% for employee in summary %}
+
+                        <tr>
+
+                            <td>
+                                {{ employee.name }}
+                            </td>
 
 
-{% for employee in summary %}
-
-<tr>
-
-<td>
-{{ employee.name }}
-</td>
+                            <td>
+                                {{ employee.employee_number }}
+                            </td>
 
 
-<td>
-{{ employee.employee_number }}
-</td>
+                            <td>
+                                {{ employee.department ?: '—' }}
+                            </td>
 
 
-<td>
-{{ employee.hours }}
-</td>
+                            <td>
+                                {{ employee.gross_hours|number_format(2) }}
+                            </td>
 
 
-</tr>
+                            <td>
+                                {% set mealMinutes =
+                                    employee.recorded_meal_minutes
+                                    +
+                                    employee.automatic_meal_deduction_minutes
+                                %}
+
+                                {{ mealMinutes }} min
+                            </td>
 
 
-{% else %}
-
-<tr>
-
-<td colspan="3"
-class="text-center text-muted">
-
-No payroll data available.
-
-</td>
-
-</tr>
-
-{% endfor %}
+                            <td>
+                                {{ employee.unpaid_break_minutes }} min
+                            </td>
 
 
-</tbody>
+                            <td>
+                                {{ employee.regular_hours|number_format(2) }}
+                            </td>
 
 
-</table>
+                            <td>
+                                {{ employee.overtime_hours|number_format(2) }}
+                            </td>
 
 
-</div>
+                            <td>
+                                <strong>
+                                    {{ employee.total_hours|number_format(2) }}
+                                </strong>
+                            </td>
+
+
+                            <td>
+
+                                {% if employee.complete %}
+
+                                    <span class="badge text-bg-success">
+                                        Complete
+                                    </span>
+
+                                {% else %}
+
+                                    <span class="badge text-bg-warning">
+                                        Needs Review
+                                    </span>
+
+                                {% endif %}
+
+                            </td>
+
+                        </tr>
+
+
+                        {% if not employee.complete %}
+
+                            <tr class="table-warning">
+
+                                <td colspan="10">
+
+                                    <strong>
+                                        Payroll warnings:
+                                    </strong>
+
+                                    <ul class="mb-0 mt-2">
+
+                                        {% for error in employee.errors %}
+
+                                            <li>
+                                                {{ error }}
+                                            </li>
+
+                                        {% endfor %}
+
+                                    </ul>
+
+                                </td>
+
+                            </tr>
+
+                        {% endif %}
+
+
+                    {% else %}
+
+                        <tr>
+
+                            <td
+                                colspan="10"
+                                class="text-center text-muted"
+                            >
+                                No payroll data available.
+                            </td>
+
+                        </tr>
+
+                    {% endfor %}
+
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+
+    </div>
 
 </div>
 
