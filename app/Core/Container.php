@@ -11,6 +11,7 @@ use App\Repositories\PunchRepository;
 use App\Services\AuditService;
 use App\Services\EmployeeService;
 use App\Services\PunchService;
+use App\Services\PunchReportService;
 use App\Repositories\EmailRepository;
 use PDO;
 
@@ -36,6 +37,8 @@ final class Container
     private static ?PunchService $punchService = null;
 
     private static ?EmailRepository $emailRepository = null;
+
+    private static ?PunchReportService $punchReportService = null;
 
     public static function db(): PDO
     {
@@ -173,6 +176,19 @@ final class Container
         return self::$punchService;
     }
 
+    public static function punchReportService(): PunchReportService
+    {
+        if (self::$punchReportService === null) {
+
+            self::$punchReportService =
+                new PunchReportService(
+                    self::punchRepository()
+                );
+        }
+
+
+        return self::$punchReportService;
+    }
 
     public static function clear(): void
     {
@@ -191,6 +207,8 @@ final class Container
         self::$auditService = null;
 
         self::$punchService = null;
+
+        self::$punchReportService = null;
 
         self::$emailRepository = null;
     }

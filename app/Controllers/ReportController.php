@@ -3,8 +3,7 @@ declare(strict_types=1);
 
 namespace App\Controllers;
 
-use App\Core\Database;
-use App\Repositories\PunchRepository;
+use App\Core\Container;
 use App\Services\PunchReportService;
 
 class ReportController extends Controller
@@ -14,17 +13,9 @@ class ReportController extends Controller
 
     public function __construct()
     {
-        $repository = new PunchRepository(
-            Database::connection()
-        );
-
-
         $this->reports =
-            new PunchReportService(
-                $repository
-            );
+            Container::punchReportService();
     }
-
 
 
     public function punches(): void
