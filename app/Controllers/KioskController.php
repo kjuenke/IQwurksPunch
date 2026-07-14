@@ -5,19 +5,31 @@ namespace App\Controllers;
 
 use App\Core\Container;
 use App\Core\Flash;
+use App\Services\CompanySettingsService;
 use App\Services\EmployeeService;
 use App\Services\PunchService;
 
 class KioskController extends Controller
 {
     private EmployeeService $employees;
+
     private PunchService $punches;
+
+    private CompanySettingsService $settings;
 
 
     public function __construct()
     {
-        $this->employees = Container::employeeService();
-        $this->punches = Container::punchService();
+        $this->employees =
+            Container::employeeService();
+
+
+        $this->punches =
+            Container::punchService();
+
+
+        $this->settings =
+            Container::companySettingsService();
     }
 
 
@@ -26,7 +38,11 @@ class KioskController extends Controller
         $this->render(
             'kiosk/index.twig',
             [
-                'title' => 'Employee Clock'
+                'title' =>
+                    'Employee Clock',
+
+                'kioskTimezone' =>
+                    $this->kioskTimezone()
             ]
         );
     }
@@ -35,13 +51,18 @@ class KioskController extends Controller
     public function authenticate(): void
     {
         $employeeNumber =
-            trim($_POST['employee_number'] ?? '');
+            trim(
+                $_POST['employee_number']
+                ??
+                ''
+            );
 
 
         $employee =
-            $this->employees->findByEmployeeNumber(
-                $employeeNumber
-            );
+            $this->employees
+                ->findByEmployeeNumber(
+                    $employeeNumber
+                );
 
 
         if (!$employee) {
@@ -50,7 +71,11 @@ class KioskController extends Controller
                 'Employee not found.'
             );
 
-            header('Location: /kiosk');
+
+            header(
+                'Location: /kiosk'
+            );
+
             exit;
         }
 
@@ -60,15 +85,24 @@ class KioskController extends Controller
 
 
         $_SESSION['kiosk_employee_name'] =
-            $employee['first_name'] . ' ' .
+            $employee['first_name']
+            .
+            ' '
+            .
             $employee['last_name'];
 
 
         $this->render(
             'kiosk/pin.twig',
             [
-                'title' => 'Enter PIN',
-                'employee' => $employee
+                'title' =>
+                    'Enter PIN',
+
+                'employee' =>
+                    $employee,
+
+                'kioskTimezone' =>
+                    $this->kioskTimezone()
             ]
         );
     }
@@ -77,12 +111,17 @@ class KioskController extends Controller
     public function verifyPin(): void
     {
         $employeeId =
-            $_SESSION['kiosk_employee_id'] ?? null;
+            $_SESSION['kiosk_employee_id']
+            ??
+            null;
 
 
         if (!$employeeId) {
 
-            header('Location: /kiosk');
+            header(
+                'Location: /kiosk'
+            );
+
             exit;
         }
 
@@ -94,7 +133,9 @@ class KioskController extends Controller
 
 
         $pin =
-            $_POST['pin'] ?? '';
+            $_POST['pin']
+            ??
+            '';
 
 
         if (
@@ -108,7 +149,11 @@ class KioskController extends Controller
                 'Invalid PIN.'
             );
 
-            header('Location: /kiosk');
+
+            header(
+                'Location: /kiosk'
+            );
+
             exit;
         }
 
@@ -126,9 +171,17 @@ class KioskController extends Controller
         $this->render(
             'kiosk/actions.twig',
             [
-                'title' => 'Clock Options',
-                'employee' => $employee,
-                'status' => $status
+                'title' =>
+                    'Clock Options',
+
+                'employee' =>
+                    $employee,
+
+                'status' =>
+                    $status,
+
+                'kioskTimezone' =>
+                    $this->kioskTimezone()
             ]
         );
     }
@@ -137,9 +190,14 @@ class KioskController extends Controller
     public function punch(): void
     {
         if (
-            empty($_SESSION['kiosk_authenticated'])
+            empty(
+                $_SESSION['kiosk_authenticated']
+            )
         ) {
-            header('Location: /kiosk');
+            header(
+                'Location: /kiosk'
+            );
+
             exit;
         }
 
@@ -149,7 +207,9 @@ class KioskController extends Controller
 
 
         $type =
-            $_POST['type'] ?? '';
+            $_POST['type']
+            ??
+            '';
 
 
         $result =
@@ -165,17 +225,45 @@ class KioskController extends Controller
                 'Unable to record punch.'
             );
 
-        }
-        else {
+        } else {
 
             Flash::success(
                 'Punch recorded.'
             );
-
         }
 
 
-        header('Location: /kiosk');
+        header(
+            'Location: /kiosk'
+        );
+
         exit;
+    }
+
+
+    private function kioskTimezone(): string
+    {
+        $settings =
+            $this->settings->get();
+
+
+        $timezone =
+            $settings['timezone']
+            ??
+            'America/Los_Angeles';
+
+
+        if (
+            !in_array(
+                $timezone,
+                timezone_identifiers_list(),
+                true
+            )
+        ) {
+            return 'America/Los_Angeles';
+        }
+
+
+        return $timezone;
     }
 }
