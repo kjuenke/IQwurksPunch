@@ -27,12 +27,18 @@ class ReportController extends Controller
         $this->render(
             'reports/punches.twig',
             [
-                'title' => 'Punch Report',
-                'activeMenu' => 'reports',
-                'punches' => $punches
+                'title' =>
+                    'Punch Report',
+
+                'activeMenu' =>
+                    'reports',
+
+                'punches' =>
+                    $punches
             ]
         );
     }
+
 
     public function payroll(): void
     {
@@ -43,11 +49,37 @@ class ReportController extends Controller
         $this->render(
             'reports/payroll.twig',
             [
-                'title' => 'Payroll Summary',
-                'activeMenu' => 'reports',
-                'summary' => $summary
+                'title' =>
+                    'Payroll Summary',
+
+                'activeMenu' =>
+                    'reports',
+
+                'summary' =>
+                    $summary
             ]
         );
     }
 
+
+    public function weeklyPayroll(): void
+    {
+        $summary =
+            $this->reports->weeklySummary();
+
+
+        $this->render(
+            'reports/weekly-payroll.twig',
+            [
+                'title' =>
+                    'Weekly Payroll Summary',
+
+                'activeMenu' =>
+                    'reports',
+
+                'summary' =>
+                    $summary
+            ]
+        );
+    }
 }

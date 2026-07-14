@@ -7,6 +7,8 @@ use App\Core\Container;
 use App\Payroll\PayrollCalculator;
 use App\Repositories\CompanySettingsRepository;
 use App\Repositories\PunchRepository;
+use DateInterval;
+use DatePeriod;
 use DateTimeImmutable;
 use DateTimeZone;
 use RuntimeException;
@@ -144,6 +146,194 @@ class PunchReportService
             );
 
 
+        return $this->dailyEmployeeSummaries(
+            $punches,
+            $reportDate,
+            $company
+        );
+    }
+
+
+    /**
+     * Returns one weekly payroll result per employee.
+     *
+     * @return array<string,mixed>
+     */
+    public function weeklySummary(
+        ?string $date = null
+    ): array
+    {
+        $company =
+            $this->companySettings();
+
+
+        $timezone =
+            new DateTimeZone(
+                $company['timezone']
+            );
+
+
+        $referenceDate =
+            new DateTimeImmutable(
+                (
+                    $date
+                    ??
+                    'now'
+                ),
+                $timezone
+            );
+
+
+        $weekStart =
+            $this->weekStart(
+                $referenceDate,
+                $company['pay_period_start']
+                ??
+                'monday'
+            );
+
+
+        $weekEnd =
+            $weekStart->modify(
+                '+7 days'
+            );
+
+
+        $punches =
+            $this->punchesBetweenLocalDates(
+                $weekStart,
+                $weekEnd
+            );
+
+
+        $employees =
+            $this->groupPunchesByEmployeeAndDate(
+                $punches,
+                $timezone
+            );
+
+
+        $weeklyEmployees = [];
+
+
+        foreach ($employees as $employee) {
+
+            $dailyResults = [];
+
+
+            $period =
+                new DatePeriod(
+                    $weekStart,
+                    new DateInterval(
+                        'P1D'
+                    ),
+                    $weekEnd
+                );
+
+
+            foreach ($period as $day) {
+
+                $dayDate =
+                    $day->format(
+                        'Y-m-d'
+                    );
+
+
+                $dayPunches =
+                    $employee['punches_by_date'][$dayDate]
+                    ??
+                    [];
+
+
+                if (empty($dayPunches)) {
+
+                    continue;
+                }
+
+
+                $dailyResult =
+                    $this->payroll->calculateDay(
+                        $dayPunches,
+                        $company
+                    );
+
+
+                $dailyResults[] = [
+                    'date' =>
+                        $dayDate,
+
+                    ...$dailyResult
+                ];
+            }
+
+
+            if (empty($dailyResults)) {
+
+                continue;
+            }
+
+
+            $weekCalculation =
+                $this->payroll->calculateWeek(
+                    $dailyResults,
+                    $company
+                );
+
+
+            $weeklyEmployees[] = [
+                'employee_id' =>
+                    $employee['employee_id'],
+
+                'employee_number' =>
+                    $employee['employee_number'],
+
+                'name' =>
+                    $employee['name'],
+
+                'department' =>
+                    $employee['department'],
+
+                ...$weekCalculation
+            ];
+        }
+
+
+        return [
+            'week_start' =>
+                $weekStart->format(
+                    'Y-m-d'
+                ),
+
+            'week_end' =>
+                $weekEnd
+                    ->modify(
+                        '-1 day'
+                    )
+                    ->format(
+                        'Y-m-d'
+                    ),
+
+            'timezone' =>
+                $company['timezone'],
+
+            'employees' =>
+                $weeklyEmployees
+        ];
+    }
+
+
+    /**
+     * @param array<int,array<string,mixed>> $punches
+     * @param array<string,mixed> $company
+     *
+     * @return array<int,array<string,mixed>>
+     */
+    private function dailyEmployeeSummaries(
+        array $punches,
+        string $reportDate,
+        array $company
+    ): array
+    {
         $employees = [];
 
 
@@ -208,10 +398,6 @@ class PunchReportService
                 ...$employee,
                 ...$calculation,
 
-                /*
-                 * Compatibility alias for the existing report and
-                 * email templates while they are being upgraded.
-                 */
                 'hours' =>
                     $calculation['total_hours']
             ];
@@ -223,6 +409,61 @@ class PunchReportService
         return array_values(
             $employees
         );
+    }
+
+
+    private function weekStart(
+        DateTimeImmutable $date,
+        string $startDay
+    ): DateTimeImmutable
+    {
+        $normalizedStartDay =
+            strtolower(
+                $startDay
+            );
+
+
+        if (
+            !in_array(
+                $normalizedStartDay,
+                [
+                    'sunday',
+                    'monday'
+                ],
+                true
+            )
+        ) {
+            $normalizedStartDay =
+                'monday';
+        }
+
+
+        if (
+            strtolower(
+                $date->format(
+                    'l'
+                )
+            )
+            ===
+            $normalizedStartDay
+        ) {
+            return $date->setTime(
+                0,
+                0
+            );
+        }
+
+
+        return $date
+            ->modify(
+                'last '
+                .
+                $normalizedStartDay
+            )
+            ->setTime(
+                0,
+                0
+            );
     }
 
 
@@ -240,12 +481,6 @@ class PunchReportService
             );
 
 
-        $utcTimezone =
-            new DateTimeZone(
-                'UTC'
-            );
-
-
         $localStart =
             new DateTimeImmutable(
                 $date
@@ -258,6 +493,27 @@ class PunchReportService
         $localEnd =
             $localStart->modify(
                 '+1 day'
+            );
+
+
+        return $this->punchesBetweenLocalDates(
+            $localStart,
+            $localEnd
+        );
+    }
+
+
+    /**
+     * @return array<int,array<string,mixed>>
+     */
+    private function punchesBetweenLocalDates(
+        DateTimeImmutable $localStart,
+        DateTimeImmutable $localEnd
+    ): array
+    {
+        $utcTimezone =
+            new DateTimeZone(
+                'UTC'
             );
 
 
@@ -284,6 +540,89 @@ class PunchReportService
         return $this->punches->punchesBetween(
             $startUtc,
             $endUtc
+        );
+    }
+
+
+    /**
+     * @param array<int,array<string,mixed>> $punches
+     *
+     * @return array<int,array<string,mixed>>
+     */
+    private function groupPunchesByEmployeeAndDate(
+        array $punches,
+        DateTimeZone $timezone
+    ): array
+    {
+        $employees = [];
+
+
+        foreach ($punches as $punch) {
+
+            $employeeId =
+                (int)$punch['employee_id'];
+
+
+            if (
+                !isset(
+                    $employees[$employeeId]
+                )
+            ) {
+                $employees[$employeeId] = [
+                    'employee_id' =>
+                        $employeeId,
+
+                    'employee_number' =>
+                        (string)$punch['employee_number'],
+
+                    'name' =>
+                        trim(
+                            (string)$punch['first_name']
+                            .
+                            ' '
+                            .
+                            (string)$punch['last_name']
+                        ),
+
+                    'department' =>
+                        (string)(
+                            $punch['department']
+                            ??
+                            ''
+                        ),
+
+                    'punches_by_date' =>
+                        []
+                ];
+            }
+
+
+            $localDate =
+                (
+                    new DateTimeImmutable(
+                        (string)$punch['punch_time'],
+                        new DateTimeZone(
+                            'UTC'
+                        )
+                    )
+                )
+                    ->setTimezone(
+                        $timezone
+                    )
+                    ->format(
+                        'Y-m-d'
+                    );
+
+
+            $employees[$employeeId]
+                ['punches_by_date']
+                [$localDate][] =
+                    $punch;
+        }
+
+
+        return array_values(
+            $employees
         );
     }
 

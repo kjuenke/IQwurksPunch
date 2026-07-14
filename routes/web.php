@@ -176,6 +176,11 @@ $router->get(
     [$reports, 'payroll']
 );
 
+$router->get(
+    '/reports/payroll/weekly',
+    [$reports, 'weeklyPayroll']
+);
+
 
 /*
 |--------------------------------------------------------------------------
