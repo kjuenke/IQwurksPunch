@@ -6,21 +6,23 @@ namespace App\Core;
 use App\Logging\LoggerFactory;
 use App\Logging\LoggerInterface;
 use App\Repositories\AuditRepository;
-use App\Repositories\EmployeeRepository;
-use App\Repositories\PunchRepository;
-use App\Services\AuditService;
-use App\Services\EmployeeService;
-use App\Services\PunchService;
-use App\Services\PunchReportService;
-use App\Repositories\EmailRepository;
 use App\Repositories\CompanySettingsRepository;
-use App\Services\CompanySettingsService;
+use App\Repositories\EmailRepository;
+use App\Repositories\EmployeeRepository;
+use App\Repositories\NotificationRecipientRepository;
+use App\Repositories\PunchRepository;
 use App\Repositories\ReportScheduleRepository;
-use App\Services\ReportScheduleService;
-use App\Services\ReportEmailService;
-use App\Services\MailService;
 use App\Repositories\UserRepository;
+use App\Services\AuditService;
 use App\Services\AuthService;
+use App\Services\CompanySettingsService;
+use App\Services\EmployeeService;
+use App\Services\MailService;
+use App\Services\NotificationRecipientService;
+use App\Services\PunchReportService;
+use App\Services\PunchService;
+use App\Services\ReportEmailService;
+use App\Services\ReportScheduleService;
 use PDO;
 
 final class Container
@@ -38,21 +40,25 @@ final class Container
 
     private static ?PunchRepository $punchRepository = null;
 
+    private static ?EmailRepository $emailRepository = null;
+
+    private static ?CompanySettingsRepository $companySettingsRepository = null;
+
+    private static ?ReportScheduleRepository $reportScheduleRepository = null;
+
+    private static ?UserRepository $userRepository = null;
+
+    private static ?NotificationRecipientRepository $notificationRecipientRepository = null;
+
     private static ?EmployeeService $employeeService = null;
 
     private static ?AuditService $auditService = null;
 
     private static ?PunchService $punchService = null;
 
-    private static ?EmailRepository $emailRepository = null;
-
     private static ?PunchReportService $punchReportService = null;
 
-    private static ?CompanySettingsRepository $companySettingsRepository = null;
-
     private static ?CompanySettingsService $companySettingsService = null;
-
-    private static ?ReportScheduleRepository $reportScheduleRepository = null;
 
     private static ?ReportScheduleService $reportScheduleService = null;
 
@@ -60,9 +66,10 @@ final class Container
 
     private static ?MailService $mailService = null;
 
-    private static ?UserRepository $userRepository = null;
-
     private static ?AuthService $authService = null;
+
+    private static ?NotificationRecipientService $notificationRecipientService = null;
+
 
     public static function db(): PDO
     {
@@ -156,6 +163,7 @@ final class Container
         return self::$emailRepository;
     }
 
+
     public static function companySettingsRepository(): CompanySettingsRepository
     {
         if (self::$companySettingsRepository === null) {
@@ -166,8 +174,10 @@ final class Container
                 );
         }
 
+
         return self::$companySettingsRepository;
     }
+
 
     public static function reportScheduleRepository(): ReportScheduleRepository
     {
@@ -179,8 +189,10 @@ final class Container
                 );
         }
 
+
         return self::$reportScheduleRepository;
     }
+
 
     public static function userRepository(): UserRepository
     {
@@ -195,6 +207,22 @@ final class Container
 
         return self::$userRepository;
     }
+
+
+    public static function notificationRecipientRepository(): NotificationRecipientRepository
+    {
+        if (self::$notificationRecipientRepository === null) {
+
+            self::$notificationRecipientRepository =
+                new NotificationRecipientRepository(
+                    self::db()
+                );
+        }
+
+
+        return self::$notificationRecipientRepository;
+    }
+
 
     public static function employeeService(): EmployeeService
     {
@@ -240,19 +268,22 @@ final class Container
         return self::$punchService;
     }
 
+
     public static function punchReportService(): PunchReportService
     {
         if (self::$punchReportService === null) {
 
             self::$punchReportService =
                 new PunchReportService(
-                    self::punchRepository()
+                    self::punchRepository(),
+                    self::companySettingsRepository()
                 );
         }
 
 
         return self::$punchReportService;
     }
+
 
     public static function companySettingsService(): CompanySettingsService
     {
@@ -264,8 +295,10 @@ final class Container
                 );
         }
 
+
         return self::$companySettingsService;
     }
+
 
     public static function reportScheduleService(): ReportScheduleService
     {
@@ -276,6 +309,7 @@ final class Container
                     self::reportScheduleRepository()
                 );
         }
+
 
         return self::$reportScheduleService;
     }
@@ -289,10 +323,12 @@ final class Container
                 new ReportEmailService();
         }
 
+
         return self::$reportEmailService;
     }
 
-   public static function mailService(): MailService
+
+    public static function mailService(): MailService
     {
         if (self::$mailService === null) {
 
@@ -303,6 +339,7 @@ final class Container
 
         return self::$mailService;
     }
+
 
     public static function authService(): AuthService
     {
@@ -318,6 +355,22 @@ final class Container
         return self::$authService;
     }
 
+
+    public static function notificationRecipientService(): NotificationRecipientService
+    {
+        if (self::$notificationRecipientService === null) {
+
+            self::$notificationRecipientService =
+                new NotificationRecipientService(
+                    self::notificationRecipientRepository()
+                );
+        }
+
+
+        return self::$notificationRecipientService;
+    }
+
+
     public static function clear(): void
     {
         self::$db = null;
@@ -330,6 +383,16 @@ final class Container
 
         self::$punchRepository = null;
 
+        self::$emailRepository = null;
+
+        self::$companySettingsRepository = null;
+
+        self::$reportScheduleRepository = null;
+
+        self::$userRepository = null;
+
+        self::$notificationRecipientRepository = null;
+
         self::$employeeService = null;
 
         self::$auditService = null;
@@ -338,13 +401,7 @@ final class Container
 
         self::$punchReportService = null;
 
-        self::$emailRepository = null;
-
-        self::$companySettingsRepository = null;
-
         self::$companySettingsService = null;
-
-        self::$reportScheduleRepository = null;
 
         self::$reportScheduleService = null;
 
@@ -352,8 +409,8 @@ final class Container
 
         self::$mailService = null;
 
-        self::$userRepository = null;
-
         self::$authService = null;
+
+        self::$notificationRecipientService = null;
     }
 }
