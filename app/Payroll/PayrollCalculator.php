@@ -54,7 +54,7 @@ final class PayrollCalculator
             );
 
 
-        $mealDeductionEnabled =
+        $automaticMealEnabled =
             (bool)(
                 $policy['meal_deduction_enabled']
                 ??
@@ -62,12 +62,21 @@ final class PayrollCalculator
             );
 
 
-        $mealDeductionMinutes =
+        $automaticMealMinutes =
             $this->nonNegativeInteger(
                 $policy['meal_deduction_minutes']
                 ??
                 0,
                 'meal_deduction_minutes'
+            );
+
+
+        $paidBreakMinutes =
+            $this->nonNegativeInteger(
+                $policy['paid_break_minutes']
+                ??
+                0,
+                'paid_break_minutes'
             );
 
 
@@ -77,15 +86,25 @@ final class PayrollCalculator
             );
 
 
-        $workedSeconds = 0;
+        $grossWorkedSeconds = 0;
+
+        $mealSeconds = 0;
+
+        $breakSeconds = 0;
 
         $clockIn = null;
 
+        $mealOut = null;
+
+        $breakOut = null;
+
         $workPeriods = [];
 
-        $errors = [];
+        $mealPeriods = [];
 
-        $mealPunchFound = false;
+        $breakPeriods = [];
+
+        $errors = [];
 
 
         foreach ($sortedPunches as $punch) {
@@ -105,15 +124,6 @@ final class PayrollCalculator
                     null,
                     $timezone
                 );
-
-
-            if (
-                $type === 'meal_out'
-                ||
-                $type === 'meal_in'
-            ) {
-                $mealPunchFound = true;
-            }
 
 
             if ($type === 'clock_in') {
@@ -152,6 +162,26 @@ final class PayrollCalculator
                 }
 
 
+                if ($mealOut !== null) {
+
+                    $errors[] =
+                        'A meal-out punch does not have a matching meal-in punch.';
+
+
+                    $mealOut = null;
+                }
+
+
+                if ($breakOut !== null) {
+
+                    $errors[] =
+                        'A break-out punch does not have a matching break-in punch.';
+
+
+                    $breakOut = null;
+                }
+
+
                 $clockOut =
                     $this->roundTime(
                         $time,
@@ -179,32 +209,179 @@ final class PayrollCalculator
                     $clockIn->getTimestamp();
 
 
-                $workedSeconds +=
+                $grossWorkedSeconds +=
                     $periodSeconds;
 
 
-                $workPeriods[] = [
-                    'clock_in' =>
-                        $clockIn->format(
-                            'Y-m-d H:i:s'
-                        ),
-
-                    'clock_out' =>
-                        $clockOut->format(
-                            'Y-m-d H:i:s'
-                        ),
-
-                    'seconds' =>
-                        $periodSeconds,
-
-                    'hours' =>
-                        $this->secondsToHours(
-                            $periodSeconds
-                        )
-                ];
+                $workPeriods[] =
+                    $this->period(
+                        $clockIn,
+                        $clockOut,
+                        $periodSeconds
+                    );
 
 
                 $clockIn = null;
+
+
+                continue;
+            }
+
+
+            if ($type === 'meal_out') {
+
+                if ($clockIn === null) {
+
+                    $errors[] =
+                        'A meal-out punch occurred while the employee was not clocked in.';
+
+
+                    continue;
+                }
+
+
+                if ($mealOut !== null) {
+
+                    $errors[] =
+                        'A meal-out punch occurred before the previous meal period was closed.';
+
+
+                    continue;
+                }
+
+
+                $mealOut =
+                    $time;
+
+
+                continue;
+            }
+
+
+            if ($type === 'meal_in') {
+
+                if ($mealOut === null) {
+
+                    $errors[] =
+                        'A meal-in punch occurred without a matching meal-out punch.';
+
+
+                    continue;
+                }
+
+
+                if ($time < $mealOut) {
+
+                    $errors[] =
+                        'A meal-in punch occurred before its matching meal-out punch.';
+
+
+                    $mealOut = null;
+
+
+                    continue;
+                }
+
+
+                $periodSeconds =
+                    $time->getTimestamp()
+                    -
+                    $mealOut->getTimestamp();
+
+
+                $mealSeconds +=
+                    $periodSeconds;
+
+
+                $mealPeriods[] =
+                    $this->period(
+                        $mealOut,
+                        $time,
+                        $periodSeconds
+                    );
+
+
+                $mealOut = null;
+
+
+                continue;
+            }
+
+
+            if ($type === 'break_out') {
+
+                if ($clockIn === null) {
+
+                    $errors[] =
+                        'A break-out punch occurred while the employee was not clocked in.';
+
+
+                    continue;
+                }
+
+
+                if ($breakOut !== null) {
+
+                    $errors[] =
+                        'A break-out punch occurred before the previous break was closed.';
+
+
+                    continue;
+                }
+
+
+                $breakOut =
+                    $time;
+
+
+                continue;
+            }
+
+
+            if ($type === 'break_in') {
+
+                if ($breakOut === null) {
+
+                    $errors[] =
+                        'A break-in punch occurred without a matching break-out punch.';
+
+
+                    continue;
+                }
+
+
+                if ($time < $breakOut) {
+
+                    $errors[] =
+                        'A break-in punch occurred before its matching break-out punch.';
+
+
+                    $breakOut = null;
+
+
+                    continue;
+                }
+
+
+                $periodSeconds =
+                    $time->getTimestamp()
+                    -
+                    $breakOut->getTimestamp();
+
+
+                $breakSeconds +=
+                    $periodSeconds;
+
+
+                $breakPeriods[] =
+                    $this->period(
+                        $breakOut,
+                        $time,
+                        $periodSeconds
+                    );
+
+
+                $breakOut = null;
             }
         }
 
@@ -216,38 +393,93 @@ final class PayrollCalculator
         }
 
 
-        $mealDeductionAppliedMinutes = 0;
+        if ($mealOut !== null) {
+
+            $errors[] =
+                'A meal-out punch does not have a matching meal-in punch.';
+        }
+
+
+        if ($breakOut !== null) {
+
+            $errors[] =
+                'A break-out punch does not have a matching break-in punch.';
+        }
+
+
+        $automaticMealAppliedMinutes = 0;
 
 
         if (
-            $mealDeductionEnabled
+            $automaticMealEnabled
             &&
-            !$mealPunchFound
+            empty($mealPeriods)
             &&
-            $workedSeconds > 0
+            $grossWorkedSeconds > 0
             &&
-            $mealDeductionMinutes > 0
+            $automaticMealMinutes > 0
         ) {
 
-            $mealDeductionAppliedMinutes =
+            $automaticMealAppliedMinutes =
                 min(
-                    $mealDeductionMinutes,
+                    $automaticMealMinutes,
                     (int)floor(
-                        $workedSeconds / 60
+                        $grossWorkedSeconds
+                        /
+                        60
                     )
                 );
-
-
-            $workedSeconds -=
-                $mealDeductionAppliedMinutes
-                *
-                60;
         }
+
+
+        $paidBreakSeconds =
+            min(
+                $breakSeconds,
+                $paidBreakMinutes
+                *
+                60
+            );
+
+
+        $unpaidBreakSeconds =
+            max(
+                0,
+                $breakSeconds
+                -
+                $paidBreakSeconds
+            );
+
+
+        $deductionSeconds =
+            $mealSeconds
+            +
+            $unpaidBreakSeconds
+            +
+            (
+                $automaticMealAppliedMinutes
+                *
+                60
+            );
+
+
+        $payableSeconds =
+            max(
+                0,
+                $grossWorkedSeconds
+                -
+                $deductionSeconds
+            );
+
+
+        $grossHours =
+            $this->secondsToHours(
+                $grossWorkedSeconds
+            );
 
 
         $totalHours =
             $this->secondsToHours(
-                $workedSeconds
+                $payableSeconds
             );
 
 
@@ -277,19 +509,48 @@ final class PayrollCalculator
             'work_periods' =>
                 $workPeriods,
 
+            'meal_periods' =>
+                $mealPeriods,
+
+            'break_periods' =>
+                $breakPeriods,
+
             'gross_hours' =>
-                $this->secondsToHours(
-                    $workedSeconds
-                    +
-                    (
-                        $mealDeductionAppliedMinutes
-                        *
-                        60
-                    )
+                round(
+                    $grossHours,
+                    2
                 ),
 
-            'meal_deduction_minutes' =>
-                $mealDeductionAppliedMinutes,
+            'recorded_meal_minutes' =>
+                (int)round(
+                    $mealSeconds
+                    /
+                    60
+                ),
+
+            'automatic_meal_deduction_minutes' =>
+                $automaticMealAppliedMinutes,
+
+            'recorded_break_minutes' =>
+                (int)round(
+                    $breakSeconds
+                    /
+                    60
+                ),
+
+            'paid_break_minutes' =>
+                (int)round(
+                    $paidBreakSeconds
+                    /
+                    60
+                ),
+
+            'unpaid_break_minutes' =>
+                (int)round(
+                    $unpaidBreakSeconds
+                    /
+                    60
+                ),
 
             'total_hours' =>
                 round(
@@ -368,9 +629,15 @@ final class PayrollCalculator
         }
 
 
-        return new DateTimeImmutable(
-            $value,
-            new DateTimeZone('UTC')
+        $utcTime =
+            new DateTimeImmutable(
+                $value,
+                new DateTimeZone('UTC')
+            );
+
+
+        return $utcTime->setTimezone(
+            $timezone
         );
     }
 
@@ -440,6 +707,40 @@ final class PayrollCalculator
     }
 
 
+    /**
+     * @return array<string,mixed>
+     */
+    private function period(
+        DateTimeImmutable $start,
+        DateTimeImmutable $end,
+        int $seconds
+    ): array
+    {
+        return [
+            'start' =>
+                $start->format(
+                    'Y-m-d H:i:s'
+                ),
+
+            'end' =>
+                $end->format(
+                    'Y-m-d H:i:s'
+                ),
+
+            'seconds' =>
+                $seconds,
+
+            'hours' =>
+                round(
+                    $this->secondsToHours(
+                        $seconds
+                    ),
+                    2
+                )
+        ];
+    }
+
+
     private function timezone(
         mixed $value
     ): DateTimeZone
@@ -501,11 +802,8 @@ final class PayrollCalculator
         string $name
     ): int
     {
-        if (
-            !is_numeric(
-                $value
-            )
-        ) {
+        if (!is_numeric($value)) {
+
             throw new InvalidArgumentException(
                 "{$name} must be numeric."
             );
@@ -533,11 +831,8 @@ final class PayrollCalculator
         string $name
     ): float
     {
-        if (
-            !is_numeric(
-                $value
-            )
-        ) {
+        if (!is_numeric($value)) {
+
             throw new InvalidArgumentException(
                 "{$name} must be numeric."
             );
