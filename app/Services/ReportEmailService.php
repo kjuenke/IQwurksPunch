@@ -6,7 +6,6 @@ namespace App\Services;
 use App\Core\Container;
 use App\Logging\LoggerInterface;
 use App\Repositories\CompanySettingsRepository;
-use App\Repositories\PunchRepository;
 use Throwable;
 
 class ReportEmailService
@@ -22,26 +21,16 @@ class ReportEmailService
 
     public function __construct()
     {
-        $db =
-            Container::db();
-
-
         $this->reports =
-            new PunchReportService(
-                new PunchRepository(
-                    $db
-                )
-            );
+            Container::punchReportService();
 
 
         $this->mail =
-            new MailService();
+            Container::mailService();
 
 
         $this->settings =
-            new CompanySettingsRepository(
-                $db
-            );
+            Container::companySettingsRepository();
 
 
         $this->logger =
@@ -66,7 +55,7 @@ class ReportEmailService
                     'daily_payroll',
 
                 'report_date' =>
-                    $reportDate,
+                    $reportDate
             ]
         );
 
@@ -134,7 +123,7 @@ class ReportEmailService
                     'employee_count' =>
                         count(
                             $summary
-                        ),
+                        )
                 ]
             );
 
@@ -162,7 +151,7 @@ class ReportEmailService
                         'employee_count' =>
                             count(
                                 $summary
-                            ),
+                            )
                     ]
                 );
 
@@ -183,7 +172,7 @@ class ReportEmailService
                     'employee_count' =>
                         count(
                             $summary
-                        ),
+                        )
                 ]
             );
 
@@ -211,7 +200,7 @@ class ReportEmailService
                         $exception->getFile(),
 
                     'exception_line' =>
-                        $exception->getLine(),
+                        $exception->getLine()
                 ]
             );
 
