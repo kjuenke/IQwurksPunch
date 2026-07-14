@@ -18,6 +18,7 @@ use App\Services\CompanySettingsService;
 use App\Repositories\ReportScheduleRepository;
 use App\Services\ReportScheduleService;
 use App\Services\ReportEmailService;
+use App\Services\MailService;
 use PDO;
 
 final class Container
@@ -54,6 +55,8 @@ final class Container
     private static ?ReportScheduleService $reportScheduleService = null;
 
     private static ?ReportEmailService $reportEmailService = null;
+
+    private static ?MailService $mailService = null;
 
     public static function db(): PDO
     {
@@ -269,6 +272,18 @@ final class Container
         return self::$reportEmailService;
     }
 
+   public static function mailService(): MailService
+    {
+        if (self::$mailService === null) {
+
+            self::$mailService =
+                new MailService();
+        }
+
+
+        return self::$mailService;
+    }
+
     public static function clear(): void
     {
         self::$db = null;
@@ -300,5 +315,7 @@ final class Container
         self::$reportScheduleService = null;
 
         self::$reportEmailService = null;
+
+        self::$mailService = null;
     }
 }
