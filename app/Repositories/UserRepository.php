@@ -3,16 +3,28 @@ declare(strict_types=1);
 
 namespace App\Repositories;
 
-use App\Core\Database;
+use PDO;
 
 class UserRepository
 {
+    private PDO $db;
+
+
+    public function __construct(
+        PDO $db
+    )
+    {
+        $this->db =
+            $db;
+    }
+
+
     public function countUsers(): int
     {
-        $db = Database::connection();
-
-        return (int) $db
-            ->query("SELECT COUNT(*) FROM users")
+        return (int)$this->db
+            ->query(
+                'SELECT COUNT(*) FROM users'
+            )
             ->fetchColumn();
     }
 
@@ -21,58 +33,76 @@ class UserRepository
         string $username,
         string $email,
         string $passwordHash
-    ): int {
+    ): int
+    {
+        $stmt =
+            $this->db->prepare(
+                "
+                INSERT INTO users
+                (
+                    username,
+                    email,
+                    password_hash,
+                    role
+                )
 
-        $db = Database::connection();
+                VALUES
+                (
+                    :username,
+                    :email,
+                    :password_hash,
+                    'admin'
+                )
+                "
+            );
 
-        $stmt = $db->prepare(
-            "
-            INSERT INTO users
-            (
-                username,
-                email,
-                password_hash,
-                role
-            )
-            VALUES
-            (
-                :username,
-                :email,
-                :password_hash,
-                'admin'
-            )
-            "
+
+        $stmt->execute(
+            [
+                'username' =>
+                    $username,
+
+                'email' =>
+                    $email,
+
+                'password_hash' =>
+                    $passwordHash
+            ]
         );
 
-        $stmt->execute([
-            'username' => $username,
-            'email' => $email,
-            'password_hash' => $passwordHash
-        ]);
 
-        return (int) $db->lastInsertId();
+        return (int)$this->db
+            ->lastInsertId();
     }
 
 
     public function findByUsername(
         string $username
-    ): ?array {
+    ): ?array
+    {
+        $stmt =
+            $this->db->prepare(
+                "
+                SELECT *
+                FROM users
+                WHERE username = :username
+                "
+            );
 
-        $db = Database::connection();
 
-        $stmt = $db->prepare(
-            "
-            SELECT *
-            FROM users
-            WHERE username = :username
-            "
+        $stmt->execute(
+            [
+                'username' =>
+                    $username
+            ]
         );
 
-        $stmt->execute([
-            'username' => $username
-        ]);
 
-        $user = $stmt->fetch();
+        $user =
+            $stmt->fetch(
+                PDO::FETCH_ASSOC
+            );
+
 
         return $user ?: null;
     }

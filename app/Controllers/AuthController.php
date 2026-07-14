@@ -5,6 +5,7 @@ namespace App\Controllers;
 
 use App\Controllers\Controller;
 use App\Services\AuthService;
+use App\Core\Container;
 
 class AuthController extends Controller
 {
@@ -13,9 +14,9 @@ class AuthController extends Controller
 
     public function __construct()
     {
-        $this->auth = new AuthService();
+        $this->auth =
+            Container::authService();
     }
-
 
     public function login(): void
     {

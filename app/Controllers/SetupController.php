@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace App\Controllers;
 
 use App\Services\AuthService;
+use App\Core\Container;
 
 class SetupController extends Controller
 {
@@ -12,9 +13,9 @@ class SetupController extends Controller
 
     public function __construct()
     {
-        $this->auth = new AuthService();
+        $this->auth =
+            Container::authService();
     }
-
 
     public function index(): void
     {

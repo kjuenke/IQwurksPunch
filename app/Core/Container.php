@@ -19,6 +19,8 @@ use App\Repositories\ReportScheduleRepository;
 use App\Services\ReportScheduleService;
 use App\Services\ReportEmailService;
 use App\Services\MailService;
+use App\Repositories\UserRepository;
+use App\Services\AuthService;
 use PDO;
 
 final class Container
@@ -57,6 +59,10 @@ final class Container
     private static ?ReportEmailService $reportEmailService = null;
 
     private static ?MailService $mailService = null;
+
+    private static ?UserRepository $userRepository = null;
+
+    private static ?AuthService $authService = null;
 
     public static function db(): PDO
     {
@@ -176,6 +182,20 @@ final class Container
         return self::$reportScheduleRepository;
     }
 
+    public static function userRepository(): UserRepository
+    {
+        if (self::$userRepository === null) {
+
+            self::$userRepository =
+                new UserRepository(
+                    self::db()
+                );
+        }
+
+
+        return self::$userRepository;
+    }
+
     public static function employeeService(): EmployeeService
     {
         if (self::$employeeService === null) {
@@ -284,6 +304,20 @@ final class Container
         return self::$mailService;
     }
 
+    public static function authService(): AuthService
+    {
+        if (self::$authService === null) {
+
+            self::$authService =
+                new AuthService(
+                    self::userRepository()
+                );
+        }
+
+
+        return self::$authService;
+    }
+
     public static function clear(): void
     {
         self::$db = null;
@@ -317,5 +351,9 @@ final class Container
         self::$reportEmailService = null;
 
         self::$mailService = null;
+
+        self::$userRepository = null;
+
+        self::$authService = null;
     }
 }

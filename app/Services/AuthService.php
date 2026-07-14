@@ -10,11 +10,13 @@ class AuthService
     private UserRepository $users;
 
 
-    public function __construct()
+    public function __construct(
+        UserRepository $users
+    )
     {
-        $this->users = new UserRepository();
+        $this->users =
+            $users;
     }
-
 
     public function setupComplete(): bool
     {
