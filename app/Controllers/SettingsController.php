@@ -3,9 +3,8 @@ declare(strict_types=1);
 
 namespace App\Controllers;
 
-use App\Core\Database;
+use App\Core\Container;
 use App\Core\Flash;
-use App\Repositories\CompanySettingsRepository;
 use App\Services\CompanySettingsService;
 
 class SettingsController extends Controller
@@ -15,16 +14,8 @@ class SettingsController extends Controller
 
     public function __construct()
     {
-        $repository =
-            new CompanySettingsRepository(
-                Database::connection()
-            );
-
-
         $this->settings =
-            new CompanySettingsService(
-                $repository
-            );
+            Container::companySettingsService();
     }
 
 

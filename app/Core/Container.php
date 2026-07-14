@@ -13,6 +13,8 @@ use App\Services\EmployeeService;
 use App\Services\PunchService;
 use App\Services\PunchReportService;
 use App\Repositories\EmailRepository;
+use App\Repositories\CompanySettingsRepository;
+use App\Services\CompanySettingsService;
 use PDO;
 
 final class Container
@@ -39,6 +41,10 @@ final class Container
     private static ?EmailRepository $emailRepository = null;
 
     private static ?PunchReportService $punchReportService = null;
+
+    private static ?CompanySettingsRepository $companySettingsRepository = null;
+
+    private static ?CompanySettingsService $companySettingsService = null;
 
     public static function db(): PDO
     {
@@ -132,6 +138,19 @@ final class Container
         return self::$emailRepository;
     }
 
+    public static function companySettingsRepository(): CompanySettingsRepository
+    {
+        if (self::$companySettingsRepository === null) {
+
+            self::$companySettingsRepository =
+                new CompanySettingsRepository(
+                    self::db()
+                );
+        }
+
+        return self::$companySettingsRepository;
+    }
+
     public static function employeeService(): EmployeeService
     {
         if (self::$employeeService === null) {
@@ -190,6 +209,19 @@ final class Container
         return self::$punchReportService;
     }
 
+    public static function companySettingsService(): CompanySettingsService
+    {
+        if (self::$companySettingsService === null) {
+
+            self::$companySettingsService =
+                new CompanySettingsService(
+                    self::companySettingsRepository()
+                );
+        }
+
+        return self::$companySettingsService;
+    }
+
     public static function clear(): void
     {
         self::$db = null;
@@ -211,5 +243,9 @@ final class Container
         self::$punchReportService = null;
 
         self::$emailRepository = null;
+
+        self::$companySettingsRepository = null;
+
+        self::$companySettingsService = null;
     }
 }
