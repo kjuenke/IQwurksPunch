@@ -15,6 +15,9 @@ use App\Services\PunchReportService;
 use App\Repositories\EmailRepository;
 use App\Repositories\CompanySettingsRepository;
 use App\Services\CompanySettingsService;
+use App\Repositories\ReportScheduleRepository;
+use App\Services\ReportScheduleService;
+use App\Services\ReportEmailService;
 use PDO;
 
 final class Container
@@ -45,6 +48,12 @@ final class Container
     private static ?CompanySettingsRepository $companySettingsRepository = null;
 
     private static ?CompanySettingsService $companySettingsService = null;
+
+    private static ?ReportScheduleRepository $reportScheduleRepository = null;
+
+    private static ?ReportScheduleService $reportScheduleService = null;
+
+    private static ?ReportEmailService $reportEmailService = null;
 
     public static function db(): PDO
     {
@@ -151,6 +160,19 @@ final class Container
         return self::$companySettingsRepository;
     }
 
+    public static function reportScheduleRepository(): ReportScheduleRepository
+    {
+        if (self::$reportScheduleRepository === null) {
+
+            self::$reportScheduleRepository =
+                new ReportScheduleRepository(
+                    self::db()
+                );
+        }
+
+        return self::$reportScheduleRepository;
+    }
+
     public static function employeeService(): EmployeeService
     {
         if (self::$employeeService === null) {
@@ -222,6 +244,31 @@ final class Container
         return self::$companySettingsService;
     }
 
+    public static function reportScheduleService(): ReportScheduleService
+    {
+        if (self::$reportScheduleService === null) {
+
+            self::$reportScheduleService =
+                new ReportScheduleService(
+                    self::reportScheduleRepository()
+                );
+        }
+
+        return self::$reportScheduleService;
+    }
+
+
+    public static function reportEmailService(): ReportEmailService
+    {
+        if (self::$reportEmailService === null) {
+
+            self::$reportEmailService =
+                new ReportEmailService();
+        }
+
+        return self::$reportEmailService;
+    }
+
     public static function clear(): void
     {
         self::$db = null;
@@ -247,5 +294,11 @@ final class Container
         self::$companySettingsRepository = null;
 
         self::$companySettingsService = null;
+
+        self::$reportScheduleRepository = null;
+
+        self::$reportScheduleService = null;
+
+        self::$reportEmailService = null;
     }
 }

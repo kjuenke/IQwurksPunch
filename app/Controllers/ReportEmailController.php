@@ -3,9 +3,8 @@ declare(strict_types=1);
 
 namespace App\Controllers;
 
-use App\Core\Database;
+use App\Core\Container;
 use App\Core\Flash;
-use App\Repositories\ReportScheduleRepository;
 use App\Services\ReportEmailService;
 use App\Services\ReportScheduleService;
 
@@ -15,21 +14,15 @@ class ReportEmailController extends Controller
 
     private ReportScheduleService $schedule;
 
-
     public function __construct()
     {
         $this->reports =
-            new ReportEmailService();
+            Container::reportEmailService();
 
 
         $this->schedule =
-            new ReportScheduleService(
-                new ReportScheduleRepository(
-                    Database::connection()
-                )
-            );
+            Container::reportScheduleService();
     }
-
 
     public function index(): void
     {
