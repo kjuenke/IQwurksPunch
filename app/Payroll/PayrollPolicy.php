@@ -16,6 +16,8 @@ final class PayrollPolicy
 
     private float $dailyOvertimeHours;
 
+    private float $weeklyOvertimeHours;
+
     private bool $mealDeductionEnabled;
 
     private int $mealDeductionMinutes;
@@ -61,6 +63,15 @@ final class PayrollPolicy
                 ??
                 8,
                 'daily_overtime_hours'
+            );
+
+
+        $this->weeklyOvertimeHours =
+            $this->nonNegativeFloat(
+                $settings['weekly_overtime_hours']
+                ??
+                40,
+                'weekly_overtime_hours'
             );
 
 
@@ -112,6 +123,12 @@ final class PayrollPolicy
     public function dailyOvertimeHours(): float
     {
         return $this->dailyOvertimeHours;
+    }
+
+
+    public function weeklyOvertimeHours(): float
+    {
+        return $this->weeklyOvertimeHours;
     }
 
 
