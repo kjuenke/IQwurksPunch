@@ -8,6 +8,7 @@ use App\Controllers\EmailHistoryController;
 use App\Controllers\EmployeeController;
 use App\Controllers\HomeController;
 use App\Controllers\KioskController;
+use App\Controllers\NotificationRecipientController;
 use App\Controllers\ReportController;
 use App\Controllers\ReportEmailController;
 use App\Controllers\SettingsController;
@@ -218,9 +219,6 @@ $router->post(
 |--------------------------------------------------------------------------
 | Legacy Manual Email Route
 |--------------------------------------------------------------------------
-|
-| Kept temporarily so any existing bookmark continues to work.
-|
 */
 
 $router->get(
@@ -240,6 +238,46 @@ $emailHistory = new EmailHistoryController();
 $router->get(
     '/reports/email-history',
     [$emailHistory, 'index']
+);
+
+
+/*
+|--------------------------------------------------------------------------
+| Notification Center
+|--------------------------------------------------------------------------
+*/
+
+$notifications =
+    new NotificationRecipientController();
+
+$router->get(
+    '/admin/notifications',
+    [$notifications, 'index']
+);
+
+$router->post(
+    '/admin/notifications/create',
+    [$notifications, 'create']
+);
+
+$router->post(
+    '/admin/notifications/update',
+    [$notifications, 'update']
+);
+
+$router->post(
+    '/admin/notifications/activate',
+    [$notifications, 'activate']
+);
+
+$router->post(
+    '/admin/notifications/deactivate',
+    [$notifications, 'deactivate']
+);
+
+$router->post(
+    '/admin/notifications/delete',
+    [$notifications, 'delete']
 );
 
 
