@@ -1,0 +1,631 @@
+{% extends "layouts/base.twig" %}
+
+{% block content %}
+
+<div class="d-flex flex-wrap justify-content-between align-items-center mb-4">
+
+    <div>
+
+        <h1 class="mb-1">
+            Notification Center
+        </h1>
+
+        <div class="text-muted">
+            Manage report recipients and notification subscriptions.
+        </div>
+
+    </div>
+
+
+    <a
+        href="/reports/email"
+        class="btn btn-outline-secondary"
+    >
+
+        <i class="bi bi-envelope"></i>
+
+        Email Reports
+
+    </a>
+
+</div>
+
+
+<div class="row g-3 mb-4">
+
+    <div class="col-md-4">
+
+        <div class="card shadow-sm h-100">
+
+            <div class="card-body">
+
+                <div class="text-muted">
+                    Daily Payroll
+                </div>
+
+                <div class="display-6">
+                    {{ dailyRecipientCount }}
+                </div>
+
+                <div class="small text-muted">
+                    active recipients
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <div class="col-md-4">
+
+        <div class="card shadow-sm h-100">
+
+            <div class="card-body">
+
+                <div class="text-muted">
+                    Weekly Payroll
+                </div>
+
+                <div class="display-6">
+                    {{ weeklyRecipientCount }}
+                </div>
+
+                <div class="small text-muted">
+                    active recipients
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <div class="col-md-4">
+
+        <div class="card shadow-sm h-100">
+
+            <div class="card-body">
+
+                <div class="text-muted">
+                    Exception Reports
+                </div>
+
+                <div class="display-6">
+                    {{ exceptionRecipientCount }}
+                </div>
+
+                <div class="small text-muted">
+                    active recipients
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<div class="card shadow-sm mb-4">
+
+    <div class="card-header">
+
+        <strong>
+            Add Recipient
+        </strong>
+
+    </div>
+
+
+    <div class="card-body">
+
+        <form
+            method="post"
+            action="/admin/notifications/create"
+        >
+
+            <div class="row">
+
+
+                <div class="col-md-5 mb-3">
+
+                    <label
+                        class="form-label"
+                        for="new_name"
+                    >
+                        Name
+                    </label>
+
+                    <input
+                        type="text"
+                        class="form-control"
+                        id="new_name"
+                        name="name"
+                        maxlength="150"
+                        placeholder="Payroll Department"
+                    >
+
+                </div>
+
+
+                <div class="col-md-7 mb-3">
+
+                    <label
+                        class="form-label"
+                        for="new_email"
+                    >
+                        Email Address
+                    </label>
+
+                    <input
+                        type="email"
+                        class="form-control"
+                        id="new_email"
+                        name="email"
+                        maxlength="254"
+                        required
+                        placeholder="payroll@example.com"
+                    >
+
+                </div>
+
+
+            </div>
+
+
+            <div class="row">
+
+
+                <div class="col-md-3 mb-3">
+
+                    <div class="form-check">
+
+                        <input
+                            class="form-check-input"
+                            type="checkbox"
+                            id="new_daily_payroll"
+                            name="daily_payroll"
+                            checked
+                        >
+
+                        <label
+                            class="form-check-label"
+                            for="new_daily_payroll"
+                        >
+                            Daily payroll
+                        </label>
+
+                    </div>
+
+                </div>
+
+
+                <div class="col-md-3 mb-3">
+
+                    <div class="form-check">
+
+                        <input
+                            class="form-check-input"
+                            type="checkbox"
+                            id="new_weekly_payroll"
+                            name="weekly_payroll"
+                            checked
+                        >
+
+                        <label
+                            class="form-check-label"
+                            for="new_weekly_payroll"
+                        >
+                            Weekly payroll
+                        </label>
+
+                    </div>
+
+                </div>
+
+
+                <div class="col-md-3 mb-3">
+
+                    <div class="form-check">
+
+                        <input
+                            class="form-check-input"
+                            type="checkbox"
+                            id="new_exception_reports"
+                            name="exception_reports"
+                            checked
+                        >
+
+                        <label
+                            class="form-check-label"
+                            for="new_exception_reports"
+                        >
+                            Exception reports
+                        </label>
+
+                    </div>
+
+                </div>
+
+
+                <div class="col-md-3 mb-3">
+
+                    <div class="form-check">
+
+                        <input
+                            class="form-check-input"
+                            type="checkbox"
+                            id="new_active"
+                            name="active"
+                            checked
+                        >
+
+                        <label
+                            class="form-check-label"
+                            for="new_active"
+                        >
+                            Active
+                        </label>
+
+                    </div>
+
+                </div>
+
+
+            </div>
+
+
+            <button
+                type="submit"
+                class="btn btn-primary"
+            >
+
+                <i class="bi bi-person-plus"></i>
+
+                Add Recipient
+
+            </button>
+
+        </form>
+
+    </div>
+
+</div>
+
+
+<div class="card shadow-sm">
+
+    <div class="card-header">
+
+        <strong>
+            Configured Recipients
+        </strong>
+
+    </div>
+
+
+    <div class="card-body">
+
+        {% for recipient in recipients %}
+
+            <div
+                class="border rounded p-3 mb-3
+                    {% if not recipient.active %}
+                    bg-light
+                    {% endif %}
+                "
+            >
+
+                <form
+                    method="post"
+                    action="/admin/notifications/update"
+                >
+
+                    <input
+                        type="hidden"
+                        name="id"
+                        value="{{ recipient.id }}"
+                    >
+
+
+                    <div class="row">
+
+
+                        <div class="col-lg-4 mb-3">
+
+                            <label class="form-label">
+                                Name
+                            </label>
+
+                            <input
+                                type="text"
+                                class="form-control"
+                                name="name"
+                                maxlength="150"
+                                value="{{ recipient.name }}"
+                            >
+
+                        </div>
+
+
+                        <div class="col-lg-5 mb-3">
+
+                            <label class="form-label">
+                                Email Address
+                            </label>
+
+                            <input
+                                type="email"
+                                class="form-control"
+                                name="email"
+                                maxlength="254"
+                                required
+                                value="{{ recipient.email }}"
+                            >
+
+                        </div>
+
+
+                        <div class="col-lg-3 mb-3">
+
+                            <label class="form-label">
+                                Status
+                            </label>
+
+                            <div>
+
+                                {% if recipient.active %}
+
+                                    <span class="badge text-bg-success">
+                                        Active
+                                    </span>
+
+                                {% else %}
+
+                                    <span class="badge text-bg-secondary">
+                                        Inactive
+                                    </span>
+
+                                {% endif %}
+
+                            </div>
+
+                        </div>
+
+
+                    </div>
+
+
+                    <div class="row">
+
+
+                        <div class="col-md-3 mb-3">
+
+                            <div class="form-check">
+
+                                <input
+                                    class="form-check-input"
+                                    type="checkbox"
+                                    id="daily_payroll_{{ recipient.id }}"
+                                    name="daily_payroll"
+                                    {% if recipient.daily_payroll %}
+                                    checked
+                                    {% endif %}
+                                >
+
+                                <label
+                                    class="form-check-label"
+                                    for="daily_payroll_{{ recipient.id }}"
+                                >
+                                    Daily payroll
+                                </label>
+
+                            </div>
+
+                        </div>
+
+
+                        <div class="col-md-3 mb-3">
+
+                            <div class="form-check">
+
+                                <input
+                                    class="form-check-input"
+                                    type="checkbox"
+                                    id="weekly_payroll_{{ recipient.id }}"
+                                    name="weekly_payroll"
+                                    {% if recipient.weekly_payroll %}
+                                    checked
+                                    {% endif %}
+                                >
+
+                                <label
+                                    class="form-check-label"
+                                    for="weekly_payroll_{{ recipient.id }}"
+                                >
+                                    Weekly payroll
+                                </label>
+
+                            </div>
+
+                        </div>
+
+
+                        <div class="col-md-3 mb-3">
+
+                            <div class="form-check">
+
+                                <input
+                                    class="form-check-input"
+                                    type="checkbox"
+                                    id="exception_reports_{{ recipient.id }}"
+                                    name="exception_reports"
+                                    {% if recipient.exception_reports %}
+                                    checked
+                                    {% endif %}
+                                >
+
+                                <label
+                                    class="form-check-label"
+                                    for="exception_reports_{{ recipient.id }}"
+                                >
+                                    Exception reports
+                                </label>
+
+                            </div>
+
+                        </div>
+
+
+                        <div class="col-md-3 mb-3">
+
+                            <div class="form-check">
+
+                                <input
+                                    class="form-check-input"
+                                    type="checkbox"
+                                    id="active_{{ recipient.id }}"
+                                    name="active"
+                                    {% if recipient.active %}
+                                    checked
+                                    {% endif %}
+                                >
+
+                                <label
+                                    class="form-check-label"
+                                    for="active_{{ recipient.id }}"
+                                >
+                                    Active
+                                </label>
+
+                            </div>
+
+                        </div>
+
+
+                    </div>
+
+
+                    <button
+                        type="submit"
+                        class="btn btn-primary btn-sm"
+                    >
+
+                        <i class="bi bi-save"></i>
+
+                        Save Changes
+
+                    </button>
+
+                </form>
+
+
+                <div class="d-flex flex-wrap gap-2 mt-3">
+
+                    {% if recipient.active %}
+
+                        <form
+                            method="post"
+                            action="/admin/notifications/deactivate"
+                        >
+
+                            <input
+                                type="hidden"
+                                name="id"
+                                value="{{ recipient.id }}"
+                            >
+
+                            <button
+                                type="submit"
+                                class="btn btn-outline-warning btn-sm"
+                            >
+
+                                <i class="bi bi-pause-circle"></i>
+
+                                Deactivate
+
+                            </button>
+
+                        </form>
+
+                    {% else %}
+
+                        <form
+                            method="post"
+                            action="/admin/notifications/activate"
+                        >
+
+                            <input
+                                type="hidden"
+                                name="id"
+                                value="{{ recipient.id }}"
+                            >
+
+                            <button
+                                type="submit"
+                                class="btn btn-outline-success btn-sm"
+                            >
+
+                                <i class="bi bi-play-circle"></i>
+
+                                Activate
+
+                            </button>
+
+                        </form>
+
+                    {% endif %}
+
+
+                    <form
+                        method="post"
+                        action="/admin/notifications/delete"
+                        onsubmit="return confirm(
+                            'Permanently delete this notification recipient?'
+                        );"
+                    >
+
+                        <input
+                            type="hidden"
+                            name="id"
+                            value="{{ recipient.id }}"
+                        >
+
+                        <button
+                            type="submit"
+                            class="btn btn-outline-danger btn-sm"
+                        >
+
+                            <i class="bi bi-trash"></i>
+
+                            Delete
+
+                        </button>
+
+                    </form>
+
+                </div>
+
+            </div>
+
+
+        {% else %}
+
+            <div class="text-center text-muted py-4">
+
+                No notification recipients are configured.
+
+            </div>
+
+        {% endfor %}
+
+    </div>
+
+</div>
+
+
+{% endblock %}

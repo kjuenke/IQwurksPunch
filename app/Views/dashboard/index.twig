@@ -2,223 +2,780 @@
 
 {% block content %}
 
-<div class="d-flex justify-content-between align-items-center mb-4">
+<div class="d-flex flex-wrap justify-content-between align-items-center mb-4">
 
-    <h1>
-        Dashboard
-    </h1>
+    <div>
 
-    <span class="text-muted">
-        Supervisor Console
-    </span>
+        <h1 class="mb-1">
+            Operations Dashboard
+        </h1>
+
+        <div class="text-muted">
+            Supervisor overview for {{ dashboard.timezone }}
+        </div>
+
+    </div>
+
+
+    <div class="text-muted">
+
+        Updated:
+
+        {{ dashboard.generated_at|company_date }}
+
+    </div>
 
 </div>
 
 
-<div class="row g-4">
+<div class="row g-4 mb-4">
 
 
-<div class="col-md-3">
+    <div class="col-md-6 col-xl-3">
+
+        <div class="card shadow-sm h-100">
+
+            <div class="card-body">
+
+                <div class="d-flex justify-content-between">
+
+                    <div>
+
+                        <div class="text-muted">
+                            Employees
+                        </div>
+
+                        <div class="display-6">
+                            {{ dashboard.employees.active }}
+                        </div>
+
+                    </div>
+
+
+                    <i class="bi bi-people display-6 text-primary"></i>
+
+                </div>
+
+
+                <div class="small text-muted mb-3">
+
+                    {{ dashboard.employees.active }}
+                    active of
+                    {{ dashboard.employees.total }}
+                    total
+
+                </div>
+
+
+                <a
+                    href="/employees"
+                    class="btn btn-outline-primary btn-sm"
+                >
+                    Manage Employees
+                </a>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <div class="col-md-6 col-xl-3">
+
+        <div class="card shadow-sm h-100">
+
+            <div class="card-body">
+
+                <div class="d-flex justify-content-between">
+
+                    <div>
+
+                        <div class="text-muted">
+                            Working Now
+                        </div>
+
+                        <div class="display-6">
+                            {{ dashboard.working.count }}
+                        </div>
+
+                    </div>
+
+
+                    <i class="bi bi-person-workspace display-6 text-success"></i>
+
+                </div>
+
+
+                <div class="small text-muted mb-3">
+                    employees currently clocked in
+                </div>
+
+
+                <a
+                    href="/reports/punches"
+                    class="btn btn-outline-success btn-sm"
+                >
+                    View Punches
+                </a>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <div class="col-md-6 col-xl-3">
+
+        <div class="card shadow-sm h-100">
+
+            <div class="card-body">
+
+                <div class="d-flex justify-content-between">
+
+                    <div>
+
+                        <div class="text-muted">
+                            Today's Punches
+                        </div>
+
+                        <div class="display-6">
+                            {{ dashboard.today.punch_count }}
+                        </div>
+
+                    </div>
+
+
+                    <i class="bi bi-clock-history display-6 text-info"></i>
+
+                </div>
+
+
+                <div class="small text-muted mb-3">
+                    punches in the company-local day
+                </div>
+
+
+                <a
+                    href="/reports/punches"
+                    class="btn btn-outline-info btn-sm"
+                >
+                    Punch Report
+                </a>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <div class="col-md-6 col-xl-3">
+
+        <div class="card shadow-sm h-100">
+
+            <div class="card-body">
+
+                <div class="d-flex justify-content-between">
+
+                    <div>
+
+                        <div class="text-muted">
+                            Payroll Issues
+                        </div>
+
+                        <div class="display-6">
+                            {{ dashboard.payroll_issues.count }}
+                        </div>
+
+                    </div>
+
+
+                    {% if dashboard.payroll_issues.count > 0 %}
+
+                        <i class="bi bi-exclamation-triangle display-6 text-warning"></i>
+
+                    {% else %}
+
+                        <i class="bi bi-check-circle display-6 text-success"></i>
+
+                    {% endif %}
+
+                </div>
+
+
+                <div class="small text-muted mb-3">
+                    incomplete or mismatched punch records
+                </div>
+
+
+                <a
+                    href="/reports/payroll/weekly"
+                    class="btn btn-outline-warning btn-sm"
+                >
+                    Review Payroll
+                </a>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+</div>
+
+
+<div class="row g-4 mb-4">
+
+
+    <div class="col-lg-8">
+
+        <div class="card shadow-sm h-100">
+
+            <div class="card-header d-flex justify-content-between align-items-center">
+
+                <strong>
+                    Employees Working Now
+                </strong>
+
+                <span class="badge text-bg-success">
+                    {{ dashboard.working.count }}
+                </span>
+
+            </div>
+
+
+            <div class="card-body">
+
+
+                {% if dashboard.working.employees %}
+
+                    <div class="table-responsive">
+
+                        <table class="table table-sm align-middle mb-0">
+
+                            <thead>
+
+                                <tr>
+
+                                    <th>
+                                        Employee
+                                    </th>
+
+                                    <th>
+                                        Employee #
+                                    </th>
+
+                                    <th>
+                                        Department
+                                    </th>
+
+                                    <th>
+                                        Clocked In
+                                    </th>
+
+                                </tr>
+
+                            </thead>
+
+
+                            <tbody>
+
+                                {% for employee in dashboard.working.employees %}
+
+                                    <tr>
+
+                                        <td>
+                                            {{ employee.name }}
+                                        </td>
+
+                                        <td>
+                                            {{ employee.employee_number }}
+                                        </td>
+
+                                        <td>
+                                            {{ employee.department ?: '—' }}
+                                        </td>
+
+                                        <td>
+                                            {{ employee.clocked_in_at|company_date }}
+                                        </td>
+
+                                    </tr>
+
+                                {% endfor %}
+
+                            </tbody>
+
+                        </table>
+
+                    </div>
+
+                {% else %}
+
+                    <div class="text-center text-muted py-4">
+
+                        <i class="bi bi-person-check display-6"></i>
+
+                        <p class="mb-0 mt-2">
+                            No employees are currently clocked in.
+                        </p>
+
+                    </div>
+
+                {% endif %}
+
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <div class="col-lg-4">
+
+        <div class="card shadow-sm h-100">
+
+            <div class="card-header">
+
+                <strong>
+                    Current Week
+                </strong>
+
+            </div>
+
+
+            <div class="card-body">
+
+                {% if dashboard.week.start %}
+
+                    <div class="text-muted mb-3">
+
+                        {{ dashboard.week.start }}
+                        through
+                        {{ dashboard.week.end }}
+
+                    </div>
+
+                {% endif %}
+
+
+                <div class="d-flex justify-content-between mb-2">
+
+                    <span>
+                        Regular Hours
+                    </span>
+
+                    <strong>
+                        {{ dashboard.week.regular_hours|number_format(2) }}
+                    </strong>
+
+                </div>
+
+
+                <div class="d-flex justify-content-between mb-2">
+
+                    <span>
+                        Overtime Hours
+                    </span>
+
+                    <strong>
+                        {{ dashboard.week.overtime_hours|number_format(2) }}
+                    </strong>
+
+                </div>
+
+
+                <hr>
+
+
+                <div class="d-flex justify-content-between mb-3">
+
+                    <span>
+                        Total Payable
+                    </span>
+
+                    <strong class="fs-4">
+                        {{ dashboard.week.total_hours|number_format(2) }}
+                    </strong>
+
+                </div>
+
+
+                <a
+                    href="/reports/payroll/weekly"
+                    class="btn btn-outline-primary btn-sm"
+                >
+                    Weekly Payroll
+                </a>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+</div>
+
+
+<div class="row g-4 mb-4">
+
+
+    <div class="col-lg-7">
+
+        <div class="card shadow-sm h-100">
+
+            <div class="card-header d-flex justify-content-between align-items-center">
+
+                <strong>
+                    Recent Punch Activity
+                </strong>
+
+                <a
+                    href="/reports/punches"
+                    class="btn btn-outline-secondary btn-sm"
+                >
+                    Full Report
+                </a>
+
+            </div>
+
+
+            <div class="card-body">
+
+
+                {% if dashboard.today.recent_punches %}
+
+                    <div class="table-responsive">
+
+                        <table class="table table-sm align-middle mb-0">
+
+                            <thead>
+
+                                <tr>
+
+                                    <th>
+                                        Employee
+                                    </th>
+
+                                    <th>
+                                        Type
+                                    </th>
+
+                                    <th>
+                                        Time
+                                    </th>
+
+                                </tr>
+
+                            </thead>
+
+
+                            <tbody>
+
+                                {% for punch in dashboard.today.recent_punches %}
+
+                                    <tr>
+
+                                        <td>
+
+                                            {{ punch.first_name }}
+                                            {{ punch.last_name }}
+
+                                        </td>
+
+                                        <td>
+
+                                            <span class="badge text-bg-secondary">
+
+                                                {{ punch.punch_type|replace({'_': ' '})|title }}
+
+                                            </span>
+
+                                        </td>
+
+                                        <td>
+                                            {{ punch.punch_time|company_date }}
+                                        </td>
+
+                                    </tr>
+
+                                {% endfor %}
+
+                            </tbody>
+
+                        </table>
+
+                    </div>
+
+                {% else %}
+
+                    <div class="text-center text-muted py-4">
+                        No punch activity is available.
+                    </div>
+
+                {% endif %}
+
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <div class="col-lg-5">
+
+        <div class="card shadow-sm h-100">
+
+            <div class="card-header">
+
+                <strong>
+                    Reporting Status
+                </strong>
+
+            </div>
+
+
+            <div class="card-body">
+
+
+                <h6>
+                    Automatic Delivery
+                </h6>
+
+
+                {% if dashboard.schedule.enabled %}
+
+                    <div class="alert alert-success">
+
+                        <strong>
+                            Enabled
+                        </strong>
+
+                        <br>
+
+                        Sends at
+                        {{ dashboard.schedule.send_time }}
+
+                        {% if dashboard.schedule.weekdays_only %}
+
+                            Monday through Friday
+
+                        {% else %}
+
+                            every day
+
+                        {% endif %}
+
+                    </div>
+
+                {% else %}
+
+                    <div class="alert alert-secondary">
+                        Automatic report delivery is disabled.
+                    </div>
+
+                {% endif %}
+
+
+                {% if dashboard.schedule.last_sent_at %}
+
+                    <div class="small text-muted mb-4">
+
+                        Last automatic send:
+
+                        {{ dashboard.schedule.last_sent_at|company_date }}
+
+                    </div>
+
+                {% endif %}
+
+
+                <h6>
+                    Last Email Report
+                </h6>
+
+
+                {% if dashboard.last_email %}
+
+                    <div class="border rounded p-3">
+
+                        <strong>
+                            {{ dashboard.last_email.report_type }}
+                        </strong>
+
+                        <div>
+
+                            {% if dashboard.last_email.status == 'sent' %}
+
+                                <span class="badge text-bg-success">
+                                    Sent
+                                </span>
+
+                            {% else %}
+
+                                <span class="badge text-bg-danger">
+                                    {{ dashboard.last_email.status|title }}
+                                </span>
+
+                            {% endif %}
+
+                        </div>
+
+                        <div class="small text-muted mt-2">
+
+                            {{ dashboard.last_email.sent_at|company_date }}
+
+                        </div>
+
+                    </div>
+
+                {% else %}
+
+                    <div class="text-muted">
+                        No email history is available.
+                    </div>
+
+                {% endif %}
+
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+</div>
+
+
+{% if dashboard.payroll_issues.items %}
+
+    <div class="card shadow-sm border-warning mb-4">
+
+        <div class="card-header bg-warning-subtle">
+
+            <strong>
+                Payroll Issues Requiring Review
+            </strong>
+
+        </div>
+
+
+        <div class="card-body">
+
+            <ul class="mb-0">
+
+                {% for issue in dashboard.payroll_issues.items %}
+
+                    <li>
+
+                        <strong>
+                            {{ issue.employee_name }}:
+                        </strong>
+
+                        {{ issue.message }}
+
+                    </li>
+
+                {% endfor %}
+
+            </ul>
+
+        </div>
+
+    </div>
+
+{% endif %}
+
 
 <div class="card shadow-sm">
 
-<div class="card-body">
-
-<h6 class="text-muted">
-Employees
-</h6>
-
-<h2>
-0
-</h2>
-
-<a href="/employees"
-class="btn btn-outline-primary btn-sm">
-
-View Employees
-
-</a>
-
-</div>
-
-</div>
-
-</div>
-
-
-
-<div class="col-md-3">
-
-<div class="card shadow-sm">
-
-<div class="card-body">
-
-<h6 class="text-muted">
-Today's Punches
-</h6>
-
-<h2>
-0
-</h2>
-
-<a href="/punches"
-class="btn btn-outline-primary btn-sm">
-
-View Punches
-
-</a>
-
-</div>
-
-</div>
-
-</div>
-
-
-
-<div class="col-md-3">
-
-<div class="card shadow-sm">
-
-<div class="card-body">
-
-<h6 class="text-muted">
-Current Week
-</h6>
-
-<h2>
-0 hrs
-</h2>
-
-<a href="/payroll"
-class="btn btn-outline-primary btn-sm">
-
-Payroll
-
-</a>
-
-</div>
-
-</div>
-
-</div>
-
-
-
-<div class="col-md-3">
-
-<div class="card shadow-sm">
-
-<div class="card-body">
-
-<h6 class="text-muted">
-System
-</h6>
-
-<h2 class="text-success">
-
-Healthy
-
-</h2>
-
-<a href="/settings"
-class="btn btn-outline-primary btn-sm">
-
-Settings
-
-</a>
-
-</div>
-
-</div>
-
-</div>
-
-
-</div>
-
-
-
-<hr class="my-5">
-
-
-
-<div class="row">
-
-
-<div class="col-md-6">
-
-
-<div class="card shadow-sm">
-
-<div class="card-header">
-
-Quick Actions
-
-</div>
-
-
-<div class="card-body">
-
-
-<a href="/employees/create"
-class="btn btn-primary me-2">
-
-<i class="bi bi-person-plus"></i>
-
-Add Employee
-
-</a>
-
-
-<a href="/kiosk"
-class="btn btn-success">
-
-<i class="bi bi-display"></i>
-
-Open Kiosk
-
-</a>
-
-
-</div>
-
-</div>
-
-
-</div>
-
-
-
-<div class="col-md-6">
-
-
-<div class="card shadow-sm">
-
-<div class="card-header">
-
-Recent Activity
-
-</div>
-
-
-<div class="card-body">
-
-
-<p class="text-muted">
-
-No recent activity.
-
-</p>
-
-
-</div>
-
-</div>
-
-
-</div>
-
+    <div class="card-header">
+
+        <strong>
+            Quick Actions
+        </strong>
+
+    </div>
+
+
+    <div class="card-body">
+
+        <div class="d-flex flex-wrap gap-2">
+
+            <a
+                href="/employees"
+                class="btn btn-outline-primary"
+            >
+                <i class="bi bi-people"></i>
+                Employees
+            </a>
+
+            <a
+                href="/reports/punches"
+                class="btn btn-outline-primary"
+            >
+                <i class="bi bi-clock"></i>
+                Punch Report
+            </a>
+
+            <a
+                href="/reports/payroll"
+                class="btn btn-outline-primary"
+            >
+                <i class="bi bi-calendar-day"></i>
+                Daily Payroll
+            </a>
+
+            <a
+                href="/reports/payroll/weekly"
+                class="btn btn-outline-primary"
+            >
+                <i class="bi bi-calendar-week"></i>
+                Weekly Payroll
+            </a>
+
+            <a
+                href="/reports/email"
+                class="btn btn-outline-primary"
+            >
+                <i class="bi bi-envelope"></i>
+                Email Reports
+            </a>
+
+            <a
+                href="/admin/notifications"
+                class="btn btn-outline-primary"
+            >
+                <i class="bi bi-people"></i>
+                Notification Center
+            </a>
+
+            <a
+                href="/admin/settings"
+                class="btn btn-outline-primary"
+            >
+                <i class="bi bi-gear"></i>
+                Settings
+            </a>
+
+            <a
+                href="/kiosk"
+                class="btn btn-success"
+            >
+                <i class="bi bi-display"></i>
+                Open Kiosk
+            </a>
+
+        </div>
+
+    </div>
 
 </div>
 

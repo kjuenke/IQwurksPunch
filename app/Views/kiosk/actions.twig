@@ -2,6 +2,8 @@
 
 {% block content %}
 
+{% include "kiosk/_clock.twig" %}
+
 <div class="container text-center">
 
 <h1>
@@ -46,7 +48,7 @@ Current Status
 Last punch:
 <br>
 
-{{ status.punch.punch_time }}
+{{ status.punch.punch_time|company_date }}
 
 </p>
 

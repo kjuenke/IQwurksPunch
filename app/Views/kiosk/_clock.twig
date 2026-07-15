@@ -1,0 +1,136 @@
+<div
+    class="kiosk-clock text-center mb-4"
+    data-kiosk-clock
+    data-timezone="{{ kioskTimezone|default('America/Los_Angeles')|e('html_attr') }}"
+>
+    <div
+        class="kiosk-clock-date"
+        data-kiosk-clock-date
+    >
+        Loading date...
+    </div>
+
+    <div
+        class="kiosk-clock-time"
+        data-kiosk-clock-time
+    >
+        --:--:--
+    </div>
+
+    <div class="kiosk-clock-timezone">
+        {{ kioskTimezone|default('America/Los_Angeles') }}
+    </div>
+</div>
+
+<style>
+    .kiosk-clock {
+        max-width: 720px;
+        margin-left: auto;
+        margin-right: auto;
+        padding: 1.25rem 1.5rem;
+        border-radius: 1rem;
+        background: rgba(0, 0, 0, 0.04);
+    }
+
+    .kiosk-clock-date {
+        margin-bottom: 0.25rem;
+        font-size: clamp(1.1rem, 2.2vw, 1.6rem);
+        font-weight: 600;
+    }
+
+    .kiosk-clock-time {
+        font-size: clamp(2.75rem, 8vw, 5.5rem);
+        font-weight: 700;
+        line-height: 1.05;
+        letter-spacing: 0.03em;
+        font-variant-numeric: tabular-nums;
+    }
+
+    .kiosk-clock-timezone {
+        margin-top: 0.4rem;
+        font-size: 0.9rem;
+        opacity: 0.65;
+    }
+</style>
+
+<script>
+    (() => {
+        const clocks =
+            document.querySelectorAll(
+                '[data-kiosk-clock]'
+            );
+
+
+        clocks.forEach((clock) => {
+            const timezone =
+                clock.dataset.timezone
+                ||
+                'America/Los_Angeles';
+
+
+            const dateElement =
+                clock.querySelector(
+                    '[data-kiosk-clock-date]'
+                );
+
+
+            const timeElement =
+                clock.querySelector(
+                    '[data-kiosk-clock-time]'
+                );
+
+
+            const dateFormatter =
+                new Intl.DateTimeFormat(
+                    'en-US',
+                    {
+                        timeZone: timezone,
+                        weekday: 'long',
+                        month: 'long',
+                        day: 'numeric',
+                        year: 'numeric'
+                    }
+                );
+
+
+            const timeFormatter =
+                new Intl.DateTimeFormat(
+                    'en-US',
+                    {
+                        timeZone: timezone,
+                        hour: 'numeric',
+                        minute: '2-digit',
+                        second: '2-digit',
+                        hour12: true
+                    }
+                );
+
+
+            const updateClock = () => {
+                const now =
+                    new Date();
+
+
+                dateElement.textContent =
+                    dateFormatter.format(
+                        now
+                    );
+
+
+                timeElement.textContent =
+                    timeFormatter.format(
+                        now
+                    );
+            };
+
+
+            updateClock();
+
+
+            window.setInterval(
+                updateClock,
+                1000
+            );
+        });
+    })();
+</script>

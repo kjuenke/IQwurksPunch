@@ -3,20 +3,46 @@ declare(strict_types=1);
 
 namespace App\Services;
 
+use App\Core\Container;
+use App\Payroll\PayrollCalculator;
+use App\Repositories\CompanySettingsRepository;
 use App\Repositories\PunchRepository;
+use DateInterval;
+use DatePeriod;
+use DateTimeImmutable;
+use DateTimeZone;
+use RuntimeException;
 
 class PunchReportService
 {
     private PunchRepository $punches;
 
+    private CompanySettingsRepository $settings;
+
+    private PayrollCalculator $payroll;
+
 
     public function __construct(
-        PunchRepository $punches
+        PunchRepository $punches,
+        ?CompanySettingsRepository $settings = null,
+        ?PayrollCalculator $payroll = null
     )
     {
-        $this->punches = $punches;
-    }
+        $this->punches =
+            $punches;
 
+
+        $this->settings =
+            $settings
+            ??
+            Container::companySettingsRepository();
+
+
+        $this->payroll =
+            $payroll
+            ??
+            new PayrollCalculator();
+    }
 
 
     public function employeeHistory(
@@ -29,14 +55,28 @@ class PunchReportService
     }
 
 
-
     public function today(): array
     {
-        return $this->punches->dailyPunches(
-            date('Y-m-d')
+        $company =
+            $this->companySettings();
+
+
+        $date =
+            new DateTimeImmutable(
+                'now',
+                new DateTimeZone(
+                    $company['timezone']
+                )
+            );
+
+
+        return $this->punchesForDate(
+            $date->format(
+                'Y-m-d'
+            ),
+            $company['timezone']
         );
     }
-
 
 
     public function recent(
@@ -49,109 +89,535 @@ class PunchReportService
     }
 
 
-
+    /**
+     * Compatibility method for callers that only need payable hours.
+     *
+     * @param array<int,array<string,mixed>> $punches
+     */
     public function calculateHours(
         array $punches
     ): float
     {
-        $totalSeconds = 0;
-
-        $clockIn = null;
-
-
-        foreach ($punches as $punch) {
+        $company =
+            $this->companySettings();
 
 
-            if (
-                $punch['punch_type']
-                ===
-                'clock_in'
-            ) {
-
-                $clockIn =
-                    strtotime(
-                        $punch['punch_time']
-                    );
-
-            }
+        $result =
+            $this->payroll->calculateDay(
+                $punches,
+                $company
+            );
 
 
-            if (
-                $punch['punch_type']
-                ===
-                'clock_out'
-                &&
-                $clockIn !== null
-            ) {
-
-                $clockOut =
-                    strtotime(
-                        $punch['punch_time']
-                    );
+        return (float)$result['total_hours'];
+    }
 
 
-                $totalSeconds +=
-                    $clockOut - $clockIn;
+    /**
+     * @return array<int,array<string,mixed>>
+     */
+    public function dailySummary(
+        ?string $date = null
+    ): array
+    {
+        $company =
+            $this->companySettings();
 
 
-                $clockIn = null;
-            }
-        }
+        $reportDate =
+            $date
+            ??
+            (
+                new DateTimeImmutable(
+                    'now',
+                    new DateTimeZone(
+                        $company['timezone']
+                    )
+                )
+            )->format(
+                'Y-m-d'
+            );
 
 
-        return round(
-            $totalSeconds / 3600,
-            2
+        $punches =
+            $this->punchesForDate(
+                $reportDate,
+                $company['timezone']
+            );
+
+
+        return $this->dailyEmployeeSummaries(
+            $punches,
+            $reportDate,
+            $company
         );
     }
 
-    public function dailySummary(): array
+
+    /**
+     * Returns one weekly payroll result per employee.
+     *
+     * @return array<string,mixed>
+     */
+    public function weeklySummary(
+        ?string $date = null
+    ): array
     {
+        $company =
+            $this->companySettings();
+
+
+        $timezone =
+            new DateTimeZone(
+                $company['timezone']
+            );
+
+
+        $referenceDate =
+            new DateTimeImmutable(
+                (
+                    $date
+                    ??
+                    'now'
+                ),
+                $timezone
+            );
+
+
+        $weekStart =
+            $this->weekStart(
+                $referenceDate,
+                $company['pay_period_start']
+                ??
+                'monday'
+            );
+
+
+        $weekEnd =
+            $weekStart->modify(
+                '+7 days'
+            );
+
+
         $punches =
-            $this->today();
+            $this->punchesBetweenLocalDates(
+                $weekStart,
+                $weekEnd
+            );
 
 
+        $employees =
+            $this->groupPunchesByEmployeeAndDate(
+                $punches,
+                $timezone
+            );
+
+
+        $weeklyEmployees = [];
+
+
+        foreach ($employees as $employee) {
+
+            $dailyResults = [];
+
+
+            $period =
+                new DatePeriod(
+                    $weekStart,
+                    new DateInterval(
+                        'P1D'
+                    ),
+                    $weekEnd
+                );
+
+
+            foreach ($period as $day) {
+
+                $dayDate =
+                    $day->format(
+                        'Y-m-d'
+                    );
+
+
+                $dayPunches =
+                    $employee['punches_by_date'][$dayDate]
+                    ??
+                    [];
+
+
+                if (empty($dayPunches)) {
+
+                    continue;
+                }
+
+
+                $dailyResult =
+                    $this->payroll->calculateDay(
+                        $dayPunches,
+                        $company
+                    );
+
+
+                $dailyResults[] = [
+                    'date' =>
+                        $dayDate,
+
+                    ...$dailyResult
+                ];
+            }
+
+
+            if (empty($dailyResults)) {
+
+                continue;
+            }
+
+
+            $weekCalculation =
+                $this->payroll->calculateWeek(
+                    $dailyResults,
+                    $company
+                );
+
+
+            $weeklyEmployees[] = [
+                'employee_id' =>
+                    $employee['employee_id'],
+
+                'employee_number' =>
+                    $employee['employee_number'],
+
+                'name' =>
+                    $employee['name'],
+
+                'department' =>
+                    $employee['department'],
+
+                ...$weekCalculation
+            ];
+        }
+
+
+        return [
+            'week_start' =>
+                $weekStart->format(
+                    'Y-m-d'
+                ),
+
+            'week_end' =>
+                $weekEnd
+                    ->modify(
+                        '-1 day'
+                    )
+                    ->format(
+                        'Y-m-d'
+                    ),
+
+            'timezone' =>
+                $company['timezone'],
+
+            'employees' =>
+                $weeklyEmployees
+        ];
+    }
+
+
+    /**
+     * @param array<int,array<string,mixed>> $punches
+     * @param array<string,mixed> $company
+     *
+     * @return array<int,array<string,mixed>>
+     */
+    private function dailyEmployeeSummaries(
+        array $punches,
+        string $reportDate,
+        array $company
+    ): array
+    {
         $employees = [];
 
 
         foreach ($punches as $punch) {
 
-            $id =
-                $punch['employee_id'];
+            $employeeId =
+                (int)$punch['employee_id'];
 
 
-            if (!isset($employees[$id])) {
-
-                $employees[$id] = [
+            if (
+                !isset(
+                    $employees[$employeeId]
+                )
+            ) {
+                $employees[$employeeId] = [
                     'employee_id' =>
-                        $id,
+                        $employeeId,
 
                     'employee_number' =>
-                        $punch['employee_number'],
+                        (string)$punch['employee_number'],
 
                     'name' =>
-                        $punch['first_name']
-                        . ' '
-                        .
-                        $punch['last_name'],
+                        trim(
+                            (string)$punch['first_name']
+                            .
+                            ' '
+                            .
+                            (string)$punch['last_name']
+                        ),
 
-                    'punches' => []
+                    'department' =>
+                        (string)(
+                            $punch['department']
+                            ??
+                            ''
+                        ),
+
+                    'date' =>
+                        $reportDate,
+
+                    'punches' =>
+                        []
                 ];
-
             }
 
 
-            $employees[$id]['punches'][] =
+            $employees[$employeeId]['punches'][] =
                 $punch;
         }
 
 
         foreach ($employees as &$employee) {
 
-            $employee['hours'] =
-                $this->calculateHours(
-                    $employee['punches']
+            $calculation =
+                $this->payroll->calculateDay(
+                    $employee['punches'],
+                    $company
                 );
+
+
+            $employee = [
+                ...$employee,
+                ...$calculation,
+
+                'hours' =>
+                    $calculation['total_hours']
+            ];
+        }
+
+        unset($employee);
+
+
+        return array_values(
+            $employees
+        );
+    }
+
+
+    private function weekStart(
+        DateTimeImmutable $date,
+        string $startDay
+    ): DateTimeImmutable
+    {
+        $normalizedStartDay =
+            strtolower(
+                $startDay
+            );
+
+
+        if (
+            !in_array(
+                $normalizedStartDay,
+                [
+                    'sunday',
+                    'monday'
+                ],
+                true
+            )
+        ) {
+            $normalizedStartDay =
+                'monday';
+        }
+
+
+        if (
+            strtolower(
+                $date->format(
+                    'l'
+                )
+            )
+            ===
+            $normalizedStartDay
+        ) {
+            return $date->setTime(
+                0,
+                0
+            );
+        }
+
+
+        return $date
+            ->modify(
+                'last '
+                .
+                $normalizedStartDay
+            )
+            ->setTime(
+                0,
+                0
+            );
+    }
+
+
+    /**
+     * @return array<int,array<string,mixed>>
+     */
+    private function punchesForDate(
+        string $date,
+        string $timezone
+    ): array
+    {
+        $companyTimezone =
+            new DateTimeZone(
+                $timezone
+            );
+
+
+        $localStart =
+            new DateTimeImmutable(
+                $date
+                .
+                ' 00:00:00',
+                $companyTimezone
+            );
+
+
+        $localEnd =
+            $localStart->modify(
+                '+1 day'
+            );
+
+
+        return $this->punchesBetweenLocalDates(
+            $localStart,
+            $localEnd
+        );
+    }
+
+
+    /**
+     * @return array<int,array<string,mixed>>
+     */
+    private function punchesBetweenLocalDates(
+        DateTimeImmutable $localStart,
+        DateTimeImmutable $localEnd
+    ): array
+    {
+        $utcTimezone =
+            new DateTimeZone(
+                'UTC'
+            );
+
+
+        $startUtc =
+            $localStart
+                ->setTimezone(
+                    $utcTimezone
+                )
+                ->format(
+                    'Y-m-d H:i:s'
+                );
+
+
+        $endUtc =
+            $localEnd
+                ->setTimezone(
+                    $utcTimezone
+                )
+                ->format(
+                    'Y-m-d H:i:s'
+                );
+
+
+        return $this->punches->punchesBetween(
+            $startUtc,
+            $endUtc
+        );
+    }
+
+
+    /**
+     * @param array<int,array<string,mixed>> $punches
+     *
+     * @return array<int,array<string,mixed>>
+     */
+    private function groupPunchesByEmployeeAndDate(
+        array $punches,
+        DateTimeZone $timezone
+    ): array
+    {
+        $employees = [];
+
+
+        foreach ($punches as $punch) {
+
+            $employeeId =
+                (int)$punch['employee_id'];
+
+
+            if (
+                !isset(
+                    $employees[$employeeId]
+                )
+            ) {
+                $employees[$employeeId] = [
+                    'employee_id' =>
+                        $employeeId,
+
+                    'employee_number' =>
+                        (string)$punch['employee_number'],
+
+                    'name' =>
+                        trim(
+                            (string)$punch['first_name']
+                            .
+                            ' '
+                            .
+                            (string)$punch['last_name']
+                        ),
+
+                    'department' =>
+                        (string)(
+                            $punch['department']
+                            ??
+                            ''
+                        ),
+
+                    'punches_by_date' =>
+                        []
+                ];
+            }
+
+
+            $localDate =
+                (
+                    new DateTimeImmutable(
+                        (string)$punch['punch_time'],
+                        new DateTimeZone(
+                            'UTC'
+                        )
+                    )
+                )
+                    ->setTimezone(
+                        $timezone
+                    )
+                    ->format(
+                        'Y-m-d'
+                    );
+
+
+            $employees[$employeeId]
+                ['punches_by_date']
+                [$localDate][] =
+                    $punch;
         }
 
 
@@ -160,4 +626,96 @@ class PunchReportService
         );
     }
 
+
+    /**
+     * @return array<string,mixed>
+     */
+    private function companySettings(): array
+    {
+        $settings =
+            $this->settings->get();
+
+
+        if (!$settings) {
+
+            throw new RuntimeException(
+                'Company settings were not found.'
+            );
+        }
+
+
+        $timezone =
+            $settings['timezone']
+            ??
+            'America/Los_Angeles';
+
+
+        if (
+            !in_array(
+                $timezone,
+                timezone_identifiers_list(),
+                true
+            )
+        ) {
+            $timezone =
+                'America/Los_Angeles';
+        }
+
+
+        return [
+            ...$settings,
+
+            'timezone' =>
+                $timezone,
+
+            'daily_overtime_hours' =>
+                (float)(
+                    $settings['daily_overtime_hours']
+                    ??
+                    8
+                ),
+
+            'weekly_overtime_hours' =>
+                (float)(
+                    $settings['weekly_overtime_hours']
+                    ??
+                    40
+                ),
+
+            'rounding_minutes' =>
+                (int)(
+                    $settings['rounding_minutes']
+                    ??
+                    0
+                ),
+
+            'rounding_mode' =>
+                (string)(
+                    $settings['rounding_mode']
+                    ??
+                    'nearest'
+                ),
+
+            'meal_deduction_enabled' =>
+                (bool)(
+                    $settings['meal_deduction_enabled']
+                    ??
+                    false
+                ),
+
+            'meal_deduction_minutes' =>
+                (int)(
+                    $settings['meal_deduction_minutes']
+                    ??
+                    0
+                ),
+
+            'paid_break_minutes' =>
+                (int)(
+                    $settings['paid_break_minutes']
+                    ??
+                    0
+                )
+        ];
+    }
 }

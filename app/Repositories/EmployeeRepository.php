@@ -10,21 +10,33 @@ class EmployeeRepository
     private PDO $db;
 
 
-    public function __construct(PDO $db)
+    public function __construct(
+        PDO $db
+    )
     {
-        $this->db = $db;
+        $this->db =
+            $db;
     }
 
 
+    /**
+     * @return array<int,array<string,mixed>>
+     */
     public function all(): array
     {
-        $stmt = $this->db->query(
-            "
-            SELECT *
-            FROM employees
-            ORDER BY last_name, first_name
-            "
-        );
+        $stmt =
+            $this->db->query(
+                "
+                SELECT *
+                FROM employees
+
+                ORDER BY
+                    active DESC,
+                    last_name COLLATE NOCASE ASC,
+                    first_name COLLATE NOCASE ASC
+                "
+            );
+
 
         return $stmt->fetchAll(
             PDO::FETCH_ASSOC
@@ -32,57 +44,101 @@ class EmployeeRepository
     }
 
 
-    public function find(int $id): ?array
+    public function find(
+        int $id
+    ): ?array
     {
-        $stmt = $this->db->prepare(
-            "
-            SELECT *
-            FROM employees
-            WHERE id = ?
-            "
+        $stmt =
+            $this->db->prepare(
+                "
+                SELECT *
+                FROM employees
+
+                WHERE id = :id
+
+                LIMIT 1
+                "
+            );
+
+
+        $stmt->execute(
+            [
+                'id' =>
+                    $id
+            ]
         );
 
-        $stmt->execute([$id]);
 
-        $employee = $stmt->fetch(
-            PDO::FETCH_ASSOC
-        );
+        $employee =
+            $stmt->fetch(
+                PDO::FETCH_ASSOC
+            );
+
 
         return $employee ?: null;
     }
 
 
-    public function create(array $data): int
+    public function create(
+        array $data
+    ): int
     {
-        $stmt = $this->db->prepare(
-            "
-            INSERT INTO employees
-            (
-                employee_number,
-                first_name,
-                last_name,
-                pin_hash,
-                department,
-                active,
-                notes
-            )
-            VALUES
-            (
-                :employee_number,
-                :first_name,
-                :last_name,
-                :pin_hash,
-                :department,
-                :active,
-                :notes
-            )
-            "
+        $stmt =
+            $this->db->prepare(
+                "
+                INSERT INTO employees
+                (
+                    employee_number,
+                    first_name,
+                    last_name,
+                    pin_hash,
+                    department,
+                    active,
+                    notes
+                )
+
+                VALUES
+                (
+                    :employee_number,
+                    :first_name,
+                    :last_name,
+                    :pin_hash,
+                    :department,
+                    :active,
+                    :notes
+                )
+                "
+            );
+
+
+        $stmt->execute(
+            [
+                'employee_number' =>
+                    $data['employee_number'],
+
+                'first_name' =>
+                    $data['first_name'],
+
+                'last_name' =>
+                    $data['last_name'],
+
+                'pin_hash' =>
+                    $data['pin_hash'],
+
+                'department' =>
+                    $data['department'],
+
+                'active' =>
+                    $data['active'],
+
+                'notes' =>
+                    $data['notes']
+            ]
         );
 
 
-        $stmt->execute($data);
-
-        return (int)$this->db->lastInsertId();
+        return (int)$this->db
+            ->lastInsertId();
     }
 
 
@@ -91,29 +147,74 @@ class EmployeeRepository
         array $data
     ): bool
     {
-        $stmt = $this->db->prepare(
-            "
-            UPDATE employees
+        $stmt =
+            $this->db->prepare(
+                "
+                UPDATE employees
 
-            SET
-                employee_number = :employee_number,
-                first_name = :first_name,
-                last_name = :last_name,
-                department = :department,
-                active = :active,
-                notes = :notes,
-                updated_at = CURRENT_TIMESTAMP
+                SET
+                    employee_number = :employee_number,
+                    first_name = :first_name,
+                    last_name = :last_name,
+                    department = :department,
+                    active = :active,
+                    notes = :notes,
+                    updated_at = CURRENT_TIMESTAMP
 
-            WHERE id = :id
-            "
-        );
+                WHERE id = :id
+                "
+            );
 
 
         return $stmt->execute(
             [
-                ...$data,
-                'id' => $id
+                'employee_number' =>
+                    $data['employee_number'],
+
+                'first_name' =>
+                    $data['first_name'],
+
+                'last_name' =>
+                    $data['last_name'],
+
+                'department' =>
+                    $data['department'],
+
+                'active' =>
+                    $data['active'],
+
+                'notes' =>
+                    $data['notes'],
+
+                'id' =>
+                    $id
             ]
+        );
+    }
+
+
+    /**
+     * Kept for compatibility with existing service calls.
+     */
+    public function updateDetails(
+        int $id,
+        array $data
+    ): bool
+    {
+        return $this->update(
+            $id,
+            $data
+        );
+    }
+
+
+    public function activate(
+        int $id
+    ): bool
+    {
+        return $this->setActive(
+            $id,
+            true
         );
     }
 
@@ -122,113 +223,233 @@ class EmployeeRepository
         int $id
     ): bool
     {
-        $stmt = $this->db->prepare(
-            "
-            UPDATE employees
-            SET active = 0,
-                updated_at = CURRENT_TIMESTAMP
-            WHERE id = ?
-            "
+        return $this->setActive(
+            $id,
+            false
         );
-
-
-        return $stmt->execute([$id]);
     }
 
-    public function employeeNumberExists(string $employeeNumber): bool
+
+    public function hasPunchHistory(
+        int $id
+    ): bool
     {
-        $stmt = $this->db->prepare(
-            "
-            SELECT COUNT(*)
-            FROM employees
-            WHERE employee_number = ?
-            "
+        $stmt =
+            $this->db->prepare(
+                "
+                SELECT COUNT(*)
+                FROM punches
+
+                WHERE employee_id = :employee_id
+                "
+            );
+
+
+        $stmt->execute(
+            [
+                'employee_id' =>
+                    $id
+            ]
         );
 
-        $stmt->execute([$employeeNumber]);
 
         return (int)$stmt->fetchColumn() > 0;
     }
+
+
+    public function punchCount(
+        int $id
+    ): int
+    {
+        $stmt =
+            $this->db->prepare(
+                "
+                SELECT COUNT(*)
+                FROM punches
+
+                WHERE employee_id = :employee_id
+                "
+            );
+
+
+        $stmt->execute(
+            [
+                'employee_id' =>
+                    $id
+            ]
+        );
+
+
+        return (int)$stmt->fetchColumn();
+    }
+
+
+    public function delete(
+        int $id
+    ): bool
+    {
+        $stmt =
+            $this->db->prepare(
+                "
+                DELETE FROM employees
+
+                WHERE id = :id
+                "
+            );
+
+
+        return $stmt->execute(
+            [
+                'id' =>
+                    $id
+            ]
+        );
+    }
+
+
+    public function employeeNumberExists(
+        string $employeeNumber,
+        ?int $excludeId = null
+    ): bool
+    {
+        $sql =
+            "
+            SELECT COUNT(*)
+            FROM employees
+
+            WHERE employee_number = :employee_number
+            ";
+
+
+        $parameters = [
+            'employee_number' =>
+                $employeeNumber
+        ];
+
+
+        if ($excludeId !== null) {
+
+            $sql .=
+                "
+                AND id <> :exclude_id
+                ";
+
+
+            $parameters['exclude_id'] =
+                $excludeId;
+        }
+
+
+        $stmt =
+            $this->db->prepare(
+                $sql
+            );
+
+
+        $stmt->execute(
+            $parameters
+        );
+
+
+        return (int)$stmt->fetchColumn() > 0;
+    }
+
 
     public function updatePin(
         int $id,
         string $pinHash
     ): bool
     {
-        $stmt = $this->db->prepare(
-            "
-            UPDATE employees
-            SET
-                pin_hash = ?,
-                updated_at = CURRENT_TIMESTAMP
-            WHERE id = ?
-            "
-        );
+        $stmt =
+            $this->db->prepare(
+                "
+                UPDATE employees
 
-        return $stmt->execute([
-            $pinHash,
-            $id
-        ]);
-    }
-    public function updateDetails(
-        int $id,
-        array $data
-    ): bool
-    {
-        $stmt = $this->db->prepare(
-            "
-            UPDATE employees
+                SET
+                    pin_hash = :pin_hash,
+                    updated_at = CURRENT_TIMESTAMP
 
-            SET
-                employee_number = :employee_number,
-                first_name = :first_name,
-                last_name = :last_name,
-                department = :department,
-                active = :active,
-                notes = :notes,
-                updated_at = CURRENT_TIMESTAMP
+                WHERE id = :id
+                "
+            );
 
-            WHERE id = :id
-            "
-        );
 
         return $stmt->execute(
             [
-                'employee_number' => $data['employee_number'],
-                'first_name'      => $data['first_name'],
-                'last_name'       => $data['last_name'],
-                'department'      => $data['department'],
-                'active'          => $data['active'],
-                'notes'           => $data['notes'],
-                'id'              => $id
+                'pin_hash' =>
+                    $pinHash,
+
+                'id' =>
+                    $id
             ]
         );
     }
+
 
     public function findByEmployeeNumber(
         string $employeeNumber
     ): ?array
     {
-        $stmt = $this->db->prepare(
-            "
-            SELECT *
-            FROM employees
-            WHERE employee_number = ?
-            LIMIT 1
-            "
-        );
+        $stmt =
+            $this->db->prepare(
+                "
+                SELECT *
+                FROM employees
+
+                WHERE employee_number = :employee_number
+
+                LIMIT 1
+                "
+            );
 
 
         $stmt->execute(
             [
-                $employeeNumber
+                'employee_number' =>
+                    $employeeNumber
             ]
         );
 
 
-        $employee = $stmt->fetch();
+        $employee =
+            $stmt->fetch(
+                PDO::FETCH_ASSOC
+            );
 
 
         return $employee ?: null;
+    }
+
+
+    private function setActive(
+        int $id,
+        bool $active
+    ): bool
+    {
+        $stmt =
+            $this->db->prepare(
+                "
+                UPDATE employees
+
+                SET
+                    active = :active,
+                    updated_at = CURRENT_TIMESTAMP
+
+                WHERE id = :id
+                "
+            );
+
+
+        return $stmt->execute(
+            [
+                'active' =>
+                    $active
+                        ? 1
+                        : 0,
+
+                'id' =>
+                    $id
+            ]
+        );
     }
 }

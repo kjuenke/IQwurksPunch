@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace App\Controllers;
 
 use App\Services\MailService;
+use App\Core\Container;
 
 class EmailController extends Controller
 {
@@ -12,9 +13,9 @@ class EmailController extends Controller
 
     public function __construct()
     {
-        $this->mail = new MailService();
+        $this->mail =
+            Container::mailService();
     }
-
 
     public function test(): void
     {

@@ -23,6 +23,7 @@ config/mail.php
 # Cache and temporary files
 /storage/cache/*
 !/storage/cache/.gitkeep
+/.phpunit.cache/
 /tmp/
 *.tmp
 

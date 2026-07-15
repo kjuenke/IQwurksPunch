@@ -3,8 +3,7 @@ declare(strict_types=1);
 
 namespace App\Controllers;
 
-use App\Core\Database;
-use App\Repositories\PunchRepository;
+use App\Core\Container;
 use App\Services\PunchReportService;
 
 class ReportController extends Controller
@@ -14,17 +13,9 @@ class ReportController extends Controller
 
     public function __construct()
     {
-        $repository = new PunchRepository(
-            Database::connection()
-        );
-
-
         $this->reports =
-            new PunchReportService(
-                $repository
-            );
+            Container::punchReportService();
     }
-
 
 
     public function punches(): void
@@ -36,12 +27,18 @@ class ReportController extends Controller
         $this->render(
             'reports/punches.twig',
             [
-                'title' => 'Punch Report',
-                'activeMenu' => 'reports',
-                'punches' => $punches
+                'title' =>
+                    'Punch Report',
+
+                'activeMenu' =>
+                    'reports',
+
+                'punches' =>
+                    $punches
             ]
         );
     }
+
 
     public function payroll(): void
     {
@@ -52,11 +49,37 @@ class ReportController extends Controller
         $this->render(
             'reports/payroll.twig',
             [
-                'title' => 'Payroll Summary',
-                'activeMenu' => 'reports',
-                'summary' => $summary
+                'title' =>
+                    'Payroll Summary',
+
+                'activeMenu' =>
+                    'reports',
+
+                'summary' =>
+                    $summary
             ]
         );
     }
 
+
+    public function weeklyPayroll(): void
+    {
+        $summary =
+            $this->reports->weeklySummary();
+
+
+        $this->render(
+            'reports/weekly-payroll.twig',
+            [
+                'title' =>
+                    'Weekly Payroll Summary',
+
+                'activeMenu' =>
+                    'reports',
+
+                'summary' =>
+                    $summary
+            ]
+        );
+    }
 }

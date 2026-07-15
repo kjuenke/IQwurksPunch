@@ -3,11 +3,12 @@ declare(strict_types=1);
 
 namespace App\Controllers;
 
-use App\Core\Database;
+use App\Core\Container;
 use App\Core\Flash;
-use App\Repositories\ReportScheduleRepository;
+use App\Services\NotificationRecipientService;
 use App\Services\ReportEmailService;
 use App\Services\ReportScheduleService;
+use Throwable;
 
 class ReportEmailController extends Controller
 {
@@ -15,29 +16,26 @@ class ReportEmailController extends Controller
 
     private ReportScheduleService $schedule;
 
+    private NotificationRecipientService $recipients;
+
 
     public function __construct()
     {
         $this->reports =
-            new ReportEmailService();
+            Container::reportEmailService();
 
 
         $this->schedule =
-            new ReportScheduleService(
-                new ReportScheduleRepository(
-                    Database::connection()
-                )
-            );
+            Container::reportScheduleService();
+
+
+        $this->recipients =
+            Container::notificationRecipientService();
     }
 
 
     public function index(): void
     {
-        $mailConfig =
-            require __DIR__
-            . '/../../config/mail.php';
-
-
         $this->render(
             'reports/email.twig',
             [
@@ -51,9 +49,8 @@ class ReportEmailController extends Controller
                     $this->schedule->get(),
 
                 'recipientCount' =>
-                    count(
-                        $mailConfig['recipients']
-                        ?? []
+                    $this->recipients->countActiveFor(
+                        'daily_payroll'
                     )
             ]
         );
@@ -82,22 +79,17 @@ class ReportEmailController extends Controller
                 );
             }
 
-
-        } catch (\Throwable $e) {
+        } catch (Throwable $exception) {
 
             Flash::error(
                 'Report email failed: '
                 .
-                $e->getMessage()
+                $exception->getMessage()
             );
         }
 
 
-        header(
-            'Location: /reports/email'
-        );
-
-        exit;
+        $this->redirect();
     }
 
 
@@ -129,9 +121,16 @@ class ReportEmailController extends Controller
         }
 
 
+        $this->redirect();
+    }
+
+
+    private function redirect(): never
+    {
         header(
             'Location: /reports/email'
         );
+
 
         exit;
     }

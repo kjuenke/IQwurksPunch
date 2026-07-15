@@ -3,7 +3,7 @@ declare(strict_types=1);
 
 use App\Core\Application;
 use App\Core\Config;
-use App\Core\Database;
+use App\Core\Container;
 use App\Core\Router;
 
 require_once __DIR__ . '/../vendor/autoload.php';
@@ -14,7 +14,7 @@ Config::load();
 try {
 
     $db =
-        Database::connection();
+        Container::db();
 
 
     $stmt =

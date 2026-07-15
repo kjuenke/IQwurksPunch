@@ -3,23 +3,28 @@
 
 <head>
 
-<meta charset="utf-8">
+    <meta charset="utf-8">
 
-<meta name="viewport"
-      content="width=device-width, initial-scale=1">
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1"
+    >
 
-<title>
-{{ title|default(appName) }}
-</title>
-
-
-<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/css/bootstrap.min.css"
-      rel="stylesheet">
+    <title>
+        {{ title|default(appName) }}
+    </title>
 
 
-<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.13.1/font/bootstrap-icons.css"
-      rel="stylesheet">
+    <link
+        href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/css/bootstrap.min.css"
+        rel="stylesheet"
+    >
 
+
+    <link
+        href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.13.1/font/bootstrap-icons.css"
+        rel="stylesheet"
+    >
 
 </head>
 
@@ -29,203 +34,327 @@
 
 <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
 
-<div class="container-fluid">
+    <div class="container-fluid">
 
 
-<a class="navbar-brand"
-   href="/dashboard">
+        <a
+            class="navbar-brand"
+            href="/dashboard"
+        >
 
-<i class="bi bi-clock-history"></i>
+            <i class="bi bi-clock-history"></i>
 
-{{ appName }}
+            {{ appName }}
 
-</a>
+        </a>
 
 
+        <button
+            class="navbar-toggler"
+            type="button"
+            data-bs-toggle="collapse"
+            data-bs-target="#navbarNav"
+            aria-controls="navbarNav"
+            aria-expanded="false"
+            aria-label="Toggle navigation"
+        >
 
-<button class="navbar-toggler"
-        type="button"
-        data-bs-toggle="collapse"
-        data-bs-target="#navbarNav">
+            <span class="navbar-toggler-icon"></span>
 
-<span class="navbar-toggler-icon"></span>
+        </button>
 
-</button>
 
+        <div
+            class="collapse navbar-collapse"
+            id="navbarNav"
+        >
 
 
-<div class="collapse navbar-collapse"
-     id="navbarNav">
+            <ul class="navbar-nav me-auto">
 
 
-<ul class="navbar-nav me-auto">
+                <li class="nav-item">
 
+                    <a
+                        class="nav-link
+                            {% if activeMenu == 'dashboard' %}
+                            active
+                            {% endif %}
+                        "
+                        href="/dashboard"
+                    >
+                        Dashboard
+                    </a>
 
-<li class="nav-item">
+                </li>
 
-<a class="nav-link {% if activeMenu == 'dashboard' %}active{% endif %}"
-   href="/dashboard">
 
-Dashboard
+                <li class="nav-item">
 
-</a>
+                    <a
+                        class="nav-link
+                            {% if activeMenu == 'employees' %}
+                            active
+                            {% endif %}
+                        "
+                        href="/employees"
+                    >
+                        Employees
+                    </a>
 
-</li>
+                </li>
 
 
-<li class="nav-item">
+                <li class="nav-item dropdown">
 
-<a class="nav-link {% if activeMenu == 'employees' %}active{% endif %}"
-   href="/employees">
+                    <a
+                        class="nav-link dropdown-toggle
+                            {% if activeMenu == 'reports' %}
+                            active
+                            {% endif %}
+                        "
+                        href="#"
+                        id="reportsDropdown"
+                        role="button"
+                        data-bs-toggle="dropdown"
+                        aria-expanded="false"
+                    >
+                        Reports
+                    </a>
 
-Employees
 
-</a>
+                    <ul
+                        class="dropdown-menu"
+                        aria-labelledby="reportsDropdown"
+                    >
 
-</li>
 
+                        <li>
 
-<li class="nav-item">
+                            <a
+                                class="dropdown-item"
+                                href="/reports/punches"
+                            >
 
-<a class="nav-link {% if activeMenu == 'punches' %}active{% endif %}"
-   href="/punches">
+                                <i class="bi bi-clock me-2"></i>
 
-Punches
+                                Punch Report
 
-</a>
+                            </a>
 
-</li>
+                        </li>
 
 
-<li class="nav-item">
+                        <li>
 
-<a class="nav-link {% if activeMenu == 'payroll' %}active{% endif %}"
-   href="/payroll">
+                            <a
+                                class="dropdown-item"
+                                href="/reports/payroll"
+                            >
 
-Payroll
+                                <i class="bi bi-calendar-day me-2"></i>
 
-</a>
+                                Daily Payroll
 
-</li>
+                            </a>
 
+                        </li>
 
-<li class="nav-item">
 
-<a class="nav-link {% if activeMenu == 'reports' %}active{% endif %}"
-   href="/reports">
+                        <li>
 
-Reports
+                            <a
+                                class="dropdown-item"
+                                href="/reports/payroll/weekly"
+                            >
 
-</a>
+                                <i class="bi bi-calendar-week me-2"></i>
 
-</li>
+                                Weekly Payroll
 
+                            </a>
 
-<li class="nav-item">
+                        </li>
 
-<a class="nav-link {% if activeMenu == 'settings' %}active{% endif %}"
-   href="/admin/settings">
 
-Settings
+                        <li>
 
-</a>
+                            <hr class="dropdown-divider">
 
-</li>
+                        </li>
 
 
-</ul>
+                        <li>
 
+                            <a
+                                class="dropdown-item"
+                                href="/reports/email"
+                            >
 
+                                <i class="bi bi-envelope me-2"></i>
 
-<ul class="navbar-nav">
+                                Email Reports
 
+                            </a>
 
-<li class="nav-item">
+                        </li>
 
-<a class="nav-link"
-   href="/kiosk">
 
-<i class="bi bi-display"></i>
+                        <li>
 
-Return to Kiosk
+                            <a
+                                class="dropdown-item"
+                                href="/reports/email-history"
+                            >
 
-</a>
+                                <i class="bi bi-clock-history me-2"></i>
 
-</li>
+                                Email History
 
+                            </a>
 
-<li class="nav-item">
+                        </li>
 
-<a class="nav-link"
-   href="/logout">
 
-<i class="bi bi-box-arrow-right"></i>
+                        <li>
 
-Logout
+                            <a
+                                class="dropdown-item"
+                                href="/admin/notifications"
+                            >
 
-</a>
+                                <i class="bi bi-people me-2"></i>
 
-</li>
+                                Notification Center
 
+                            </a>
 
-</ul>
+                        </li>
 
 
-</div>
+                    </ul>
 
-</div>
+                </li>
+
+
+                <li class="nav-item">
+
+                    <a
+                        class="nav-link
+                            {% if activeMenu == 'settings' %}
+                            active
+                            {% endif %}
+                        "
+                        href="/admin/settings"
+                    >
+                        Settings
+                    </a>
+
+                </li>
+
+
+            </ul>
+
+
+            <ul class="navbar-nav">
+
+
+                <li class="nav-item">
+
+                    <a
+                        class="nav-link"
+                        href="/kiosk"
+                    >
+
+                        <i class="bi bi-display"></i>
+
+                        Return to Kiosk
+
+                    </a>
+
+                </li>
+
+
+                <li class="nav-item">
+
+                    <a
+                        class="nav-link"
+                        href="/logout"
+                    >
+
+                        <i class="bi bi-box-arrow-right"></i>
+
+                        Logout
+
+                    </a>
+
+                </li>
+
+
+            </ul>
+
+
+        </div>
+
+    </div>
 
 </nav>
 
 
-
 <main class="container py-4">
 
-{% for message in flash %}
 
-<div class="alert alert-{{ message.type }} alert-dismissible fade show"
-     role="alert">
+    {% for message in flash %}
 
-    {{ message.message }}
+        <div
+            class="alert alert-{{ message.type }} alert-dismissible fade show"
+            role="alert"
+        >
 
-    <button
-        type="button"
-        class="btn-close"
-        data-bs-dismiss="alert">
-    </button>
+            {{ message.message }}
 
-</div>
+            <button
+                type="button"
+                class="btn-close"
+                data-bs-dismiss="alert"
+                aria-label="Close"
+            >
+            </button>
 
-{% endfor %}
+        </div>
 
-{% block content %}
+    {% endfor %}
 
-{% endblock %}
+
+    {% block content %}
+
+    {% endblock %}
 
 
 </main>
 
 
-
 <footer class="text-center text-muted py-3">
 
-<small>
+    <small>
 
-Powered by {{ appName }}
+        Powered by {{ appName }}
 
-v{{ appVersion }}
+        v{{ appVersion }}
 
-<br>
+        <br>
 
-{{ companyName }}
+        {{ companyName }}
 
-</small>
+    </small>
 
 </footer>
 
 
-
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/js/bootstrap.bundle.min.js"></script>
+<script
+    src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/js/bootstrap.bundle.min.js"
+>
+</script>
 
 
 </body>

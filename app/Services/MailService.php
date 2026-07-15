@@ -3,12 +3,14 @@ declare(strict_types=1);
 
 namespace App\Services;
 
+use App\Core\Container;
+use App\Logging\LoggerInterface;
+use App\Repositories\EmailRepository;
 use Symfony\Component\Mailer\Mailer;
 use Symfony\Component\Mailer\Transport;
+use Symfony\Component\Mime\Address;
 use Symfony\Component\Mime\Email;
-
-use App\Core\Database;
-use App\Repositories\EmailRepository;
+use Throwable;
 
 class MailService
 {
@@ -16,107 +18,333 @@ class MailService
 
     private EmailRepository $emails;
 
+    private NotificationRecipientService $recipients;
+
+    private LoggerInterface $logger;
+
+
     public function __construct()
     {
         $this->config =
             require __DIR__
-            . '/../../config/mail.php';
+            .
+            '/../../config/mail.php';
 
-       $this->emails =
-           new EmailRepository(
-               Database::connection()
-           );
+
+        $this->emails =
+            Container::emailRepository();
+
+
+        $this->recipients =
+            Container::notificationRecipientService();
+
+
+        $this->logger =
+            Container::logger(
+                'mail'
+            );
     }
-
 
 
     public function send(
         string $subject,
-        string $body
+        string $body,
+        string $notificationType = 'daily_payroll'
     ): bool
     {
-        $dsn =
-            sprintf(
-                'smtp://%s:%s@%s:%s',
-                urlencode(
-                    $this->config['username']
-                ),
-                urlencode(
-                    $this->config['password']
-                ),
-                $this->config['host'],
-                $this->config['port']
+        $recipients =
+            $this->recipients->activeEmailsFor(
+                $notificationType
             );
 
 
-        $transport =
-            Transport::fromDsn(
-                $dsn
+        $recipientCount =
+            count(
+                $recipients
             );
 
 
-        $mailer =
-            new Mailer(
-                $transport
+        $this->logger->info(
+            'Email delivery started.',
+            [
+                'subject' =>
+                    $subject,
+
+                'notification_type' =>
+                    $notificationType,
+
+                'recipient_count' =>
+                    $recipientCount,
+
+                'transport_host' =>
+                    $this->config['host']
+                    ??
+                    null,
+
+                'transport_port' =>
+                    $this->config['port']
+                    ??
+                    null
+            ]
+        );
+
+
+        if ($recipientCount === 0) {
+
+            $this->logger->error(
+                'Email delivery cannot continue because no active recipients are subscribed.',
+                [
+                    'subject' =>
+                        $subject,
+
+                    'notification_type' =>
+                        $notificationType
+                ]
             );
 
 
-        $email =
-            (new Email())
-                ->from(
-                    $this->config['from_email']
-                )
-                ->subject(
-                    $subject
-                )
-                ->text(
-                    $body
+            $this->recordHistory(
+                $subject,
+                [],
+                'failed'
+            );
+
+
+            return false;
+        }
+
+
+        try {
+
+            $dsn =
+                sprintf(
+                    'smtp://%s:%s@%s:%s',
+                    urlencode(
+                        (string)(
+                            $this->config['username']
+                            ??
+                            ''
+                        )
+                    ),
+                    urlencode(
+                        (string)(
+                            $this->config['password']
+                            ??
+                            ''
+                        )
+                    ),
+                    (string)(
+                        $this->config['host']
+                        ??
+                        ''
+                    ),
+                    (string)(
+                        $this->config['port']
+                        ??
+                        587
+                    )
                 );
 
 
-        foreach (
-            $this->config['recipients']
-            as $recipient
-        ) {
-            $email->addTo(
-                $recipient
-            );
-        }
-        try {
+            $transport =
+                Transport::fromDsn(
+                    $dsn
+                );
+
+
+            $mailer =
+                new Mailer(
+                    $transport
+                );
+
+
+            $email =
+                (new Email())
+                    ->from(
+                        $this->fromAddress()
+                    )
+                    ->subject(
+                        $subject
+                    )
+                    ->text(
+                        $body
+                    );
+
+
+            foreach ($recipients as $recipient) {
+
+                $email->addTo(
+                    $recipient
+                );
+            }
+
 
             $mailer->send(
                 $email
             );
 
 
-            $this->emails->create(
+            $this->recordHistory(
                 $subject,
-                implode(
-                    ', ',
-                    $this->config['recipients']
-                ),
+                $recipients,
                 'sent'
+            );
+
+
+            $this->logger->info(
+                'Email delivery completed successfully.',
+                [
+                    'subject' =>
+                        $subject,
+
+                    'notification_type' =>
+                        $notificationType,
+
+                    'recipient_count' =>
+                        $recipientCount
+                ]
             );
 
 
             return true;
 
+        } catch (Throwable $exception) {
 
-        } catch (\Throwable $e) {
-
-
-            $this->emails->create(
+            $this->recordHistory(
                 $subject,
-                implode(
-                    ', ',
-                    $this->config['recipients']
-                ),
+                $recipients,
                 'failed'
             );
 
 
-            throw $e;
+            $this->logger->error(
+                'Email delivery failed.',
+                [
+                    'subject' =>
+                        $subject,
+
+                    'notification_type' =>
+                        $notificationType,
+
+                    'recipient_count' =>
+                        $recipientCount,
+
+                    'exception_class' =>
+                        $exception::class,
+
+                    'exception_message' =>
+                        $exception->getMessage(),
+
+                    'exception_file' =>
+                        $exception->getFile(),
+
+                    'exception_line' =>
+                        $exception->getLine()
+                ]
+            );
+
+
+            throw $exception;
+        }
+    }
+
+
+    private function fromAddress(): Address|string
+    {
+        $fromEmail =
+            trim(
+                (string)(
+                    $this->config['from_email']
+                    ??
+                    ''
+                )
+            );
+
+
+        $fromName =
+            trim(
+                (string)(
+                    $this->config['from_name']
+                    ??
+                    ''
+                )
+            );
+
+
+        if ($fromName === '') {
+
+            return $fromEmail;
         }
 
+
+        return new Address(
+            $fromEmail,
+            $fromName
+        );
+    }
+
+
+    private function recordHistory(
+        string $subject,
+        array $recipients,
+        string $status
+    ): void
+    {
+        try {
+
+            $recorded =
+                $this->emails->create(
+                    $subject,
+                    implode(
+                        ', ',
+                        $recipients
+                    ),
+                    $status
+                );
+
+
+            if (!$recorded) {
+
+                $this->logger->warning(
+                    'Email delivery history could not be recorded.',
+                    [
+                        'subject' =>
+                            $subject,
+
+                        'status' =>
+                            $status,
+
+                        'recipient_count' =>
+                            count(
+                                $recipients
+                            )
+                    ]
+                );
+            }
+
+        } catch (Throwable $exception) {
+
+            $this->logger->warning(
+                'Email delivery history raised an exception.',
+                [
+                    'subject' =>
+                        $subject,
+
+                    'status' =>
+                        $status,
+
+                    'recipient_count' =>
+                        count(
+                            $recipients
+                        ),
+
+                    'exception_class' =>
+                        $exception::class,
+
+                    'exception_message' =>
+                        $exception->getMessage()
+                ]
+            );
+        }
     }
 }

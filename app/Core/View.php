@@ -6,7 +6,7 @@ namespace App\Core;
 use Twig\Environment;
 use Twig\Loader\FilesystemLoader;
 use Twig\TwigFilter;
-use App\Repositories\CompanySettingsRepository;
+
 
 class View
 {
@@ -46,15 +46,9 @@ class View
                             date_default_timezone_get();
 
 
-                        $settings =
-                            new CompanySettingsRepository(
-                                Database::connection()
-                            );
-
-
                         $company =
-                            $settings->get();
-
+                            Container::companySettingsRepository()
+                                ->get();
 
                         if (
                             !empty(
