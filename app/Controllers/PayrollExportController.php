@@ -5,16 +5,23 @@ namespace App\Controllers;
 
 use App\Core\Container;
 use App\Exports\DailyPayrollCsvExporter;
+use App\Exports\Pdf\PayrollRegisterPdfExporter;
 use App\Exports\WeeklyPayrollCsvExporter;
+use App\Services\CompanySettingsService;
 use App\Services\PunchReportService;
+use RuntimeException;
 
 class PayrollExportController extends Controller
 {
     private PunchReportService $reports;
 
+    private CompanySettingsService $settings;
+
     private DailyPayrollCsvExporter $dailyCsv;
 
     private WeeklyPayrollCsvExporter $weeklyCsv;
+
+    private PayrollRegisterPdfExporter $weeklyPdf;
 
 
     public function __construct()
@@ -23,12 +30,20 @@ class PayrollExportController extends Controller
             Container::punchReportService();
 
 
+        $this->settings =
+            Container::companySettingsService();
+
+
         $this->dailyCsv =
             Container::dailyPayrollCsvExporter();
 
 
         $this->weeklyCsv =
             Container::weeklyPayrollCsvExporter();
+
+
+        $this->weeklyPdf =
+            Container::payrollRegisterPdfExporter();
     }
 
 
@@ -54,7 +69,8 @@ class PayrollExportController extends Controller
             '.csv',
             $this->dailyCsv->export(
                 $summary
-            )
+            ),
+            'text/csv; charset=UTF-8'
         );
     }
 
@@ -91,26 +107,75 @@ class PayrollExportController extends Controller
             '.csv',
             $this->weeklyCsv->export(
                 $summary
-            )
+            ),
+            'text/csv; charset=UTF-8'
+        );
+    }
+
+
+    public function weeklyPdf(): never
+    {
+        $summary =
+            $this->reports->weeklySummary();
+
+
+        $company =
+            $this->settings->get()
+            ??
+            [];
+
+
+        $weekStart =
+            $summary['week_start']
+            ??
+            date(
+                'Y-m-d'
+            );
+
+
+        $weekEnd =
+            $summary['week_end']
+            ??
+            $weekStart;
+
+
+        $this->download(
+            'iqwurkspunch-weekly-payroll-register-'
+            .
+            $weekStart
+            .
+            '-to-'
+            .
+            $weekEnd
+            .
+            '.pdf',
+            $this->weeklyPdf->export(
+                $summary,
+                $company
+            ),
+            'application/pdf'
         );
     }
 
 
     private function download(
         string $filename,
-        string $contents
+        string $contents,
+        string $contentType
     ): never
     {
         if (headers_sent()) {
 
-            throw new \RuntimeException(
+            throw new RuntimeException(
                 'The payroll export cannot be downloaded because output has already started.'
             );
         }
 
 
         header(
-            'Content-Type: text/csv; charset=UTF-8'
+            'Content-Type: '
+            .
+            $contentType
         );
 
 

@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace App\Core;
 
 use App\Exports\DailyPayrollCsvExporter;
+use App\Exports\Pdf\PayrollRegisterPdfExporter;
 use App\Exports\WeeklyPayrollCsvExporter;
 use App\Logging\LoggerFactory;
 use App\Logging\LoggerInterface;
@@ -78,6 +79,8 @@ final class Container
     private static ?DailyPayrollCsvExporter $dailyPayrollCsvExporter = null;
 
     private static ?WeeklyPayrollCsvExporter $weeklyPayrollCsvExporter = null;
+
+    private static ?PayrollRegisterPdfExporter $payrollRegisterPdfExporter = null;
 
 
     public static function db(): PDO
@@ -426,6 +429,19 @@ final class Container
     }
 
 
+    public static function payrollRegisterPdfExporter(): PayrollRegisterPdfExporter
+    {
+        if (self::$payrollRegisterPdfExporter === null) {
+
+            self::$payrollRegisterPdfExporter =
+                new PayrollRegisterPdfExporter();
+        }
+
+
+        return self::$payrollRegisterPdfExporter;
+    }
+
+
     public static function clear(): void
     {
         self::$db = null;
@@ -473,5 +489,7 @@ final class Container
         self::$dailyPayrollCsvExporter = null;
 
         self::$weeklyPayrollCsvExporter = null;
+
+        self::$payrollRegisterPdfExporter = null;
     }
 }
