@@ -8,6 +8,7 @@ use App\Logging\LoggerInterface;
 use App\Repositories\EmailRepository;
 use Symfony\Component\Mailer\Mailer;
 use Symfony\Component\Mailer\Transport;
+use Symfony\Component\Mime\Address;
 use Symfony\Component\Mime\Email;
 use Throwable;
 
@@ -16,6 +17,8 @@ class MailService
     private array $config;
 
     private EmailRepository $emails;
+
+    private NotificationRecipientService $recipients;
 
     private LoggerInterface $logger;
 
@@ -29,9 +32,11 @@ class MailService
 
 
         $this->emails =
-            new EmailRepository(
-                Container::db()
-            );
+            Container::emailRepository();
+
+
+        $this->recipients =
+            Container::notificationRecipientService();
 
 
         $this->logger =
@@ -43,25 +48,20 @@ class MailService
 
     public function send(
         string $subject,
-        string $body
+        string $body,
+        string $notificationType = 'daily_payroll'
     ): bool
     {
         $recipients =
-            $this->config['recipients']
-            ??
-            [];
+            $this->recipients->activeEmailsFor(
+                $notificationType
+            );
 
 
         $recipientCount =
-            is_array(
-                $recipients
-            )
-            ?
             count(
                 $recipients
-            )
-            :
-            0;
+            );
 
 
         $this->logger->info(
@@ -69,6 +69,9 @@ class MailService
             [
                 'subject' =>
                     $subject,
+
+                'notification_type' =>
+                    $notificationType,
 
                 'recipient_count' =>
                     $recipientCount,
@@ -81,7 +84,7 @@ class MailService
                 'transport_port' =>
                     $this->config['port']
                     ??
-                    null,
+                    null
             ]
         );
 
@@ -89,17 +92,20 @@ class MailService
         if ($recipientCount === 0) {
 
             $this->logger->error(
-                'Email delivery cannot continue because no recipients are configured.',
+                'Email delivery cannot continue because no active recipients are subscribed.',
                 [
                     'subject' =>
                         $subject,
+
+                    'notification_type' =>
+                        $notificationType
                 ]
             );
 
 
             $this->recordHistory(
                 $subject,
-                $recipients,
+                [],
                 'failed'
             );
 
@@ -114,13 +120,29 @@ class MailService
                 sprintf(
                     'smtp://%s:%s@%s:%s',
                     urlencode(
-                        (string)$this->config['username']
+                        (string)(
+                            $this->config['username']
+                            ??
+                            ''
+                        )
                     ),
                     urlencode(
-                        (string)$this->config['password']
+                        (string)(
+                            $this->config['password']
+                            ??
+                            ''
+                        )
                     ),
-                    (string)$this->config['host'],
-                    (string)$this->config['port']
+                    (string)(
+                        $this->config['host']
+                        ??
+                        ''
+                    ),
+                    (string)(
+                        $this->config['port']
+                        ??
+                        587
+                    )
                 );
 
 
@@ -139,7 +161,7 @@ class MailService
             $email =
                 (new Email())
                     ->from(
-                        (string)$this->config['from_email']
+                        $this->fromAddress()
                     )
                     ->subject(
                         $subject
@@ -152,7 +174,7 @@ class MailService
             foreach ($recipients as $recipient) {
 
                 $email->addTo(
-                    (string)$recipient
+                    $recipient
                 );
             }
 
@@ -175,8 +197,11 @@ class MailService
                     'subject' =>
                         $subject,
 
+                    'notification_type' =>
+                        $notificationType,
+
                     'recipient_count' =>
-                        $recipientCount,
+                        $recipientCount
                 ]
             );
 
@@ -198,6 +223,9 @@ class MailService
                     'subject' =>
                         $subject,
 
+                    'notification_type' =>
+                        $notificationType,
+
                     'recipient_count' =>
                         $recipientCount,
 
@@ -211,13 +239,48 @@ class MailService
                         $exception->getFile(),
 
                     'exception_line' =>
-                        $exception->getLine(),
+                        $exception->getLine()
                 ]
             );
 
 
             throw $exception;
         }
+    }
+
+
+    private function fromAddress(): Address|string
+    {
+        $fromEmail =
+            trim(
+                (string)(
+                    $this->config['from_email']
+                    ??
+                    ''
+                )
+            );
+
+
+        $fromName =
+            trim(
+                (string)(
+                    $this->config['from_name']
+                    ??
+                    ''
+                )
+            );
+
+
+        if ($fromName === '') {
+
+            return $fromEmail;
+        }
+
+
+        return new Address(
+            $fromEmail,
+            $fromName
+        );
     }
 
 
@@ -254,7 +317,7 @@ class MailService
                         'recipient_count' =>
                             count(
                                 $recipients
-                            ),
+                            )
                     ]
                 );
             }
@@ -279,7 +342,7 @@ class MailService
                         $exception::class,
 
                     'exception_message' =>
-                        $exception->getMessage(),
+                        $exception->getMessage()
                 ]
             );
         }
