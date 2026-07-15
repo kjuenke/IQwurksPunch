@@ -5,14 +5,19 @@ namespace App\Controllers;
 
 use App\Core\Container;
 use App\Core\Flash;
+use App\Services\NotificationRecipientService;
 use App\Services\ReportEmailService;
 use App\Services\ReportScheduleService;
+use Throwable;
 
 class ReportEmailController extends Controller
 {
     private ReportEmailService $reports;
 
     private ReportScheduleService $schedule;
+
+    private NotificationRecipientService $recipients;
+
 
     public function __construct()
     {
@@ -22,15 +27,15 @@ class ReportEmailController extends Controller
 
         $this->schedule =
             Container::reportScheduleService();
+
+
+        $this->recipients =
+            Container::notificationRecipientService();
     }
+
 
     public function index(): void
     {
-        $mailConfig =
-            require __DIR__
-            . '/../../config/mail.php';
-
-
         $this->render(
             'reports/email.twig',
             [
@@ -44,9 +49,8 @@ class ReportEmailController extends Controller
                     $this->schedule->get(),
 
                 'recipientCount' =>
-                    count(
-                        $mailConfig['recipients']
-                        ?? []
+                    $this->recipients->countActiveFor(
+                        'daily_payroll'
                     )
             ]
         );
@@ -75,22 +79,17 @@ class ReportEmailController extends Controller
                 );
             }
 
-
-        } catch (\Throwable $e) {
+        } catch (Throwable $exception) {
 
             Flash::error(
                 'Report email failed: '
                 .
-                $e->getMessage()
+                $exception->getMessage()
             );
         }
 
 
-        header(
-            'Location: /reports/email'
-        );
-
-        exit;
+        $this->redirect();
     }
 
 
@@ -122,9 +121,16 @@ class ReportEmailController extends Controller
         }
 
 
+        $this->redirect();
+    }
+
+
+    private function redirect(): never
+    {
         header(
             'Location: /reports/email'
         );
+
 
         exit;
     }
