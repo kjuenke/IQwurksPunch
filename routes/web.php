@@ -10,6 +10,7 @@ use App\Controllers\HomeController;
 use App\Controllers\KioskController;
 use App\Controllers\NotificationRecipientController;
 use App\Controllers\PayrollController;
+use App\Controllers\PayrollExportController;
 use App\Controllers\ReportController;
 use App\Controllers\ReportEmailController;
 use App\Controllers\SettingsController;
@@ -205,6 +206,26 @@ $router->get(
 $router->get(
     '/reports/payroll/weekly',
     [$payroll, 'weekly']
+);
+
+
+/*
+|--------------------------------------------------------------------------
+| Payroll Exports
+|--------------------------------------------------------------------------
+*/
+
+$payrollExports =
+    new PayrollExportController();
+
+$router->get(
+    '/reports/payroll/export/csv',
+    [$payrollExports, 'dailyCsv']
+);
+
+$router->get(
+    '/reports/payroll/weekly/export/csv',
+    [$payrollExports, 'weeklyCsv']
 );
 
 

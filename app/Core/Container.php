@@ -3,6 +3,8 @@ declare(strict_types=1);
 
 namespace App\Core;
 
+use App\Exports\DailyPayrollCsvExporter;
+use App\Exports\WeeklyPayrollCsvExporter;
 use App\Logging\LoggerFactory;
 use App\Logging\LoggerInterface;
 use App\Repositories\AuditRepository;
@@ -72,6 +74,10 @@ final class Container
     private static ?NotificationRecipientService $notificationRecipientService = null;
 
     private static ?DashboardService $dashboardService = null;
+
+    private static ?DailyPayrollCsvExporter $dailyPayrollCsvExporter = null;
+
+    private static ?WeeklyPayrollCsvExporter $weeklyPayrollCsvExporter = null;
 
 
     public static function db(): PDO
@@ -394,6 +400,32 @@ final class Container
     }
 
 
+    public static function dailyPayrollCsvExporter(): DailyPayrollCsvExporter
+    {
+        if (self::$dailyPayrollCsvExporter === null) {
+
+            self::$dailyPayrollCsvExporter =
+                new DailyPayrollCsvExporter();
+        }
+
+
+        return self::$dailyPayrollCsvExporter;
+    }
+
+
+    public static function weeklyPayrollCsvExporter(): WeeklyPayrollCsvExporter
+    {
+        if (self::$weeklyPayrollCsvExporter === null) {
+
+            self::$weeklyPayrollCsvExporter =
+                new WeeklyPayrollCsvExporter();
+        }
+
+
+        return self::$weeklyPayrollCsvExporter;
+    }
+
+
     public static function clear(): void
     {
         self::$db = null;
@@ -437,5 +469,9 @@ final class Container
         self::$notificationRecipientService = null;
 
         self::$dashboardService = null;
+
+        self::$dailyPayrollCsvExporter = null;
+
+        self::$weeklyPayrollCsvExporter = null;
     }
 }
