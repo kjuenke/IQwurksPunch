@@ -16,6 +16,7 @@ use App\Repositories\UserRepository;
 use App\Services\AuditService;
 use App\Services\AuthService;
 use App\Services\CompanySettingsService;
+use App\Services\DashboardService;
 use App\Services\EmployeeService;
 use App\Services\MailService;
 use App\Services\NotificationRecipientService;
@@ -69,6 +70,8 @@ final class Container
     private static ?AuthService $authService = null;
 
     private static ?NotificationRecipientService $notificationRecipientService = null;
+
+    private static ?DashboardService $dashboardService = null;
 
 
     public static function db(): PDO
@@ -371,6 +374,26 @@ final class Container
     }
 
 
+    public static function dashboardService(): DashboardService
+    {
+        if (self::$dashboardService === null) {
+
+            self::$dashboardService =
+                new DashboardService(
+                    self::employeeService(),
+                    self::punchService(),
+                    self::punchReportService(),
+                    self::emailRepository(),
+                    self::reportScheduleService(),
+                    self::companySettingsService()
+                );
+        }
+
+
+        return self::$dashboardService;
+    }
+
+
     public static function clear(): void
     {
         self::$db = null;
@@ -412,5 +435,7 @@ final class Container
         self::$authService = null;
 
         self::$notificationRecipientService = null;
+
+        self::$dashboardService = null;
     }
 }
