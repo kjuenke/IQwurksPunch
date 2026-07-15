@@ -9,6 +9,7 @@ use App\Controllers\EmployeeController;
 use App\Controllers\HomeController;
 use App\Controllers\KioskController;
 use App\Controllers\NotificationRecipientController;
+use App\Controllers\PayrollController;
 use App\Controllers\ReportController;
 use App\Controllers\ReportEmailController;
 use App\Controllers\SettingsController;
@@ -176,7 +177,7 @@ $router->post(
 
 /*
 |--------------------------------------------------------------------------
-| Reports
+| Punch Reports
 |--------------------------------------------------------------------------
 */
 
@@ -187,14 +188,23 @@ $router->get(
     [$reports, 'punches']
 );
 
+
+/*
+|--------------------------------------------------------------------------
+| Payroll Reports
+|--------------------------------------------------------------------------
+*/
+
+$payroll = new PayrollController();
+
 $router->get(
     '/reports/payroll',
-    [$reports, 'payroll']
+    [$payroll, 'daily']
 );
 
 $router->get(
     '/reports/payroll/weekly',
-    [$reports, 'weeklyPayroll']
+    [$payroll, 'weekly']
 );
 
 
