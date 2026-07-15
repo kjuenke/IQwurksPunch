@@ -25,12 +25,32 @@
     </div>
 
 
-    <a
-        href="/reports/payroll"
-        class="btn btn-outline-secondary"
-    >
-        Daily Payroll
-    </a>
+    <div class="d-flex flex-wrap gap-2">
+
+        <a
+            href="/reports/payroll"
+            class="btn btn-outline-secondary"
+        >
+
+            <i class="bi bi-calendar-day"></i>
+
+            Daily Payroll
+
+        </a>
+
+
+        <a
+            href="/reports/payroll/weekly/export/csv"
+            class="btn btn-success"
+        >
+
+            <i class="bi bi-file-earmark-spreadsheet"></i>
+
+            Download CSV
+
+        </a>
+
+    </div>
 
 </div>
 
@@ -141,9 +161,11 @@
 
 
                             <td>
+
                                 <strong>
                                     {{ employee.total_hours|number_format(2) }}
                                 </strong>
+
                             </td>
 
 

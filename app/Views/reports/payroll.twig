@@ -2,9 +2,49 @@
 
 {% block content %}
 
-<h1 class="mb-4">
-    Payroll Summary
-</h1>
+<div class="d-flex flex-wrap justify-content-between align-items-center mb-4">
+
+    <div>
+
+        <h1 class="mb-1">
+            Payroll Summary
+        </h1>
+
+        <div class="text-muted">
+            Daily payroll totals using the configured company payroll rules.
+        </div>
+
+    </div>
+
+
+    <div class="d-flex flex-wrap gap-2">
+
+        <a
+            href="/reports/payroll/weekly"
+            class="btn btn-outline-secondary"
+        >
+
+            <i class="bi bi-calendar-week"></i>
+
+            Weekly Payroll
+
+        </a>
+
+
+        <a
+            href="/reports/payroll/export/csv"
+            class="btn btn-success"
+        >
+
+            <i class="bi bi-file-earmark-spreadsheet"></i>
+
+            Download CSV
+
+        </a>
+
+    </div>
+
+</div>
 
 
 <div class="card shadow-sm">
@@ -93,6 +133,7 @@
 
 
                             <td>
+
                                 {% set mealMinutes =
                                     employee.recorded_meal_minutes
                                     +
@@ -100,6 +141,7 @@
                                 %}
 
                                 {{ mealMinutes }} min
+
                             </td>
 
 
@@ -119,9 +161,11 @@
 
 
                             <td>
+
                                 <strong>
                                     {{ employee.total_hours|number_format(2) }}
                                 </strong>
+
                             </td>
 
 

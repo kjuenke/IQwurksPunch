@@ -38,48 +38,4 @@ class ReportController extends Controller
             ]
         );
     }
-
-
-    public function payroll(): void
-    {
-        $summary =
-            $this->reports->dailySummary();
-
-
-        $this->render(
-            'reports/payroll.twig',
-            [
-                'title' =>
-                    'Payroll Summary',
-
-                'activeMenu' =>
-                    'reports',
-
-                'summary' =>
-                    $summary
-            ]
-        );
-    }
-
-
-    public function weeklyPayroll(): void
-    {
-        $summary =
-            $this->reports->weeklySummary();
-
-
-        $this->render(
-            'reports/weekly-payroll.twig',
-            [
-                'title' =>
-                    'Weekly Payroll Summary',
-
-                'activeMenu' =>
-                    'reports',
-
-                'summary' =>
-                    $summary
-            ]
-        );
-    }
 }
