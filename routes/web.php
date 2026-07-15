@@ -129,6 +129,21 @@ $router->post(
     [$employees, 'updatePin']
 );
 
+$router->post(
+    '/employees/activate',
+    [$employees, 'activate']
+);
+
+$router->post(
+    '/employees/deactivate',
+    [$employees, 'deactivate']
+);
+
+$router->post(
+    '/employees/delete',
+    [$employees, 'delete']
+);
+
 
 /*
 |--------------------------------------------------------------------------
