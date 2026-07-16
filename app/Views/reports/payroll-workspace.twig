@@ -1,0 +1,924 @@
+{% extends "layouts/base.twig" %}
+
+{% block content %}
+
+<div class="d-flex flex-wrap justify-content-between align-items-center mb-4">
+
+    <div>
+
+        <h1 class="mb-1">
+            Payroll Workspace
+        </h1>
+
+        <div class="text-muted">
+            Build payroll reports by date range, employee, and department.
+        </div>
+
+    </div>
+
+
+    <div class="text-muted">
+        Company timezone: {{ timezone }}
+    </div>
+
+</div>
+
+
+<div class="card shadow-sm mb-4">
+
+    <div class="card-body">
+
+        <form
+            method="get"
+            action="/reports/payroll/workspace"
+        >
+
+            <div class="row g-3 align-items-end">
+
+
+                <div class="col-md-3">
+
+                    <label
+                        for="start_date"
+                        class="form-label"
+                    >
+                        Start Date
+                    </label>
+
+                    <input
+                        type="date"
+                        id="start_date"
+                        name="start_date"
+                        class="form-control"
+                        value="{{ filters.start_date }}"
+                        required
+                    >
+
+                </div>
+
+
+                <div class="col-md-3">
+
+                    <label
+                        for="end_date"
+                        class="form-label"
+                    >
+                        End Date
+                    </label>
+
+                    <input
+                        type="date"
+                        id="end_date"
+                        name="end_date"
+                        class="form-control"
+                        value="{{ filters.end_date }}"
+                        required
+                    >
+
+                </div>
+
+
+                <div class="col-md-3">
+
+                    <label
+                        for="employee_id"
+                        class="form-label"
+                    >
+                        Employee
+                    </label>
+
+                    <select
+                        id="employee_id"
+                        name="employee_id"
+                        class="form-select"
+                    >
+
+                        <option value="all">
+                            All Employees
+                        </option>
+
+
+                        {% for employee in employees %}
+
+                            <option
+                                value="{{ employee.id }}"
+                                {% if filters.employee_id == employee.id %}
+                                    selected
+                                {% endif %}
+                            >
+
+                                {{ employee.employee_number }}
+                                —
+                                {{ employee.first_name }}
+                                {{ employee.last_name }}
+
+                                {% if not employee.active %}
+                                    (Inactive)
+                                {% endif %}
+
+                            </option>
+
+                        {% endfor %}
+
+                    </select>
+
+                </div>
+
+
+                <div class="col-md-3">
+
+                    <label
+                        for="department"
+                        class="form-label"
+                    >
+                        Department
+                    </label>
+
+                    <select
+                        id="department"
+                        name="department"
+                        class="form-select"
+                    >
+
+                        <option value="all">
+                            All Departments
+                        </option>
+
+
+                        {% for department in departments %}
+
+                            <option
+                                value="{{ department }}"
+                                {% if filters.department == department %}
+                                    selected
+                                {% endif %}
+                            >
+                                {{ department }}
+                            </option>
+
+                        {% endfor %}
+
+                    </select>
+
+                </div>
+
+
+                <div class="col-12">
+
+                    <div class="d-flex flex-wrap gap-2">
+
+                        <button
+                            type="submit"
+                            class="btn btn-primary"
+                        >
+
+                            <i class="bi bi-search"></i>
+
+                            Generate Report
+
+                        </button>
+
+
+                        <a
+                            href="/reports/payroll/workspace"
+                            class="btn btn-outline-secondary"
+                        >
+
+                            <i class="bi bi-arrow-counterclockwise"></i>
+
+                            Reset Filters
+
+                        </a>
+
+
+                        <a
+                            href="/reports/payroll"
+                            class="btn btn-outline-secondary"
+                        >
+
+                            <i class="bi bi-calendar-day"></i>
+
+                            Daily Payroll
+
+                        </a>
+
+
+                        <a
+                            href="/reports/payroll/weekly"
+                            class="btn btn-outline-secondary"
+                        >
+
+                            <i class="bi bi-calendar-week"></i>
+
+                            Weekly Payroll
+
+                        </a>
+
+                    </div>
+
+                </div>
+
+
+            </div>
+
+        </form>
+
+    </div>
+
+</div>
+
+
+{% if errors %}
+
+    <div class="alert alert-danger">
+
+        <strong>
+            The report could not be generated.
+        </strong>
+
+        <ul class="mb-0 mt-2">
+
+            {% for error in errors %}
+
+                <li>
+                    {{ error }}
+                </li>
+
+            {% endfor %}
+
+        </ul>
+
+    </div>
+
+{% endif %}
+
+
+{% if summary %}
+
+
+    <div class="row g-4 mb-4">
+
+
+        <div class="col-md-6 col-xl-3">
+
+            <div class="card shadow-sm h-100">
+
+                <div class="card-body">
+
+                    <div class="text-muted">
+                        Report Period
+                    </div>
+
+                    <div class="fs-5 fw-semibold">
+                        {{ summary.start_date }}
+                    </div>
+
+                    <div class="text-muted">
+                        through
+                    </div>
+
+                    <div class="fs-5 fw-semibold">
+                        {{ summary.end_date }}
+                    </div>
+
+                    <div class="small text-muted mt-2">
+                        {{ summary.day_count }} calendar days
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <div class="col-md-6 col-xl-3">
+
+            <div class="card shadow-sm h-100">
+
+                <div class="card-body">
+
+                    <div class="text-muted">
+                        Employees
+                    </div>
+
+                    <div class="display-6">
+                        {{ summary.totals.employee_count }}
+                    </div>
+
+                    <div class="small text-muted">
+                        employees with payroll activity
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <div class="col-md-6 col-xl-3">
+
+            <div class="card shadow-sm h-100">
+
+                <div class="card-body">
+
+                    <div class="text-muted">
+                        Payable Hours
+                    </div>
+
+                    <div class="display-6">
+                        {{ summary.totals.total_hours|number_format(2) }}
+                    </div>
+
+                    <div class="small text-muted">
+                        total hours in selected range
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <div class="col-md-6 col-xl-3">
+
+            <div class="card shadow-sm h-100">
+
+                <div class="card-body">
+
+                    <div class="text-muted">
+                        Payroll Issues
+                    </div>
+
+                    <div class="display-6">
+                        {{ summary.issue_count }}
+                    </div>
+
+                    {% if summary.issue_count > 0 %}
+
+                        <div class="small text-warning">
+                            records require review
+                        </div>
+
+                    {% else %}
+
+                        <div class="small text-success">
+                            no detected payroll issues
+                        </div>
+
+                    {% endif %}
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+    </div>
+
+
+    <div class="card shadow-sm mb-4">
+
+        <div class="card-header">
+
+            <strong>
+                Report Totals
+            </strong>
+
+        </div>
+
+
+        <div class="card-body">
+
+            <div class="row g-3 text-center">
+
+
+                <div class="col-6 col-md-4 col-xl-2">
+
+                    <div class="text-muted">
+                        Gross
+                    </div>
+
+                    <div class="fs-4 fw-semibold">
+                        {{ summary.totals.gross_hours|number_format(2) }}
+                    </div>
+
+                </div>
+
+
+                <div class="col-6 col-md-4 col-xl-2">
+
+                    <div class="text-muted">
+                        Regular
+                    </div>
+
+                    <div class="fs-4 fw-semibold">
+                        {{ summary.totals.regular_hours|number_format(2) }}
+                    </div>
+
+                </div>
+
+
+                <div class="col-6 col-md-4 col-xl-2">
+
+                    <div class="text-muted">
+                        Daily OT
+                    </div>
+
+                    <div class="fs-4 fw-semibold">
+                        {{ summary.totals.daily_overtime_hours|number_format(2) }}
+                    </div>
+
+                </div>
+
+
+                <div class="col-6 col-md-4 col-xl-2">
+
+                    <div class="text-muted">
+                        Weekly OT
+                    </div>
+
+                    <div class="fs-4 fw-semibold">
+                        {{ summary.totals.weekly_overtime_hours|number_format(2) }}
+                    </div>
+
+                </div>
+
+
+                <div class="col-6 col-md-4 col-xl-2">
+
+                    <div class="text-muted">
+                        Total OT
+                    </div>
+
+                    <div class="fs-4 fw-semibold">
+                        {{ summary.totals.overtime_hours|number_format(2) }}
+                    </div>
+
+                </div>
+
+
+                <div class="col-6 col-md-4 col-xl-2">
+
+                    <div class="text-muted">
+                        Payable
+                    </div>
+
+                    <div class="fs-4 fw-semibold">
+                        {{ summary.totals.total_hours|number_format(2) }}
+                    </div>
+
+                </div>
+
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    {% for employee in summary.employees %}
+
+        <div class="card shadow-sm mb-4">
+
+            <div class="card-header">
+
+                <div class="d-flex flex-wrap justify-content-between align-items-center">
+
+                    <div>
+
+                        <strong>
+                            {{ employee.name }}
+                        </strong>
+
+                        <span class="text-muted ms-2">
+
+                            Employee #
+                            {{ employee.employee_number }}
+
+                            {% if employee.department %}
+
+                                · {{ employee.department }}
+
+                            {% endif %}
+
+                        </span>
+
+                    </div>
+
+
+                    {% if employee.complete %}
+
+                        <span class="badge text-bg-success">
+                            Complete
+                        </span>
+
+                    {% else %}
+
+                        <span class="badge text-bg-warning">
+                            Needs Review
+                        </span>
+
+                    {% endif %}
+
+                </div>
+
+            </div>
+
+
+            <div class="card-body">
+
+
+                <div class="row g-3 mb-4 text-center">
+
+
+                    <div class="col-6 col-md-4 col-xl-2">
+
+                        <div class="text-muted">
+                            Gross
+                        </div>
+
+                        <div class="fw-semibold">
+                            {{ employee.gross_hours|number_format(2) }}
+                        </div>
+
+                    </div>
+
+
+                    <div class="col-6 col-md-4 col-xl-2">
+
+                        <div class="text-muted">
+                            Regular
+                        </div>
+
+                        <div class="fw-semibold">
+                            {{ employee.regular_hours|number_format(2) }}
+                        </div>
+
+                    </div>
+
+
+                    <div class="col-6 col-md-4 col-xl-2">
+
+                        <div class="text-muted">
+                            Daily OT
+                        </div>
+
+                        <div class="fw-semibold">
+                            {{ employee.daily_overtime_hours|number_format(2) }}
+                        </div>
+
+                    </div>
+
+
+                    <div class="col-6 col-md-4 col-xl-2">
+
+                        <div class="text-muted">
+                            Weekly OT
+                        </div>
+
+                        <div class="fw-semibold">
+                            {{ employee.weekly_overtime_hours|number_format(2) }}
+                        </div>
+
+                    </div>
+
+
+                    <div class="col-6 col-md-4 col-xl-2">
+
+                        <div class="text-muted">
+                            Total OT
+                        </div>
+
+                        <div class="fw-semibold">
+                            {{ employee.overtime_hours|number_format(2) }}
+                        </div>
+
+                    </div>
+
+
+                    <div class="col-6 col-md-4 col-xl-2">
+
+                        <div class="text-muted">
+                            Payable
+                        </div>
+
+                        <div class="fw-semibold">
+                            {{ employee.total_hours|number_format(2) }}
+                        </div>
+
+                    </div>
+
+
+                </div>
+
+
+                {% if employee.errors %}
+
+                    <div class="alert alert-warning">
+
+                        <strong>
+                            Payroll warnings
+                        </strong>
+
+                        <ul class="mb-0 mt-2">
+
+                            {% for error in employee.errors %}
+
+                                <li>
+                                    {{ error }}
+                                </li>
+
+                            {% endfor %}
+
+                        </ul>
+
+                    </div>
+
+                {% endif %}
+
+
+                <div class="table-responsive">
+
+                    <table class="table table-sm table-striped align-middle mb-0">
+
+                        <thead>
+
+                            <tr>
+
+                                <th>
+                                    Date
+                                </th>
+
+                                <th>
+                                    Gross
+                                </th>
+
+                                <th>
+                                    Meal
+                                </th>
+
+                                <th>
+                                    Unpaid Break
+                                </th>
+
+                                <th>
+                                    Regular
+                                </th>
+
+                                <th>
+                                    Daily OT
+                                </th>
+
+                                <th>
+                                    Payable
+                                </th>
+
+                                <th>
+                                    Status
+                                </th>
+
+                            </tr>
+
+                        </thead>
+
+
+                        <tbody>
+
+                            {% for day in employee.days %}
+
+                                <tr>
+
+                                    <td>
+                                        {{ day.date }}
+                                    </td>
+
+
+                                    <td>
+                                        {{ day.gross_hours|number_format(2) }}
+                                    </td>
+
+
+                                    <td>
+
+                                        {% set mealMinutes =
+                                            day.recorded_meal_minutes
+                                            +
+                                            day.automatic_meal_deduction_minutes
+                                        %}
+
+                                        {{ mealMinutes }} min
+
+                                    </td>
+
+
+                                    <td>
+                                        {{ day.unpaid_break_minutes }} min
+                                    </td>
+
+
+                                    <td>
+                                        {{ day.regular_hours|number_format(2) }}
+                                    </td>
+
+
+                                    <td>
+                                        {{ day.overtime_hours|number_format(2) }}
+                                    </td>
+
+
+                                    <td>
+
+                                        <strong>
+                                            {{ day.total_hours|number_format(2) }}
+                                        </strong>
+
+                                    </td>
+
+
+                                    <td>
+
+                                        {% if day.complete %}
+
+                                            <span class="badge text-bg-success">
+                                                Complete
+                                            </span>
+
+                                        {% else %}
+
+                                            <span class="badge text-bg-warning">
+                                                Needs Review
+                                            </span>
+
+                                        {% endif %}
+
+                                    </td>
+
+                                </tr>
+
+
+                                {% if day.errors %}
+
+                                    <tr class="table-warning">
+
+                                        <td colspan="8">
+
+                                            <ul class="mb-0">
+
+                                                {% for error in day.errors %}
+
+                                                    <li>
+                                                        {{ error }}
+                                                    </li>
+
+                                                {% endfor %}
+
+                                            </ul>
+
+                                        </td>
+
+                                    </tr>
+
+                                {% endif %}
+
+                            {% endfor %}
+
+                        </tbody>
+
+                    </table>
+
+                </div>
+
+
+                {% if employee.weeks|length > 1 %}
+
+                    <h6 class="mt-4">
+                        Payroll Week Breakdown
+                    </h6>
+
+
+                    <div class="table-responsive">
+
+                        <table class="table table-sm align-middle">
+
+                            <thead>
+
+                                <tr>
+
+                                    <th>
+                                        Week
+                                    </th>
+
+                                    <th>
+                                        Gross
+                                    </th>
+
+                                    <th>
+                                        Regular
+                                    </th>
+
+                                    <th>
+                                        Daily OT
+                                    </th>
+
+                                    <th>
+                                        Weekly OT
+                                    </th>
+
+                                    <th>
+                                        Total OT
+                                    </th>
+
+                                    <th>
+                                        Payable
+                                    </th>
+
+                                </tr>
+
+                            </thead>
+
+
+                            <tbody>
+
+                                {% for week in employee.weeks %}
+
+                                    <tr>
+
+                                        <td>
+
+                                            {{ week.week_start }}
+
+                                            through
+
+                                            {{ week.week_end }}
+
+                                        </td>
+
+                                        <td>
+                                            {{ week.gross_hours|number_format(2) }}
+                                        </td>
+
+                                        <td>
+                                            {{ week.regular_hours|number_format(2) }}
+                                        </td>
+
+                                        <td>
+                                            {{ week.daily_overtime_hours|number_format(2) }}
+                                        </td>
+
+                                        <td>
+                                            {{ week.weekly_overtime_hours|number_format(2) }}
+                                        </td>
+
+                                        <td>
+                                            {{ week.overtime_hours|number_format(2) }}
+                                        </td>
+
+                                        <td>
+                                            {{ week.total_hours|number_format(2) }}
+                                        </td>
+
+                                    </tr>
+
+                                {% endfor %}
+
+                            </tbody>
+
+                        </table>
+
+                    </div>
+
+                {% endif %}
+
+
+            </div>
+
+        </div>
+
+    {% else %}
+
+        <div class="card shadow-sm">
+
+            <div class="card-body text-center text-muted py-5">
+
+                <i class="bi bi-calendar-x display-6"></i>
+
+                <p class="mb-0 mt-3">
+                    No payroll activity was found for the selected filters.
+                </p>
+
+            </div>
+
+        </div>
+
+    {% endfor %}
+
+
+{% endif %}
+
+
+{% endblock %}

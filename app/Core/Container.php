@@ -24,6 +24,7 @@ use App\Services\DashboardService;
 use App\Services\EmployeeService;
 use App\Services\MailService;
 use App\Services\NotificationRecipientService;
+use App\Services\PayrollWorkspaceService;
 use App\Services\PunchReportService;
 use App\Services\PunchService;
 use App\Services\ReportEmailService;
@@ -76,6 +77,8 @@ final class Container
     private static ?NotificationRecipientService $notificationRecipientService = null;
 
     private static ?DashboardService $dashboardService = null;
+
+    private static ?PayrollWorkspaceService $payrollWorkspaceService = null;
 
     private static ?DailyPayrollCsvExporter $dailyPayrollCsvExporter = null;
 
@@ -406,6 +409,22 @@ final class Container
     }
 
 
+    public static function payrollWorkspaceService(): PayrollWorkspaceService
+    {
+        if (self::$payrollWorkspaceService === null) {
+
+            self::$payrollWorkspaceService =
+                new PayrollWorkspaceService(
+                    self::punchReportService(),
+                    self::companySettingsService()
+                );
+        }
+
+
+        return self::$payrollWorkspaceService;
+    }
+
+
     public static function dailyPayrollCsvExporter(): DailyPayrollCsvExporter
     {
         if (self::$dailyPayrollCsvExporter === null) {
@@ -501,6 +520,8 @@ final class Container
         self::$notificationRecipientService = null;
 
         self::$dashboardService = null;
+
+        self::$payrollWorkspaceService = null;
 
         self::$dailyPayrollCsvExporter = null;
 

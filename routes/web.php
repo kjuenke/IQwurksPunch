@@ -208,6 +208,11 @@ $router->get(
     [$payroll, 'weekly']
 );
 
+$router->get(
+    '/reports/payroll/workspace',
+    [$payroll, 'workspace']
+);
+
 
 /*
 |--------------------------------------------------------------------------
