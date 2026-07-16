@@ -4,8 +4,10 @@ declare(strict_types=1);
 namespace App\Core;
 
 use App\Exports\DailyPayrollCsvExporter;
+use App\Exports\PayrollWorkspaceCsvExporter;
 use App\Exports\Pdf\DailyPayrollPdfExporter;
 use App\Exports\Pdf\PayrollRegisterPdfExporter;
+use App\Exports\Pdf\PayrollWorkspacePdfExporter;
 use App\Exports\WeeklyPayrollCsvExporter;
 use App\Logging\LoggerFactory;
 use App\Logging\LoggerInterface;
@@ -84,9 +86,13 @@ final class Container
 
     private static ?WeeklyPayrollCsvExporter $weeklyPayrollCsvExporter = null;
 
+    private static ?PayrollWorkspaceCsvExporter $payrollWorkspaceCsvExporter = null;
+
     private static ?DailyPayrollPdfExporter $dailyPayrollPdfExporter = null;
 
     private static ?PayrollRegisterPdfExporter $payrollRegisterPdfExporter = null;
+
+    private static ?PayrollWorkspacePdfExporter $payrollWorkspacePdfExporter = null;
 
 
     public static function db(): PDO
@@ -451,6 +457,19 @@ final class Container
     }
 
 
+    public static function payrollWorkspaceCsvExporter(): PayrollWorkspaceCsvExporter
+    {
+        if (self::$payrollWorkspaceCsvExporter === null) {
+
+            self::$payrollWorkspaceCsvExporter =
+                new PayrollWorkspaceCsvExporter();
+        }
+
+
+        return self::$payrollWorkspaceCsvExporter;
+    }
+
+
     public static function dailyPayrollPdfExporter(): DailyPayrollPdfExporter
     {
         if (self::$dailyPayrollPdfExporter === null) {
@@ -474,6 +493,19 @@ final class Container
 
 
         return self::$payrollRegisterPdfExporter;
+    }
+
+
+    public static function payrollWorkspacePdfExporter(): PayrollWorkspacePdfExporter
+    {
+        if (self::$payrollWorkspacePdfExporter === null) {
+
+            self::$payrollWorkspacePdfExporter =
+                new PayrollWorkspacePdfExporter();
+        }
+
+
+        return self::$payrollWorkspacePdfExporter;
     }
 
 
@@ -527,8 +559,12 @@ final class Container
 
         self::$weeklyPayrollCsvExporter = null;
 
+        self::$payrollWorkspaceCsvExporter = null;
+
         self::$dailyPayrollPdfExporter = null;
 
         self::$payrollRegisterPdfExporter = null;
+
+        self::$payrollWorkspacePdfExporter = null;
     }
 }

@@ -243,6 +243,16 @@ $router->get(
     [$payrollExports, 'weeklyPdf']
 );
 
+$router->get(
+    '/reports/payroll/workspace/export/csv',
+    [$payrollExports, 'workspaceCsv']
+);
+
+$router->get(
+    '/reports/payroll/workspace/export/pdf',
+    [$payrollExports, 'workspacePdf']
+);
+
 
 /*
 |--------------------------------------------------------------------------
