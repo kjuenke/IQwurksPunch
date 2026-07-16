@@ -224,6 +224,11 @@ $router->get(
 );
 
 $router->get(
+    '/reports/payroll/export/pdf',
+    [$payrollExports, 'dailyPdf']
+);
+
+$router->get(
     '/reports/payroll/weekly/export/csv',
     [$payrollExports, 'weeklyCsv']
 );

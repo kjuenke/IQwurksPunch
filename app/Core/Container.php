@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace App\Core;
 
 use App\Exports\DailyPayrollCsvExporter;
+use App\Exports\Pdf\DailyPayrollPdfExporter;
 use App\Exports\Pdf\PayrollRegisterPdfExporter;
 use App\Exports\WeeklyPayrollCsvExporter;
 use App\Logging\LoggerFactory;
@@ -79,6 +80,8 @@ final class Container
     private static ?DailyPayrollCsvExporter $dailyPayrollCsvExporter = null;
 
     private static ?WeeklyPayrollCsvExporter $weeklyPayrollCsvExporter = null;
+
+    private static ?DailyPayrollPdfExporter $dailyPayrollPdfExporter = null;
 
     private static ?PayrollRegisterPdfExporter $payrollRegisterPdfExporter = null;
 
@@ -429,6 +432,19 @@ final class Container
     }
 
 
+    public static function dailyPayrollPdfExporter(): DailyPayrollPdfExporter
+    {
+        if (self::$dailyPayrollPdfExporter === null) {
+
+            self::$dailyPayrollPdfExporter =
+                new DailyPayrollPdfExporter();
+        }
+
+
+        return self::$dailyPayrollPdfExporter;
+    }
+
+
     public static function payrollRegisterPdfExporter(): PayrollRegisterPdfExporter
     {
         if (self::$payrollRegisterPdfExporter === null) {
@@ -489,6 +505,8 @@ final class Container
         self::$dailyPayrollCsvExporter = null;
 
         self::$weeklyPayrollCsvExporter = null;
+
+        self::$dailyPayrollPdfExporter = null;
 
         self::$payrollRegisterPdfExporter = null;
     }

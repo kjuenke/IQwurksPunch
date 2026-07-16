@@ -5,6 +5,7 @@ namespace App\Controllers;
 
 use App\Core\Container;
 use App\Exports\DailyPayrollCsvExporter;
+use App\Exports\Pdf\DailyPayrollPdfExporter;
 use App\Exports\Pdf\PayrollRegisterPdfExporter;
 use App\Exports\WeeklyPayrollCsvExporter;
 use App\Services\CompanySettingsService;
@@ -20,6 +21,8 @@ class PayrollExportController extends Controller
     private DailyPayrollCsvExporter $dailyCsv;
 
     private WeeklyPayrollCsvExporter $weeklyCsv;
+
+    private DailyPayrollPdfExporter $dailyPdf;
 
     private PayrollRegisterPdfExporter $weeklyPdf;
 
@@ -42,6 +45,10 @@ class PayrollExportController extends Controller
             Container::weeklyPayrollCsvExporter();
 
 
+        $this->dailyPdf =
+            Container::dailyPayrollPdfExporter();
+
+
         $this->weeklyPdf =
             Container::payrollRegisterPdfExporter();
     }
@@ -56,9 +63,7 @@ class PayrollExportController extends Controller
         $date =
             $summary[0]['date']
             ??
-            date(
-                'Y-m-d'
-            );
+            date('Y-m-d');
 
 
         $this->download(
@@ -75,6 +80,39 @@ class PayrollExportController extends Controller
     }
 
 
+    public function dailyPdf(): never
+    {
+        $summary =
+            $this->reports->dailySummary();
+
+
+        $company =
+            $this->settings->get()
+            ??
+            [];
+
+
+        $date =
+            $summary[0]['date']
+            ??
+            date('Y-m-d');
+
+
+        $this->download(
+            'iqwurkspunch-daily-payroll-'
+            .
+            $date
+            .
+            '.pdf',
+            $this->dailyPdf->export(
+                $summary,
+                $company
+            ),
+            'application/pdf'
+        );
+    }
+
+
     public function weeklyCsv(): never
     {
         $summary =
@@ -84,9 +122,7 @@ class PayrollExportController extends Controller
         $weekStart =
             $summary['week_start']
             ??
-            date(
-                'Y-m-d'
-            );
+            date('Y-m-d');
 
 
         $weekEnd =
@@ -128,9 +164,7 @@ class PayrollExportController extends Controller
         $weekStart =
             $summary['week_start']
             ??
-            date(
-                'Y-m-d'
-            );
+            date('Y-m-d');
 
 
         $weekEnd =
@@ -178,7 +212,6 @@ class PayrollExportController extends Controller
             $contentType
         );
 
-
         header(
             'Content-Disposition: attachment; filename="'
             .
@@ -186,7 +219,6 @@ class PayrollExportController extends Controller
             .
             '"'
         );
-
 
         header(
             'Content-Length: '
@@ -196,11 +228,9 @@ class PayrollExportController extends Controller
             )
         );
 
-
         header(
             'Cache-Control: no-store, no-cache, must-revalidate'
         );
-
 
         header(
             'Pragma: no-cache'
@@ -208,7 +238,6 @@ class PayrollExportController extends Controller
 
 
         echo $contents;
-
 
         exit;
     }
