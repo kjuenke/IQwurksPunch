@@ -6,6 +6,7 @@ namespace App\Core;
 use App\Exports\DailyPayrollCsvExporter;
 use App\Exports\PayrollWorkspaceCsvExporter;
 use App\Exports\Pdf\DailyPayrollPdfExporter;
+use App\Exports\Pdf\EmployeeTimeCardPdfExporter;
 use App\Exports\Pdf\PayrollRegisterPdfExporter;
 use App\Exports\Pdf\PayrollWorkspacePdfExporter;
 use App\Exports\WeeklyPayrollCsvExporter;
@@ -93,6 +94,8 @@ final class Container
     private static ?PayrollRegisterPdfExporter $payrollRegisterPdfExporter = null;
 
     private static ?PayrollWorkspacePdfExporter $payrollWorkspacePdfExporter = null;
+
+    private static ?EmployeeTimeCardPdfExporter $employeeTimeCardPdfExporter = null;
 
 
     public static function db(): PDO
@@ -509,6 +512,19 @@ final class Container
     }
 
 
+    public static function employeeTimeCardPdfExporter(): EmployeeTimeCardPdfExporter
+    {
+        if (self::$employeeTimeCardPdfExporter === null) {
+
+            self::$employeeTimeCardPdfExporter =
+                new EmployeeTimeCardPdfExporter();
+        }
+
+
+        return self::$employeeTimeCardPdfExporter;
+    }
+
+
     public static function clear(): void
     {
         self::$db = null;
@@ -566,5 +582,7 @@ final class Container
         self::$payrollRegisterPdfExporter = null;
 
         self::$payrollWorkspacePdfExporter = null;
+
+        self::$employeeTimeCardPdfExporter = null;
     }
 }

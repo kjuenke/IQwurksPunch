@@ -314,24 +314,29 @@
                 href="/reports/payroll/workspace/export/csv?{{ exportQuery }}"
                 class="btn btn-success"
             >
-
                 <i class="bi bi-file-earmark-spreadsheet"></i>
-
                 Download CSV
-
             </a>
-
 
             <a
                 href="/reports/payroll/workspace/export/pdf?{{ exportQuery }}"
                 class="btn btn-danger"
             >
-
                 <i class="bi bi-file-earmark-pdf"></i>
-
                 Download PDF
-
             </a>
+
+            {% if filters.employee_id %}
+
+                <a
+                    href="/reports/payroll/workspace/export/time-card/pdf?{{ exportQuery }}"
+                    class="btn btn-primary"
+                >
+                    <i class="bi bi-person-vcard"></i>
+                    Employee Time Card
+                </a>
+
+            {% endif %}
 
         </div>
 

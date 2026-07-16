@@ -253,6 +253,10 @@ $router->get(
     [$payrollExports, 'workspacePdf']
 );
 
+$router->get(
+    '/reports/payroll/workspace/export/time-card/pdf',
+    [$payrollExports, 'timeCardPdf']
+);
 
 /*
 |--------------------------------------------------------------------------

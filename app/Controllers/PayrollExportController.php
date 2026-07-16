@@ -7,6 +7,7 @@ use App\Core\Container;
 use App\Exports\DailyPayrollCsvExporter;
 use App\Exports\PayrollWorkspaceCsvExporter;
 use App\Exports\Pdf\DailyPayrollPdfExporter;
+use App\Exports\Pdf\EmployeeTimeCardPdfExporter;
 use App\Exports\Pdf\PayrollRegisterPdfExporter;
 use App\Exports\Pdf\PayrollWorkspacePdfExporter;
 use App\Exports\WeeklyPayrollCsvExporter;
@@ -34,6 +35,8 @@ class PayrollExportController extends Controller
     private PayrollRegisterPdfExporter $weeklyPdf;
 
     private PayrollWorkspacePdfExporter $workspacePdf;
+
+    private EmployeeTimeCardPdfExporter $timeCardPdf;
 
 
     public function __construct()
@@ -72,6 +75,10 @@ class PayrollExportController extends Controller
 
         $this->workspacePdf =
             Container::payrollWorkspacePdfExporter();
+
+
+        $this->timeCardPdf =
+            Container::employeeTimeCardPdfExporter();
     }
 
 
@@ -294,6 +301,82 @@ class PayrollExportController extends Controller
     }
 
 
+    public function timeCardPdf(): never
+    {
+        $filters =
+            $this->workspaceFilters();
+
+
+        if ($filters['employee_id'] === null) {
+
+            throw new RuntimeException(
+                'Select one employee before downloading an employee time card.'
+            );
+        }
+
+
+        $summary =
+            $this->workspace->summary(
+                $filters['start_date'],
+                $filters['end_date'],
+                $filters['employee_id'],
+                $filters['department']
+            );
+
+
+        $company =
+            $this->settings->get()
+            ??
+            [];
+
+
+        $employee =
+            $summary['employees'][0]
+            ??
+            null;
+
+
+        if (!is_array($employee)) {
+
+            throw new RuntimeException(
+                'No payroll activity was found for the selected employee and date range.'
+            );
+        }
+
+
+        $employeeNumber =
+            $this->safeFilenamePart(
+                (string)(
+                    $employee['employee_number']
+                    ??
+                    $filters['employee_id']
+                )
+            );
+
+
+        $this->download(
+            'iqwurkspunch-time-card-'
+            .
+            $employeeNumber
+            .
+            '-'
+            .
+            $summary['start_date']
+            .
+            '-to-'
+            .
+            $summary['end_date']
+            .
+            '.pdf',
+            $this->timeCardPdf->export(
+                $summary,
+                $company
+            ),
+            'application/pdf'
+        );
+    }
+
+
     /**
      * @return array{
      *     start_date:string,
@@ -430,6 +513,35 @@ class PayrollExportController extends Controller
 
 
         return $department;
+    }
+
+
+    private function safeFilenamePart(
+        string $value
+    ): string
+    {
+        $value =
+            preg_replace(
+                '/[^A-Za-z0-9_-]+/',
+                '-',
+                trim(
+                    $value
+                )
+            )
+            ??
+            'employee';
+
+
+        $value =
+            trim(
+                $value,
+                '-_'
+            );
+
+
+        return $value === ''
+            ? 'employee'
+            : $value;
     }
 
 
