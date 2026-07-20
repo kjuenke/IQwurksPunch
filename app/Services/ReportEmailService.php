@@ -6,6 +6,8 @@ namespace App\Services;
 use App\Core\Container;
 use App\Logging\LoggerInterface;
 use App\Repositories\CompanySettingsRepository;
+use DateTimeImmutable;
+use DateTimeZone;
 use Throwable;
 
 class ReportEmailService
@@ -47,16 +49,30 @@ class ReportEmailService
 
 
         $timezone =
-            $company['timezone']
-            ??
-            'America/Los_Angeles';
+            (string)(
+                $company['timezone']
+                ??
+                'America/Los_Angeles'
+            );
+
+
+        if (
+            !in_array(
+                $timezone,
+                timezone_identifiers_list(),
+                true
+            )
+        ) {
+            $timezone =
+                'America/Los_Angeles';
+        }
 
 
         $reportDate =
             (
-                new \DateTimeImmutable(
+                new DateTimeImmutable(
                     'now',
-                    new \DateTimeZone(
+                    new DateTimeZone(
                         $timezone
                     )
                 )
@@ -86,9 +102,11 @@ class ReportEmailService
 
 
             $companyName =
-                $company['company_name']
-                ??
-                'Company';
+                (string)(
+                    $company['company_name']
+                    ??
+                    'Company'
+                );
 
 
             $body =
@@ -102,7 +120,38 @@ class ReportEmailService
                 .
                 $reportDate
                 .
+                "\n";
+
+
+            $body .=
+                'Timezone: '
+                .
+                $timezone
+                .
                 "\n\n";
+
+
+            $body .=
+                "Weekly overtime is calculated in the Weekly Payroll Summary "
+                .
+                "and is not assigned in this daily report.\n\n";
+
+
+            $grossTotal = 0.0;
+
+            $regularTotal = 0.0;
+
+            $dailyOvertimeTotal = 0.0;
+
+            $doubleTimeTotal = 0.0;
+
+            $overtimeTotal = 0.0;
+
+            $premiumTotal = 0.0;
+
+            $payableTotal = 0.0;
+
+            $issueCount = 0;
 
 
             if (empty($summary)) {
@@ -114,12 +163,162 @@ class ReportEmailService
 
                 foreach ($summary as $employee) {
 
+                    $grossHours =
+                        (float)(
+                            $employee['gross_hours']
+                            ??
+                            0
+                        );
+
+
+                    $regularHours =
+                        (float)(
+                            $employee['regular_hours']
+                            ??
+                            0
+                        );
+
+
+                    $dailyOvertimeHours =
+                        (float)(
+                            $employee['daily_overtime_hours']
+                            ??
+                            $employee['overtime_hours']
+                            ??
+                            0
+                        );
+
+
+                    $doubleTimeHours =
+                        (float)(
+                            $employee['double_time_hours']
+                            ??
+                            0
+                        );
+
+
+                    $overtimeHours =
+                        (float)(
+                            $employee['overtime_hours']
+                            ??
+                            $dailyOvertimeHours
+                        );
+
+
+                    $premiumHours =
+                        (float)(
+                            $employee['premium_hours']
+                            ??
+                            (
+                                $overtimeHours
+                                +
+                                $doubleTimeHours
+                            )
+                        );
+
+
+                    $payableHours =
+                        (float)(
+                            $employee['total_hours']
+                            ??
+                            0
+                        );
+
+
+                    $recordedMealMinutes =
+                        (int)(
+                            $employee['recorded_meal_minutes']
+                            ??
+                            0
+                        );
+
+
+                    $automaticMealMinutes =
+                        (int)(
+                            $employee['automatic_meal_deduction_minutes']
+                            ??
+                            0
+                        );
+
+
+                    $mealMinutes =
+                        $recordedMealMinutes
+                        +
+                        $automaticMealMinutes;
+
+
+                    $unpaidBreakMinutes =
+                        (int)(
+                            $employee['unpaid_break_minutes']
+                            ??
+                            0
+                        );
+
+
+                    $complete =
+                        !empty(
+                            $employee['complete']
+                        );
+
+
+                    $errors =
+                        is_array(
+                            $employee['errors']
+                            ??
+                            null
+                        )
+                            ? $employee['errors']
+                            : [];
+
+
+                    $grossTotal +=
+                        $grossHours;
+
+
+                    $regularTotal +=
+                        $regularHours;
+
+
+                    $dailyOvertimeTotal +=
+                        $dailyOvertimeHours;
+
+
+                    $doubleTimeTotal +=
+                        $doubleTimeHours;
+
+
+                    $overtimeTotal +=
+                        $overtimeHours;
+
+
+                    $premiumTotal +=
+                        $premiumHours;
+
+
+                    $payableTotal +=
+                        $payableHours;
+
+
+                    if (!$complete) {
+
+                        $issueCount++;
+                    }
+
+
                     $body .=
-                        $employee['name']
+                        (string)(
+                            $employee['name']
+                            ??
+                            ''
+                        )
                         .
                         ' ('
                         .
-                        $employee['employee_number']
+                        (string)(
+                            $employee['employee_number']
+                            ??
+                            ''
+                        )
                         .
                         ")\n";
 
@@ -132,24 +331,17 @@ class ReportEmailService
                         $body .=
                             'Department: '
                             .
-                            $employee['department']
+                            (string)$employee['department']
                             .
                             "\n";
                     }
 
 
-                    $mealMinutes =
-                        (int)$employee['recorded_meal_minutes']
-                        +
-                        (int)$employee['automatic_meal_deduction_minutes'];
-
-
                     $body .=
                         'Gross Hours: '
                         .
-                        number_format(
-                            (float)$employee['gross_hours'],
-                            2
+                        $this->hours(
+                            $grossHours
                         )
                         .
                         "\n";
@@ -166,7 +358,7 @@ class ReportEmailService
                     $body .=
                         'Unpaid Break: '
                         .
-                        (int)$employee['unpaid_break_minutes']
+                        $unpaidBreakMinutes
                         .
                         " minutes\n";
 
@@ -174,20 +366,48 @@ class ReportEmailService
                     $body .=
                         'Regular Hours: '
                         .
-                        number_format(
-                            (float)$employee['regular_hours'],
-                            2
+                        $this->hours(
+                            $regularHours
                         )
                         .
                         "\n";
 
 
                     $body .=
-                        'Overtime Hours: '
+                        'Daily Overtime Hours: '
                         .
-                        number_format(
-                            (float)$employee['overtime_hours'],
-                            2
+                        $this->hours(
+                            $dailyOvertimeHours
+                        )
+                        .
+                        "\n";
+
+
+                    $body .=
+                        'Double-Time Hours: '
+                        .
+                        $this->hours(
+                            $doubleTimeHours
+                        )
+                        .
+                        "\n";
+
+
+                    $body .=
+                        'Total Overtime Hours: '
+                        .
+                        $this->hours(
+                            $overtimeHours
+                        )
+                        .
+                        "\n";
+
+
+                    $body .=
+                        'Premium Hours: '
+                        .
+                        $this->hours(
+                            $premiumHours
                         )
                         .
                         "\n";
@@ -196,9 +416,8 @@ class ReportEmailService
                     $body .=
                         'Payable Hours: '
                         .
-                        number_format(
-                            (float)$employee['total_hours'],
-                            2
+                        $this->hours(
+                            $payableHours
                         )
                         .
                         "\n";
@@ -208,7 +427,7 @@ class ReportEmailService
                         'Status: '
                         .
                         (
-                            $employee['complete']
+                            $complete
                                 ? 'Complete'
                                 : 'Needs Review'
                         )
@@ -216,16 +435,14 @@ class ReportEmailService
                         "\n";
 
 
-                    if (!$employee['complete']) {
+                    if (!$complete) {
 
-                        foreach (
-                            $employee['errors']
-                            as $error
-                        ) {
+                        foreach ($errors as $error) {
+
                             $body .=
                                 '- '
                                 .
-                                $error
+                                (string)$error
                                 .
                                 "\n";
                         }
@@ -235,6 +452,102 @@ class ReportEmailService
                     $body .=
                         "\n";
                 }
+
+
+                $body .=
+                    "Report Totals\n";
+
+
+                $body .=
+                    "-------------\n";
+
+
+                $body .=
+                    'Employees: '
+                    .
+                    count(
+                        $summary
+                    )
+                    .
+                    "\n";
+
+
+                $body .=
+                    'Gross Hours: '
+                    .
+                    $this->hours(
+                        $grossTotal
+                    )
+                    .
+                    "\n";
+
+
+                $body .=
+                    'Regular Hours: '
+                    .
+                    $this->hours(
+                        $regularTotal
+                    )
+                    .
+                    "\n";
+
+
+                $body .=
+                    'Daily Overtime Hours: '
+                    .
+                    $this->hours(
+                        $dailyOvertimeTotal
+                    )
+                    .
+                    "\n";
+
+
+                $body .=
+                    'Double-Time Hours: '
+                    .
+                    $this->hours(
+                        $doubleTimeTotal
+                    )
+                    .
+                    "\n";
+
+
+                $body .=
+                    'Total Overtime Hours: '
+                    .
+                    $this->hours(
+                        $overtimeTotal
+                    )
+                    .
+                    "\n";
+
+
+                $body .=
+                    'Premium Hours: '
+                    .
+                    $this->hours(
+                        $premiumTotal
+                    )
+                    .
+                    "\n";
+
+
+                $body .=
+                    'Payable Hours: '
+                    .
+                    $this->hours(
+                        $payableTotal
+                    )
+                    .
+                    "\n";
+
+
+                $body .=
+                    'Employees Needing Review: '
+                    .
+                    $issueCount
+                    .
+                    "\n";
             }
 
 
@@ -250,7 +563,28 @@ class ReportEmailService
                     'employee_count' =>
                         count(
                             $summary
-                        )
+                        ),
+
+                    'issue_count' =>
+                        $issueCount,
+
+                    'regular_hours' =>
+                        $regularTotal,
+
+                    'daily_overtime_hours' =>
+                        $dailyOvertimeTotal,
+
+                    'double_time_hours' =>
+                        $doubleTimeTotal,
+
+                    'overtime_hours' =>
+                        $overtimeTotal,
+
+                    'premium_hours' =>
+                        $premiumTotal,
+
+                    'total_hours' =>
+                        $payableTotal
                 ]
             );
 
@@ -334,5 +668,18 @@ class ReportEmailService
 
             throw $exception;
         }
+    }
+
+
+    private function hours(
+        mixed $value
+    ): string
+    {
+        return number_format(
+            (float)$value,
+            2,
+            '.',
+            ''
+        );
     }
 }

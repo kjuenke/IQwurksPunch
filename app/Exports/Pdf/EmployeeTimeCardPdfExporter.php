@@ -66,7 +66,7 @@ final class EmployeeTimeCardPdfExporter
 
         $dompdf->setPaper(
             'letter',
-            'portrait'
+            'landscape'
         );
 
 
@@ -187,6 +187,62 @@ final class EmployeeTimeCardPdfExporter
             );
 
 
+        $employeeDailyOvertime =
+            (float)(
+                $employee['daily_overtime_hours']
+                ??
+                0
+            );
+
+
+        $employeeWeeklyOvertime =
+            (float)(
+                $employee['weekly_overtime_hours']
+                ??
+                0
+            );
+
+
+        $employeeDoubleTime =
+            (float)(
+                $employee['double_time_hours']
+                ??
+                0
+            );
+
+
+        $employeeTotalOvertime =
+            (float)(
+                $employee['overtime_hours']
+                ??
+                (
+                    $employeeDailyOvertime
+                    +
+                    $employeeWeeklyOvertime
+                )
+            );
+
+
+        $employeePremium =
+            (float)(
+                $employee['premium_hours']
+                ??
+                (
+                    $employeeTotalOvertime
+                    +
+                    $employeeDoubleTime
+                )
+            );
+
+
+        $employeeStatus =
+            !empty(
+                $employee['complete']
+            )
+                ? 'Complete'
+                : 'Needs Review';
+
+
         $dayRows = '';
 
 
@@ -207,6 +263,36 @@ final class EmployeeTimeCardPdfExporter
                     $day['automatic_meal_deduction_minutes']
                     ??
                     0
+                );
+
+
+            $dailyOvertimeHours =
+                (float)(
+                    $day['daily_overtime_hours']
+                    ??
+                    $day['overtime_hours']
+                    ??
+                    0
+                );
+
+
+            $doubleTimeHours =
+                (float)(
+                    $day['double_time_hours']
+                    ??
+                    0
+                );
+
+
+            $dailyPremiumHours =
+                (float)(
+                    $day['premium_hours']
+                    ??
+                    (
+                        $dailyOvertimeHours
+                        +
+                        $doubleTimeHours
+                    )
                 );
 
 
@@ -284,9 +370,23 @@ final class EmployeeTimeCardPdfExporter
                 '<td class="number">'
                 .
                 $this->hours(
-                    $day['overtime_hours']
-                    ??
-                    0
+                    $dailyOvertimeHours
+                )
+                .
+                '</td>'
+                .
+                '<td class="number">'
+                .
+                $this->hours(
+                    $doubleTimeHours
+                )
+                .
+                '</td>'
+                .
+                '<td class="number">'
+                .
+                $this->hours(
+                    $dailyPremiumHours
                 )
                 .
                 '</td>'
@@ -317,7 +417,7 @@ final class EmployeeTimeCardPdfExporter
                 $dayRows .=
                     '<tr class="warning-row">'
                     .
-                    '<td colspan="8">'
+                    '<td colspan="10">'
                     .
                     '<strong>'
                     .
@@ -341,7 +441,7 @@ final class EmployeeTimeCardPdfExporter
             $dayRows =
                 '<tr>'
                 .
-                '<td colspan="8" class="empty">'
+                '<td colspan="10" class="empty">'
                 .
                 'No payroll activity was found for this employee.'
                 .
@@ -360,6 +460,54 @@ final class EmployeeTimeCardPdfExporter
             []
             as $week
         ) {
+            $dailyOvertimeHours =
+                (float)(
+                    $week['daily_overtime_hours']
+                    ??
+                    0
+                );
+
+
+            $weeklyOvertimeHours =
+                (float)(
+                    $week['weekly_overtime_hours']
+                    ??
+                    0
+                );
+
+
+            $doubleTimeHours =
+                (float)(
+                    $week['double_time_hours']
+                    ??
+                    0
+                );
+
+
+            $totalOvertimeHours =
+                (float)(
+                    $week['overtime_hours']
+                    ??
+                    (
+                        $dailyOvertimeHours
+                        +
+                        $weeklyOvertimeHours
+                    )
+                );
+
+
+            $premiumHours =
+                (float)(
+                    $week['premium_hours']
+                    ??
+                    (
+                        $totalOvertimeHours
+                        +
+                        $doubleTimeHours
+                    )
+                );
+
+
             $weekRows .=
                 '<tr>'
                 .
@@ -408,9 +556,7 @@ final class EmployeeTimeCardPdfExporter
                 '<td class="number">'
                 .
                 $this->hours(
-                    $week['daily_overtime_hours']
-                    ??
-                    0
+                    $dailyOvertimeHours
                 )
                 .
                 '</td>'
@@ -418,9 +564,7 @@ final class EmployeeTimeCardPdfExporter
                 '<td class="number">'
                 .
                 $this->hours(
-                    $week['weekly_overtime_hours']
-                    ??
-                    0
+                    $weeklyOvertimeHours
                 )
                 .
                 '</td>'
@@ -428,9 +572,23 @@ final class EmployeeTimeCardPdfExporter
                 '<td class="number">'
                 .
                 $this->hours(
-                    $week['overtime_hours']
-                    ??
-                    0
+                    $doubleTimeHours
+                )
+                .
+                '</td>'
+                .
+                '<td class="number">'
+                .
+                $this->hours(
+                    $totalOvertimeHours
+                )
+                .
+                '</td>'
+                .
+                '<td class="number">'
+                .
+                $this->hours(
+                    $premiumHours
                 )
                 .
                 '</td>'
@@ -454,7 +612,7 @@ final class EmployeeTimeCardPdfExporter
             $weekRows =
                 '<tr>'
                 .
-                '<td colspan="7" class="empty">'
+                '<td colspan="9" class="empty">'
                 .
                 'No payroll-week totals are available.'
                 .
@@ -483,13 +641,13 @@ final class EmployeeTimeCardPdfExporter
             .
             '<style>'
             .
-            '@page { margin: 32px; }'
+            '@page { margin: 26px; }'
             .
             'body {'
             .
             'font-family: "DejaVu Sans", sans-serif;'
             .
-            'font-size: 9px;'
+            'font-size: 8px;'
             .
             'color: #222;'
             .
@@ -507,7 +665,7 @@ final class EmployeeTimeCardPdfExporter
             .
             'font-size: 12px;'
             .
-            'margin: 18px 0 6px 0;'
+            'margin: 16px 0 6px 0;'
             .
             '}'
             .
@@ -523,7 +681,7 @@ final class EmployeeTimeCardPdfExporter
             .
             'color: #555;'
             .
-            'margin-bottom: 14px;'
+            'margin-bottom: 12px;'
             .
             '}'
             .
@@ -531,7 +689,7 @@ final class EmployeeTimeCardPdfExporter
             .
             'color: #555;'
             .
-            'margin-bottom: 14px;'
+            'margin-bottom: 12px;'
             .
             '}'
             .
@@ -539,11 +697,17 @@ final class EmployeeTimeCardPdfExporter
             .
             'border: 1px solid #888;'
             .
-            'padding: 8px;'
+            'padding: 7px;'
             .
-            'margin-bottom: 14px;'
+            'margin-bottom: 10px;'
             .
             'background: #f7f7f7;'
+            .
+            '}'
+            .
+            '.totals-table {'
+            .
+            'margin-bottom: 12px;'
             .
             '}'
             .
@@ -553,6 +717,8 @@ final class EmployeeTimeCardPdfExporter
             .
             'border-collapse: collapse;'
             .
+            'table-layout: fixed;'
+            .
             '}'
             .
             'th {'
@@ -561,9 +727,11 @@ final class EmployeeTimeCardPdfExporter
             .
             'border: 1px solid #888;'
             .
-            'padding: 5px;'
+            'padding: 4px;'
             .
             'text-align: left;'
+            .
+            'font-size: 7px;'
             .
             '}'
             .
@@ -571,9 +739,11 @@ final class EmployeeTimeCardPdfExporter
             .
             'border: 1px solid #aaa;'
             .
-            'padding: 5px;'
+            'padding: 4px;'
             .
             'vertical-align: top;'
+            .
+            'overflow-wrap: break-word;'
             .
             '}'
             .
@@ -597,7 +767,7 @@ final class EmployeeTimeCardPdfExporter
             .
             'background: #fff3cd;'
             .
-            'font-size: 8px;'
+            'font-size: 7px;'
             .
             '}'
             .
@@ -611,9 +781,19 @@ final class EmployeeTimeCardPdfExporter
             .
             '}'
             .
+            '.note {'
+            .
+            'margin-top: 6px;'
+            .
+            'font-size: 7px;'
+            .
+            'color: #555;'
+            .
+            '}'
+            .
             '.signatures {'
             .
-            'margin-top: 36px;'
+            'margin-top: 32px;'
             .
             'width: 100%;'
             .
@@ -637,15 +817,15 @@ final class EmployeeTimeCardPdfExporter
             .
             'padding-top: 4px;'
             .
-            'margin-top: 28px;'
+            'margin-top: 26px;'
             .
             '}'
             .
             '.footer {'
             .
-            'margin-top: 18px;'
+            'margin-top: 16px;'
             .
-            'font-size: 8px;'
+            'font-size: 7px;'
             .
             'color: #666;'
             .
@@ -693,13 +873,13 @@ final class EmployeeTimeCardPdfExporter
             .
             $employeeName
             .
-            '<br>'
+            ' &nbsp; | &nbsp; '
             .
             '<strong>Employee number:</strong> '
             .
             $employeeNumber
             .
-            '<br>'
+            ' &nbsp; | &nbsp; '
             .
             '<strong>Department:</strong> '
             .
@@ -709,7 +889,123 @@ final class EmployeeTimeCardPdfExporter
                     : $department
             )
             .
+            ' &nbsp; | &nbsp; '
+            .
+            '<strong>Status:</strong> '
+            .
+            $this->escape(
+                $employeeStatus
+            )
+            .
             '</div>'
+            .
+            '<h2>Employee Payroll Totals</h2>'
+            .
+            '<table class="totals-table">'
+            .
+            '<thead>'
+            .
+            '<tr>'
+            .
+            '<th>Gross</th>'
+            .
+            '<th>Regular</th>'
+            .
+            '<th>Daily OT</th>'
+            .
+            '<th>Weekly OT</th>'
+            .
+            '<th>Double Time</th>'
+            .
+            '<th>Total OT</th>'
+            .
+            '<th>Premium</th>'
+            .
+            '<th>Payable</th>'
+            .
+            '</tr>'
+            .
+            '</thead>'
+            .
+            '<tbody>'
+            .
+            '<tr class="totals">'
+            .
+            '<td class="number">'
+            .
+            $this->hours(
+                $employee['gross_hours']
+                ??
+                0
+            )
+            .
+            '</td>'
+            .
+            '<td class="number">'
+            .
+            $this->hours(
+                $employee['regular_hours']
+                ??
+                0
+            )
+            .
+            '</td>'
+            .
+            '<td class="number">'
+            .
+            $this->hours(
+                $employeeDailyOvertime
+            )
+            .
+            '</td>'
+            .
+            '<td class="number">'
+            .
+            $this->hours(
+                $employeeWeeklyOvertime
+            )
+            .
+            '</td>'
+            .
+            '<td class="number">'
+            .
+            $this->hours(
+                $employeeDoubleTime
+            )
+            .
+            '</td>'
+            .
+            '<td class="number">'
+            .
+            $this->hours(
+                $employeeTotalOvertime
+            )
+            .
+            '</td>'
+            .
+            '<td class="number">'
+            .
+            $this->hours(
+                $employeePremium
+            )
+            .
+            '</td>'
+            .
+            '<td class="number">'
+            .
+            $this->hours(
+                $employee['total_hours']
+                ??
+                0
+            )
+            .
+            '</td>'
+            .
+            '</tr>'
+            .
+            '</tbody>'
+            .
+            '</table>'
             .
             '<h2>Daily Time Summary</h2>'
             .
@@ -731,6 +1027,10 @@ final class EmployeeTimeCardPdfExporter
             .
             '<th>Daily OT</th>'
             .
+            '<th>Double Time</th>'
+            .
+            '<th>Premium</th>'
+            .
             '<th>Payable</th>'
             .
             '<th>Status</th>'
@@ -745,73 +1045,15 @@ final class EmployeeTimeCardPdfExporter
             .
             '</tbody>'
             .
-            '<tfoot>'
-            .
-            '<tr class="totals">'
-            .
-            '<td>Employee Totals</td>'
-            .
-            '<td class="number">'
-            .
-            $this->hours(
-                $employee['gross_hours']
-                ??
-                0
-            )
-            .
-            '</td>'
-            .
-            '<td></td>'
-            .
-            '<td></td>'
-            .
-            '<td class="number">'
-            .
-            $this->hours(
-                $employee['regular_hours']
-                ??
-                0
-            )
-            .
-            '</td>'
-            .
-            '<td class="number">'
-            .
-            $this->hours(
-                $employee['overtime_hours']
-                ??
-                0
-            )
-            .
-            '</td>'
-            .
-            '<td class="number">'
-            .
-            $this->hours(
-                $employee['total_hours']
-                ??
-                0
-            )
-            .
-            '</td>'
-            .
-            '<td>'
-            .
-            (
-                !empty(
-                    $employee['complete']
-                )
-                    ? 'Complete'
-                    : 'Needs Review'
-            )
-            .
-            '</td>'
-            .
-            '</tr>'
-            .
-            '</tfoot>'
-            .
             '</table>'
+            .
+            '<div class="note">'
+            .
+            'Daily premium hours include daily overtime plus double-time hours. '
+            .
+            'Weekly overtime is assigned after the complete payroll week is calculated.'
+            .
+            '</div>'
             .
             '<h2>Payroll Week Summary</h2>'
             .
@@ -831,7 +1073,11 @@ final class EmployeeTimeCardPdfExporter
             .
             '<th>Weekly OT</th>'
             .
+            '<th>Double Time</th>'
+            .
             '<th>Total OT</th>'
+            .
+            '<th>Premium</th>'
             .
             '<th>Payable</th>'
             .
@@ -872,6 +1118,10 @@ final class EmployeeTimeCardPdfExporter
             '</div>'
             .
             '<div class="footer">'
+            .
+            'Total overtime includes daily and weekly overtime. '
+            .
+            'Premium hours include total overtime plus double-time hours. '
             .
             'Generated by IQwurksPunch on '
             .

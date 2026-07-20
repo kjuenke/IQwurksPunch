@@ -483,7 +483,7 @@
             <div class="row g-3 text-center">
 
 
-                <div class="col-6 col-md-4 col-xl-2">
+                <div class="col-6 col-md-3">
 
                     <div class="text-muted">
                         Gross
@@ -496,7 +496,7 @@
                 </div>
 
 
-                <div class="col-6 col-md-4 col-xl-2">
+                <div class="col-6 col-md-3">
 
                     <div class="text-muted">
                         Regular
@@ -509,7 +509,7 @@
                 </div>
 
 
-                <div class="col-6 col-md-4 col-xl-2">
+                <div class="col-6 col-md-3">
 
                     <div class="text-muted">
                         Daily OT
@@ -522,7 +522,7 @@
                 </div>
 
 
-                <div class="col-6 col-md-4 col-xl-2">
+                <div class="col-6 col-md-3">
 
                     <div class="text-muted">
                         Weekly OT
@@ -535,7 +535,20 @@
                 </div>
 
 
-                <div class="col-6 col-md-4 col-xl-2">
+                <div class="col-6 col-md-3">
+
+                    <div class="text-muted">
+                        Double Time
+                    </div>
+
+                    <div class="fs-4 fw-semibold">
+                        {{ summary.totals.double_time_hours|number_format(2) }}
+                    </div>
+
+                </div>
+
+
+                <div class="col-6 col-md-3">
 
                     <div class="text-muted">
                         Total OT
@@ -548,7 +561,20 @@
                 </div>
 
 
-                <div class="col-6 col-md-4 col-xl-2">
+                <div class="col-6 col-md-3">
+
+                    <div class="text-muted">
+                        Premium
+                    </div>
+
+                    <div class="fs-4 fw-semibold">
+                        {{ summary.totals.premium_hours|number_format(2) }}
+                    </div>
+
+                </div>
+
+
+                <div class="col-6 col-md-3">
 
                     <div class="text-muted">
                         Payable
@@ -623,7 +649,7 @@
                 <div class="row g-3 mb-4 text-center">
 
 
-                    <div class="col-6 col-md-4 col-xl-2">
+                    <div class="col-6 col-md-3">
 
                         <div class="text-muted">
                             Gross
@@ -636,7 +662,7 @@
                     </div>
 
 
-                    <div class="col-6 col-md-4 col-xl-2">
+                    <div class="col-6 col-md-3">
 
                         <div class="text-muted">
                             Regular
@@ -649,7 +675,7 @@
                     </div>
 
 
-                    <div class="col-6 col-md-4 col-xl-2">
+                    <div class="col-6 col-md-3">
 
                         <div class="text-muted">
                             Daily OT
@@ -662,7 +688,7 @@
                     </div>
 
 
-                    <div class="col-6 col-md-4 col-xl-2">
+                    <div class="col-6 col-md-3">
 
                         <div class="text-muted">
                             Weekly OT
@@ -675,7 +701,20 @@
                     </div>
 
 
-                    <div class="col-6 col-md-4 col-xl-2">
+                    <div class="col-6 col-md-3">
+
+                        <div class="text-muted">
+                            Double Time
+                        </div>
+
+                        <div class="fw-semibold">
+                            {{ employee.double_time_hours|number_format(2) }}
+                        </div>
+
+                    </div>
+
+
+                    <div class="col-6 col-md-3">
 
                         <div class="text-muted">
                             Total OT
@@ -688,7 +727,20 @@
                     </div>
 
 
-                    <div class="col-6 col-md-4 col-xl-2">
+                    <div class="col-6 col-md-3">
+
+                        <div class="text-muted">
+                            Premium
+                        </div>
+
+                        <div class="fw-semibold">
+                            {{ employee.premium_hours|number_format(2) }}
+                        </div>
+
+                    </div>
+
+
+                    <div class="col-6 col-md-3">
 
                         <div class="text-muted">
                             Payable
@@ -762,6 +814,14 @@
                                 </th>
 
                                 <th>
+                                    Double Time
+                                </th>
+
+                                <th>
+                                    Premium
+                                </th>
+
+                                <th>
                                     Payable
                                 </th>
 
@@ -777,6 +837,31 @@
                         <tbody>
 
                             {% for day in employee.days %}
+
+                                {% set dayDailyOvertime =
+                                    day.daily_overtime_hours
+                                    |default(
+                                        day.overtime_hours
+                                        |default(0)
+                                    )
+                                %}
+
+
+                                {% set dayDoubleTime =
+                                    day.double_time_hours
+                                    |default(0)
+                                %}
+
+
+                                {% set dayPremium =
+                                    day.premium_hours
+                                    |default(
+                                        dayDailyOvertime
+                                        +
+                                        dayDoubleTime
+                                    )
+                                %}
+
 
                                 <tr>
 
@@ -814,7 +899,17 @@
 
 
                                     <td>
-                                        {{ day.overtime_hours|number_format(2) }}
+                                        {{ dayDailyOvertime|number_format(2) }}
+                                    </td>
+
+
+                                    <td>
+                                        {{ dayDoubleTime|number_format(2) }}
+                                    </td>
+
+
+                                    <td>
+                                        {{ dayPremium|number_format(2) }}
                                     </td>
 
 
@@ -852,7 +947,7 @@
 
                                     <tr class="table-warning">
 
-                                        <td colspan="8">
+                                        <td colspan="10">
 
                                             <ul class="mb-0">
 
@@ -917,7 +1012,15 @@
                                     </th>
 
                                     <th>
+                                        Double Time
+                                    </th>
+
+                                    <th>
                                         Total OT
+                                    </th>
+
+                                    <th>
+                                        Premium
                                     </th>
 
                                     <th>
@@ -962,7 +1065,15 @@
                                         </td>
 
                                         <td>
+                                            {{ week.double_time_hours|number_format(2) }}
+                                        </td>
+
+                                        <td>
                                             {{ week.overtime_hours|number_format(2) }}
+                                        </td>
+
+                                        <td>
+                                            {{ week.premium_hours|number_format(2) }}
                                         </td>
 
                                         <td>
@@ -980,6 +1091,15 @@
                     </div>
 
                 {% endif %}
+
+
+                <div class="small text-muted mt-3">
+
+                    Total overtime includes daily and weekly overtime.
+
+                    Premium hours include total overtime plus double-time hours.
+
+                </div>
 
 
             </div>

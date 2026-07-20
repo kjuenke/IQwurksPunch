@@ -11,7 +11,7 @@
         </h1>
 
         <div class="text-muted">
-            Daily payroll totals using the configured company payroll rules.
+            Daily payroll totals using the configured company and labor rules.
         </div>
 
     </div>
@@ -101,7 +101,15 @@
                         </th>
 
                         <th>
-                            Overtime
+                            Daily OT
+                        </th>
+
+                        <th>
+                            Double Time
+                        </th>
+
+                        <th>
+                            Premium
                         </th>
 
                         <th>
@@ -121,6 +129,31 @@
 
 
                     {% for employee in summary %}
+
+                        {% set dailyOvertime =
+                            employee.daily_overtime_hours
+                            |default(
+                                employee.overtime_hours
+                                |default(0)
+                            )
+                        %}
+
+
+                        {% set doubleTime =
+                            employee.double_time_hours
+                            |default(0)
+                        %}
+
+
+                        {% set premiumHours =
+                            employee.premium_hours
+                            |default(
+                                dailyOvertime
+                                +
+                                doubleTime
+                            )
+                        %}
+
 
                         <tr>
 
@@ -168,7 +201,17 @@
 
 
                             <td>
-                                {{ employee.overtime_hours|number_format(2) }}
+                                {{ dailyOvertime|number_format(2) }}
+                            </td>
+
+
+                            <td>
+                                {{ doubleTime|number_format(2) }}
+                            </td>
+
+
+                            <td>
+                                {{ premiumHours|number_format(2) }}
                             </td>
 
 
@@ -206,7 +249,7 @@
 
                             <tr class="table-warning">
 
-                                <td colspan="10">
+                                <td colspan="12">
 
                                     <strong>
                                         Payroll warnings:
@@ -236,7 +279,7 @@
                         <tr>
 
                             <td
-                                colspan="10"
+                                colspan="12"
                                 class="text-center text-muted"
                             >
                                 No payroll data available.
@@ -250,6 +293,16 @@
                 </tbody>
 
             </table>
+
+        </div>
+
+
+        <div class="small text-muted mt-3">
+
+            Premium hours include daily overtime and double-time hours.
+
+            Weekly overtime is calculated in the Weekly Payroll Summary and
+            Payroll Workspace.
 
         </div>
 

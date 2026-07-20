@@ -2,9 +2,56 @@
 
 {% block content %}
 
-<h1 class="mb-4">
-    Company Settings
-</h1>
+<div class="d-flex flex-wrap justify-content-between align-items-center mb-4">
+
+    <div>
+
+        <h1 class="mb-1">
+            Company Settings
+        </h1>
+
+        <div class="text-muted">
+            Configure company information and timekeeping behavior.
+        </div>
+
+    </div>
+
+
+    <a
+        href="/admin/labor-rules"
+        class="btn btn-outline-primary"
+    >
+        <i class="bi bi-calculator"></i>
+        Labor Rules
+    </a>
+
+</div>
+
+
+<div class="alert alert-info d-flex align-items-start gap-3">
+
+    <i class="bi bi-info-circle fs-4"></i>
+
+    <div>
+
+        <strong>
+            Overtime and workweek settings have moved.
+        </strong>
+
+        <div>
+            Daily overtime, weekly overtime, double-time, and the workweek
+            start day are now managed under
+            <a
+                href="/admin/labor-rules"
+                class="alert-link"
+            >
+                Labor Rules
+            </a>.
+        </div>
+
+    </div>
+
+</div>
 
 
 <div class="card shadow-sm">
@@ -12,8 +59,35 @@
     <div class="card-body">
 
 
-        <form method="post"
-              action="/admin/settings">
+        <form
+            method="post"
+            action="/admin/settings"
+        >
+
+
+            {#
+                These hidden fields preserve compatibility with the existing
+                CompanySettingsService. Labor Rules is authoritative for all
+                overtime thresholds and the workweek start day.
+            #}
+
+            <input
+                type="hidden"
+                name="pay_period_start"
+                value="{{ settings.pay_period_start|default('monday') }}"
+            >
+
+            <input
+                type="hidden"
+                name="daily_overtime_hours"
+                value="{{ settings.daily_overtime_hours|default(8) }}"
+            >
+
+            <input
+                type="hidden"
+                name="weekly_overtime_hours"
+                value="{{ settings.weekly_overtime_hours|default(40) }}"
+            >
 
 
             <h2 class="h4 mb-3">
@@ -23,12 +97,16 @@
 
             <div class="mb-3">
 
-                <label class="form-label">
+                <label
+                    class="form-label"
+                    for="company_name"
+                >
                     Company Name
                 </label>
 
                 <input
                     type="text"
+                    id="company_name"
                     name="company_name"
                     class="form-control"
                     value="{{ settings.company_name }}"
@@ -39,12 +117,16 @@
 
             <div class="mb-3">
 
-                <label class="form-label">
+                <label
+                    class="form-label"
+                    for="address"
+                >
                     Address
                 </label>
 
                 <input
                     type="text"
+                    id="address"
                     name="address"
                     class="form-control"
                     value="{{ settings.address }}"
@@ -58,12 +140,16 @@
 
                 <div class="col-md-5 mb-3">
 
-                    <label class="form-label">
+                    <label
+                        class="form-label"
+                        for="city"
+                    >
                         City
                     </label>
 
                     <input
                         type="text"
+                        id="city"
                         name="city"
                         class="form-control"
                         value="{{ settings.city }}"
@@ -74,12 +160,16 @@
 
                 <div class="col-md-3 mb-3">
 
-                    <label class="form-label">
+                    <label
+                        class="form-label"
+                        for="state"
+                    >
                         State
                     </label>
 
                     <input
                         type="text"
+                        id="state"
                         name="state"
                         class="form-control"
                         value="{{ settings.state }}"
@@ -90,12 +180,16 @@
 
                 <div class="col-md-4 mb-3">
 
-                    <label class="form-label">
+                    <label
+                        class="form-label"
+                        for="zip"
+                    >
                         ZIP
                     </label>
 
                     <input
                         type="text"
+                        id="zip"
                         name="zip"
                         class="form-control"
                         value="{{ settings.zip }}"
@@ -112,12 +206,16 @@
 
                 <div class="col-md-6 mb-3">
 
-                    <label class="form-label">
+                    <label
+                        class="form-label"
+                        for="phone"
+                    >
                         Phone
                     </label>
 
                     <input
                         type="text"
+                        id="phone"
                         name="phone"
                         class="form-control"
                         value="{{ settings.phone }}"
@@ -128,12 +226,16 @@
 
                 <div class="col-md-6 mb-3">
 
-                    <label class="form-label">
+                    <label
+                        class="form-label"
+                        for="email"
+                    >
                         Email
                     </label>
 
                     <input
                         type="email"
+                        id="email"
                         name="email"
                         class="form-control"
                         value="{{ settings.email }}"
@@ -147,18 +249,23 @@
 
             <div class="mb-3">
 
-                <label class="form-label">
+                <label
+                    class="form-label"
+                    for="timezone"
+                >
                     Timezone
                 </label>
 
 
                 <select
+                    id="timezone"
                     name="timezone"
                     class="form-select"
                 >
 
 
-                    <option value="America/Los_Angeles"
+                    <option
+                        value="America/Los_Angeles"
                         {% if settings.timezone == 'America/Los_Angeles' %}
                         selected
                         {% endif %}
@@ -167,7 +274,8 @@
                     </option>
 
 
-                    <option value="America/Denver"
+                    <option
+                        value="America/Denver"
                         {% if settings.timezone == 'America/Denver' %}
                         selected
                         {% endif %}
@@ -176,7 +284,8 @@
                     </option>
 
 
-                    <option value="America/Chicago"
+                    <option
+                        value="America/Chicago"
                         {% if settings.timezone == 'America/Chicago' %}
                         selected
                         {% endif %}
@@ -185,7 +294,8 @@
                     </option>
 
 
-                    <option value="America/New_York"
+                    <option
+                        value="America/New_York"
                         {% if settings.timezone == 'America/New_York' %}
                         selected
                         {% endif %}
@@ -199,108 +309,17 @@
             </div>
 
 
-            <div class="mb-3">
-
-                <label class="form-label">
-                    Pay Period Start
-                </label>
-
-
-                <select
-                    name="pay_period_start"
-                    class="form-select"
-                >
-
-
-                    <option value="monday"
-                        {% if settings.pay_period_start == 'monday' %}
-                        selected
-                        {% endif %}
-                    >
-                        Monday
-                    </option>
-
-
-                    <option value="sunday"
-                        {% if settings.pay_period_start == 'sunday' %}
-                        selected
-                        {% endif %}
-                    >
-                        Sunday
-                    </option>
-
-
-                </select>
-
-            </div>
-
-
             <hr class="my-4">
 
 
-            <h2 class="h4 mb-3">
-                Payroll Policy
+            <h2 class="h4 mb-1">
+                Timekeeping Policy
             </h2>
 
-
-            <div class="row">
-
-
-                <div class="col-md-6 mb-3">
-
-                    <label class="form-label">
-                        Daily Overtime Threshold
-                    </label>
-
-                    <div class="input-group">
-
-                        <input
-                            type="number"
-                            name="daily_overtime_hours"
-                            class="form-control"
-                            min="0"
-                            max="24"
-                            step="0.25"
-                            value="{{ settings.daily_overtime_hours|default(8) }}"
-                        >
-
-                        <span class="input-group-text">
-                            hours
-                        </span>
-
-                    </div>
-
-                </div>
-
-
-                <div class="col-md-6 mb-3">
-
-                    <label class="form-label">
-                        Weekly Overtime Threshold
-                    </label>
-
-                    <div class="input-group">
-
-                        <input
-                            type="number"
-                            name="weekly_overtime_hours"
-                            class="form-control"
-                            min="0"
-                            max="168"
-                            step="0.25"
-                            value="{{ settings.weekly_overtime_hours|default(40) }}"
-                        >
-
-                        <span class="input-group-text">
-                            hours
-                        </span>
-
-                    </div>
-
-                </div>
-
-
-            </div>
+            <p class="text-muted mb-4">
+                Configure punch rounding, automatic meal deductions, and
+                paid-break allowances.
+            </p>
 
 
             <div class="row">
@@ -308,7 +327,10 @@
 
                 <div class="col-md-6 mb-3">
 
-                    <label class="form-label">
+                    <label
+                        class="form-label"
+                        for="rounding_minutes"
+                    >
                         Punch Rounding Interval
                     </label>
 
@@ -317,11 +339,13 @@
                     %}
 
                     <select
+                        id="rounding_minutes"
                         name="rounding_minutes"
                         class="form-select"
                     >
 
-                        <option value="0"
+                        <option
+                            value="0"
                             {% if roundingMinutes == 0 %}
                             selected
                             {% endif %}
@@ -329,7 +353,8 @@
                             No rounding
                         </option>
 
-                        <option value="5"
+                        <option
+                            value="5"
                             {% if roundingMinutes == 5 %}
                             selected
                             {% endif %}
@@ -337,7 +362,8 @@
                             5 minutes
                         </option>
 
-                        <option value="6"
+                        <option
+                            value="6"
                             {% if roundingMinutes == 6 %}
                             selected
                             {% endif %}
@@ -345,7 +371,8 @@
                             6 minutes
                         </option>
 
-                        <option value="10"
+                        <option
+                            value="10"
                             {% if roundingMinutes == 10 %}
                             selected
                             {% endif %}
@@ -353,7 +380,8 @@
                             10 minutes
                         </option>
 
-                        <option value="15"
+                        <option
+                            value="15"
                             {% if roundingMinutes == 15 %}
                             selected
                             {% endif %}
@@ -361,7 +389,8 @@
                             15 minutes
                         </option>
 
-                        <option value="30"
+                        <option
+                            value="30"
                             {% if roundingMinutes == 30 %}
                             selected
                             {% endif %}
@@ -371,12 +400,20 @@
 
                     </select>
 
+                    <div class="form-text">
+                        Punch times are adjusted to the selected interval
+                        before payroll is calculated.
+                    </div>
+
                 </div>
 
 
                 <div class="col-md-6 mb-3">
 
-                    <label class="form-label">
+                    <label
+                        class="form-label"
+                        for="rounding_mode"
+                    >
                         Punch Rounding Direction
                     </label>
 
@@ -385,11 +422,13 @@
                     %}
 
                     <select
+                        id="rounding_mode"
                         name="rounding_mode"
                         class="form-select"
                     >
 
-                        <option value="nearest"
+                        <option
+                            value="nearest"
                             {% if roundingMode == 'nearest' %}
                             selected
                             {% endif %}
@@ -397,7 +436,8 @@
                             Nearest interval
                         </option>
 
-                        <option value="up"
+                        <option
+                            value="up"
                             {% if roundingMode == 'up' %}
                             selected
                             {% endif %}
@@ -405,7 +445,8 @@
                             Always round up
                         </option>
 
-                        <option value="down"
+                        <option
+                            value="down"
                             {% if roundingMode == 'down' %}
                             selected
                             {% endif %}
@@ -415,13 +456,31 @@
 
                     </select>
 
+                    <div class="form-text">
+                        Determines how punch times are moved when rounding is
+                        enabled.
+                    </div>
+
                 </div>
 
 
             </div>
 
 
-            <div class="form-check form-switch mb-3">
+            <hr class="my-4">
+
+
+            <h2 class="h4 mb-1">
+                Meals and Breaks
+            </h2>
+
+            <p class="text-muted mb-4">
+                Configure automatic unpaid meal deductions and the daily
+                paid-break allowance.
+            </p>
+
+
+            <div class="form-check form-switch mb-4">
 
                 <input
                     class="form-check-input"
@@ -440,6 +499,11 @@
                     Enable automatic meal deduction
                 </label>
 
+                <div class="form-text">
+                    Applies the configured meal deduction when no recorded
+                    meal period satisfies the payroll policy.
+                </div>
+
             </div>
 
 
@@ -448,7 +512,10 @@
 
                 <div class="col-md-6 mb-3">
 
-                    <label class="form-label">
+                    <label
+                        class="form-label"
+                        for="meal_deduction_minutes"
+                    >
                         Automatic Meal Deduction
                     </label>
 
@@ -456,6 +523,7 @@
 
                         <input
                             type="number"
+                            id="meal_deduction_minutes"
                             name="meal_deduction_minutes"
                             class="form-control"
                             min="0"
@@ -475,7 +543,10 @@
 
                 <div class="col-md-6 mb-3">
 
-                    <label class="form-label">
+                    <label
+                        class="form-label"
+                        for="paid_break_minutes"
+                    >
                         Paid Break Allowance
                     </label>
 
@@ -483,6 +554,7 @@
 
                         <input
                             type="number"
+                            id="paid_break_minutes"
                             name="paid_break_minutes"
                             class="form-control"
                             min="0"
@@ -503,13 +575,26 @@
             </div>
 
 
-            <button class="btn btn-primary">
+            <div class="d-flex flex-wrap gap-2 mt-3">
 
-                <i class="bi bi-save"></i>
+                <button
+                    type="submit"
+                    class="btn btn-primary"
+                >
+                    <i class="bi bi-save"></i>
+                    Save Company Settings
+                </button>
 
-                Save Settings
 
-            </button>
+                <a
+                    href="/admin/labor-rules"
+                    class="btn btn-outline-secondary"
+                >
+                    <i class="bi bi-calculator"></i>
+                    Manage Labor Rules
+                </a>
+
+            </div>
 
 
         </form>

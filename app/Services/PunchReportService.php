@@ -428,7 +428,9 @@ class PunchReportService
     {
         $normalizedStartDay =
             strtolower(
-                $startDay
+                trim(
+                    $startDay
+                )
             );
 
 
@@ -658,9 +660,11 @@ class PunchReportService
 
 
         $timezone =
-            $settings['timezone']
-            ??
-            'America/Los_Angeles';
+            (string)(
+                $settings['timezone']
+                ??
+                'America/Los_Angeles'
+            );
 
 
         if (
@@ -675,15 +679,45 @@ class PunchReportService
         }
 
 
+        $workweekStartDay =
+            strtolower(
+                trim(
+                    (string)(
+                        $laborRules['workweek_start_day']
+                        ??
+                        $settings['pay_period_start']
+                        ??
+                        'monday'
+                    )
+                )
+            );
+
+
+        if (
+            !in_array(
+                $workweekStartDay,
+                [
+                    'sunday',
+                    'monday'
+                ],
+                true
+            )
+        ) {
+            $workweekStartDay =
+                'monday';
+        }
+
+
         return [
             ...$settings,
-            ...$laborRules,
 
             'timezone' =>
                 $timezone,
 
             'daily_overtime_hours' =>
                 (float)(
+                    $laborRules['daily_overtime_hours']
+                    ??
                     $settings['daily_overtime_hours']
                     ??
                     8
@@ -691,6 +725,8 @@ class PunchReportService
 
             'weekly_overtime_hours' =>
                 (float)(
+                    $laborRules['weekly_overtime_hours']
+                    ??
                     $settings['weekly_overtime_hours']
                     ??
                     40
@@ -704,13 +740,7 @@ class PunchReportService
                 ),
 
             'workweek_start_day' =>
-                (string)(
-                    $laborRules['workweek_start_day']
-                    ??
-                    $settings['pay_period_start']
-                    ??
-                    'monday'
-                ),
+                $workweekStartDay,
 
             'rounding_minutes' =>
                 (int)(

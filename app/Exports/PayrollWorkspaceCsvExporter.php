@@ -29,7 +29,11 @@ final class PayrollWorkspaceCsvExporter extends CsvExporter
                 'Unpaid Break Minutes',
                 'Regular Hours',
                 'Daily Overtime Hours',
-                'Payable Hours',
+                'Weekly Overtime Hours',
+                'Double-Time Hours',
+                'Total Overtime Hours',
+                'Premium Hours',
+                'Total Payable Hours',
                 'Status',
                 'Warnings'
             ]
@@ -61,6 +65,53 @@ final class PayrollWorkspaceCsvExporter extends CsvExporter
                         $day['automatic_meal_deduction_minutes']
                         ??
                         0
+                    );
+
+
+                $dailyOvertimeHours =
+                    (float)(
+                        $day['daily_overtime_hours']
+                        ??
+                        $day['overtime_hours']
+                        ??
+                        0
+                    );
+
+
+                /*
+                 * Weekly overtime is calculated at the weekly level.
+                 * Individual daily rows therefore record zero weekly
+                 * overtime hours.
+                 */
+                $weeklyOvertimeHours =
+                    0.0;
+
+
+                $doubleTimeHours =
+                    (float)(
+                        $day['double_time_hours']
+                        ??
+                        0
+                    );
+
+
+                $totalOvertimeHours =
+                    (float)(
+                        $day['overtime_hours']
+                        ??
+                        $dailyOvertimeHours
+                    );
+
+
+                $premiumHours =
+                    (float)(
+                        $day['premium_hours']
+                        ??
+                        (
+                            $totalOvertimeHours
+                            +
+                            $doubleTimeHours
+                        )
                     );
 
 
@@ -140,9 +191,23 @@ final class PayrollWorkspaceCsvExporter extends CsvExporter
                     ),
 
                     $this->hours(
-                        $day['overtime_hours']
-                        ??
-                        0
+                        $dailyOvertimeHours
+                    ),
+
+                    $this->hours(
+                        $weeklyOvertimeHours
+                    ),
+
+                    $this->hours(
+                        $doubleTimeHours
+                    ),
+
+                    $this->hours(
+                        $totalOvertimeHours
+                    ),
+
+                    $this->hours(
+                        $premiumHours
                     ),
 
                     $this->hours(
@@ -205,6 +270,10 @@ final class PayrollWorkspaceCsvExporter extends CsvExporter
                 '0.00',
                 '0.00',
                 '0.00',
+                '0.00',
+                '0.00',
+                '0.00',
+                '0.00',
                 'No Data',
                 'No payroll activity was found for the selected filters.'
             ];
@@ -238,67 +307,47 @@ final class PayrollWorkspaceCsvExporter extends CsvExporter
                 0
             ),
             $this->hours(
+                $summary['totals']['daily_overtime_hours']
+                ??
+                0
+            ),
+            $this->hours(
+                $summary['totals']['weekly_overtime_hours']
+                ??
+                0
+            ),
+            $this->hours(
+                $summary['totals']['double_time_hours']
+                ??
+                0
+            ),
+            $this->hours(
                 $summary['totals']['overtime_hours']
                 ??
                 0
+            ),
+            $this->hours(
+                $summary['totals']['premium_hours']
+                ??
+                (
+                    (
+                        $summary['totals']['overtime_hours']
+                        ??
+                        0
+                    )
+                    +
+                    (
+                        $summary['totals']['double_time_hours']
+                        ??
+                        0
+                    )
+                )
             ),
             $this->hours(
                 $summary['totals']['total_hours']
                 ??
                 0
             ),
-            '',
-            ''
-        ];
-
-
-        $rows[] = [
-            'Daily Overtime Total',
-            '',
-            '',
-            '',
-            '',
-            '',
-            '',
-            '',
-            '',
-            '',
-            '',
-            '',
-            '',
-            '',
-            $this->hours(
-                $summary['totals']['daily_overtime_hours']
-                ??
-                0
-            ),
-            '',
-            '',
-            ''
-        ];
-
-
-        $rows[] = [
-            'Weekly Overtime Total',
-            '',
-            '',
-            '',
-            '',
-            '',
-            '',
-            '',
-            '',
-            '',
-            '',
-            '',
-            '',
-            '',
-            $this->hours(
-                $summary['totals']['weekly_overtime_hours']
-                ??
-                0
-            ),
-            '',
             '',
             ''
         ];

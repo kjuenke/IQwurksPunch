@@ -132,7 +132,11 @@ final class DailyPayrollPdfExporter
 
         $regularTotal = 0.0;
 
-        $overtimeTotal = 0.0;
+        $dailyOvertimeTotal = 0.0;
+
+        $doubleTimeTotal = 0.0;
+
+        $premiumTotal = 0.0;
 
         $payableTotal = 0.0;
 
@@ -177,11 +181,33 @@ final class DailyPayrollPdfExporter
                 );
 
 
-            $overtimeHours =
+            $dailyOvertimeHours =
                 (float)(
+                    $employee['daily_overtime_hours']
+                    ??
                     $employee['overtime_hours']
                     ??
                     0
+                );
+
+
+            $doubleTimeHours =
+                (float)(
+                    $employee['double_time_hours']
+                    ??
+                    0
+                );
+
+
+            $premiumHours =
+                (float)(
+                    $employee['premium_hours']
+                    ??
+                    (
+                        $dailyOvertimeHours
+                        +
+                        $doubleTimeHours
+                    )
                 );
 
 
@@ -209,8 +235,16 @@ final class DailyPayrollPdfExporter
                 $regularHours;
 
 
-            $overtimeTotal +=
-                $overtimeHours;
+            $dailyOvertimeTotal +=
+                $dailyOvertimeHours;
+
+
+            $doubleTimeTotal +=
+                $doubleTimeHours;
+
+
+            $premiumTotal +=
+                $premiumHours;
 
 
             $payableTotal +=
@@ -227,9 +261,13 @@ final class DailyPayrollPdfExporter
 
             $warnings =
                 $this->warningText(
-                    $employee['errors']
-                    ??
-                    []
+                    is_array(
+                        $employee['errors']
+                        ??
+                        null
+                    )
+                        ? $employee['errors']
+                        : []
                 );
 
 
@@ -307,7 +345,23 @@ final class DailyPayrollPdfExporter
                 '<td class="number">'
                 .
                 $this->hours(
-                    $overtimeHours
+                    $dailyOvertimeHours
+                )
+                .
+                '</td>'
+                .
+                '<td class="number">'
+                .
+                $this->hours(
+                    $doubleTimeHours
+                )
+                .
+                '</td>'
+                .
+                '<td class="number">'
+                .
+                $this->hours(
+                    $premiumHours
                 )
                 .
                 '</td>'
@@ -345,7 +399,7 @@ final class DailyPayrollPdfExporter
             $rows =
                 '<tr>'
                 .
-                '<td colspan="11" class="empty">'
+                '<td colspan="13" class="empty">'
                 .
                 'No daily payroll data is available.'
                 .
@@ -366,13 +420,13 @@ final class DailyPayrollPdfExporter
             .
             '<style>'
             .
-            '@page { margin: 28px; }'
+            '@page { margin: 24px; }'
             .
             'body {'
             .
             'font-family: "DejaVu Sans", sans-serif;'
             .
-            'font-size: 9px;'
+            'font-size: 8px;'
             .
             'color: #222;'
             .
@@ -410,6 +464,8 @@ final class DailyPayrollPdfExporter
             .
             'border-collapse: collapse;'
             .
+            'table-layout: fixed;'
+            .
             '}'
             .
             'th {'
@@ -418,9 +474,11 @@ final class DailyPayrollPdfExporter
             .
             'border: 1px solid #888;'
             .
-            'padding: 5px;'
+            'padding: 4px;'
             .
             'text-align: left;'
+            .
+            'font-size: 7px;'
             .
             '}'
             .
@@ -428,9 +486,11 @@ final class DailyPayrollPdfExporter
             .
             'border: 1px solid #aaa;'
             .
-            'padding: 5px;'
+            'padding: 4px;'
             .
             'vertical-align: top;'
+            .
+            'overflow-wrap: break-word;'
             .
             '}'
             .
@@ -444,7 +504,7 @@ final class DailyPayrollPdfExporter
             .
             '.warnings {'
             .
-            'font-size: 8px;'
+            'font-size: 7px;'
             .
             '}'
             .
@@ -522,7 +582,11 @@ final class DailyPayrollPdfExporter
             .
             '<th>Regular</th>'
             .
-            '<th>Overtime</th>'
+            '<th>Daily OT</th>'
+            .
+            '<th>Double Time</th>'
+            .
+            '<th>Premium</th>'
             .
             '<th>Payable</th>'
             .
@@ -581,7 +645,23 @@ final class DailyPayrollPdfExporter
             '<td class="number">'
             .
             $this->hours(
-                $overtimeTotal
+                $dailyOvertimeTotal
+            )
+            .
+            '</td>'
+            .
+            '<td class="number">'
+            .
+            $this->hours(
+                $doubleTimeTotal
+            )
+            .
+            '</td>'
+            .
+            '<td class="number">'
+            .
+            $this->hours(
+                $premiumTotal
             )
             .
             '</td>'
@@ -603,6 +683,8 @@ final class DailyPayrollPdfExporter
             '</table>'
             .
             '<div class="footer">'
+            .
+            'Premium hours include daily overtime and double-time hours. '
             .
             'Generated by IQwurksPunch on '
             .

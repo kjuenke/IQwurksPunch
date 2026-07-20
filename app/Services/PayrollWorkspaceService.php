@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace App\Services;
 
+use App\Core\Container;
 use App\Payroll\PayrollCalculator;
 use DateInterval;
 use DatePeriod;
@@ -45,7 +46,7 @@ final class PayrollWorkspaceService
         $this->laborRules =
             $laborRules
             ??
-            \App\Core\Container::laborRulesService();
+            Container::laborRulesService();
     }
 
 
@@ -313,6 +314,44 @@ final class PayrollWorkspaceService
         array $employee
     ): array
     {
+        $dailyOvertimeHours =
+            (float)(
+                $employee['daily_overtime_hours']
+                ??
+                $employee['overtime_hours']
+                ??
+                0
+            );
+
+
+        $doubleTimeHours =
+            (float)(
+                $employee['double_time_hours']
+                ??
+                0
+            );
+
+
+        $overtimeHours =
+            (float)(
+                $employee['overtime_hours']
+                ??
+                $dailyOvertimeHours
+            );
+
+
+        $premiumHours =
+            (float)(
+                $employee['premium_hours']
+                ??
+                (
+                    $overtimeHours
+                    +
+                    $doubleTimeHours
+                )
+            );
+
+
         return [
             'date' =>
                 (string)(
@@ -409,25 +448,16 @@ final class PayrollWorkspaceService
                 ),
 
             'daily_overtime_hours' =>
-                (float)(
-                    $employee['daily_overtime_hours']
-                    ??
-                    0
-                ),
+                $dailyOvertimeHours,
 
             'double_time_hours' =>
-                (float)(
-                    $employee['double_time_hours']
-                    ??
-                    0
-                ),
+                $doubleTimeHours,
 
             'overtime_hours' =>
-                (float)(
-                    $employee['overtime_hours']
-                    ??
-                    0
-                )
+                $overtimeHours,
+
+            'premium_hours' =>
+                $premiumHours
         ];
     }
 
@@ -901,24 +931,48 @@ final class PayrollWorkspaceService
         }
 
 
+        $workweekStartDay =
+            strtolower(
+                trim(
+                    (string)(
+                        $laborRules['workweek_start_day']
+                        ??
+                        $company['pay_period_start']
+                        ??
+                        'monday'
+                    )
+                )
+            );
+
+
+        if (
+            !in_array(
+                $workweekStartDay,
+                [
+                    'sunday',
+                    'monday'
+                ],
+                true
+            )
+        ) {
+            $workweekStartDay =
+                'monday';
+        }
+
+
         return [
             ...$company,
-            ...$laborRules,
 
             'timezone' =>
                 $timezone,
 
             'workweek_start_day' =>
-                (string)(
-                    $laborRules['workweek_start_day']
-                    ??
-                    $company['pay_period_start']
-                    ??
-                    'monday'
-                ),
+                $workweekStartDay,
 
             'daily_overtime_hours' =>
                 (float)(
+                    $laborRules['daily_overtime_hours']
+                    ??
                     $company['daily_overtime_hours']
                     ??
                     8
@@ -926,6 +980,8 @@ final class PayrollWorkspaceService
 
             'weekly_overtime_hours' =>
                 (float)(
+                    $laborRules['weekly_overtime_hours']
+                    ??
                     $company['weekly_overtime_hours']
                     ??
                     40

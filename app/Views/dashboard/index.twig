@@ -339,11 +339,13 @@
 
         <div class="card shadow-sm h-100">
 
-            <div class="card-header">
+            <div class="card-header d-flex justify-content-between align-items-center">
 
                 <strong>
                     Current Week
                 </strong>
+
+                <i class="bi bi-calendar-week text-primary"></i>
 
             </div>
 
@@ -360,6 +362,12 @@
 
                     </div>
 
+                {% else %}
+
+                    <div class="text-muted mb-3">
+                        No payroll week is currently available.
+                    </div>
+
                 {% endif %}
 
 
@@ -370,7 +378,7 @@
                     </span>
 
                     <strong>
-                        {{ dashboard.week.regular_hours|number_format(2) }}
+                        {{ dashboard.week.regular_hours|default(0)|number_format(2) }}
                     </strong>
 
                 </div>
@@ -379,11 +387,63 @@
                 <div class="d-flex justify-content-between mb-2">
 
                     <span>
-                        Overtime Hours
+                        Daily Overtime
                     </span>
 
                     <strong>
-                        {{ dashboard.week.overtime_hours|number_format(2) }}
+                        {{ dashboard.week.daily_overtime_hours|default(0)|number_format(2) }}
+                    </strong>
+
+                </div>
+
+
+                <div class="d-flex justify-content-between mb-2">
+
+                    <span>
+                        Weekly Overtime
+                    </span>
+
+                    <strong>
+                        {{ dashboard.week.weekly_overtime_hours|default(0)|number_format(2) }}
+                    </strong>
+
+                </div>
+
+
+                <div class="d-flex justify-content-between mb-2">
+
+                    <span>
+                        Double-Time
+                    </span>
+
+                    <strong>
+                        {{ dashboard.week.double_time_hours|default(0)|number_format(2) }}
+                    </strong>
+
+                </div>
+
+
+                <div class="d-flex justify-content-between mb-2">
+
+                    <span>
+                        Total Overtime
+                    </span>
+
+                    <strong>
+                        {{ dashboard.week.overtime_hours|default(0)|number_format(2) }}
+                    </strong>
+
+                </div>
+
+
+                <div class="d-flex justify-content-between mb-2">
+
+                    <span>
+                        Premium Hours
+                    </span>
+
+                    <strong>
+                        {{ dashboard.week.premium_hours|default(0)|number_format(2) }}
                     </strong>
 
                 </div>
@@ -399,8 +459,17 @@
                     </span>
 
                     <strong class="fs-4">
-                        {{ dashboard.week.total_hours|number_format(2) }}
+                        {{ dashboard.week.total_hours|default(0)|number_format(2) }}
                     </strong>
+
+                </div>
+
+
+                <div class="small text-muted mb-3">
+
+                    Total overtime includes daily and weekly overtime.
+
+                    Premium hours include total overtime plus double-time.
 
                 </div>
 
@@ -763,6 +832,14 @@
             >
                 <i class="bi bi-gear"></i>
                 Settings
+            </a>
+
+            <a
+                href="/admin/labor-rules"
+                class="btn btn-outline-primary"
+            >
+                <i class="bi bi-calculator"></i>
+                Labor Rules
             </a>
 
             <a

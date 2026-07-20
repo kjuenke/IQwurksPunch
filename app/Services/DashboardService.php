@@ -310,7 +310,11 @@ class DashboardService
 
         $weeklyOvertimeHours = 0.0;
 
+        $doubleTimeHours = 0.0;
+
         $overtimeHours = 0.0;
+
+        $premiumHours = 0.0;
 
         $totalHours = 0.0;
 
@@ -321,6 +325,54 @@ class DashboardService
             []
             as $employee
         ) {
+            $employeeDailyOvertime =
+                (float)(
+                    $employee['daily_overtime_hours']
+                    ??
+                    0
+                );
+
+
+            $employeeWeeklyOvertime =
+                (float)(
+                    $employee['weekly_overtime_hours']
+                    ??
+                    0
+                );
+
+
+            $employeeDoubleTime =
+                (float)(
+                    $employee['double_time_hours']
+                    ??
+                    0
+                );
+
+
+            $employeeOvertime =
+                (float)(
+                    $employee['overtime_hours']
+                    ??
+                    (
+                        $employeeDailyOvertime
+                        +
+                        $employeeWeeklyOvertime
+                    )
+                );
+
+
+            $employeePremium =
+                (float)(
+                    $employee['premium_hours']
+                    ??
+                    (
+                        $employeeOvertime
+                        +
+                        $employeeDoubleTime
+                    )
+                );
+
+
             $regularHours +=
                 (float)(
                     $employee['regular_hours']
@@ -330,27 +382,23 @@ class DashboardService
 
 
             $dailyOvertimeHours +=
-                (float)(
-                    $employee['daily_overtime_hours']
-                    ??
-                    0
-                );
+                $employeeDailyOvertime;
 
 
             $weeklyOvertimeHours +=
-                (float)(
-                    $employee['weekly_overtime_hours']
-                    ??
-                    0
-                );
+                $employeeWeeklyOvertime;
+
+
+            $doubleTimeHours +=
+                $employeeDoubleTime;
 
 
             $overtimeHours +=
-                (float)(
-                    $employee['overtime_hours']
-                    ??
-                    0
-                );
+                $employeeOvertime;
+
+
+            $premiumHours +=
+                $employeePremium;
 
 
             $totalHours +=
@@ -391,9 +439,21 @@ class DashboardService
                     2
                 ),
 
+            'double_time_hours' =>
+                round(
+                    $doubleTimeHours,
+                    2
+                ),
+
             'overtime_hours' =>
                 round(
                     $overtimeHours,
+                    2
+                ),
+
+            'premium_hours' =>
+                round(
+                    $premiumHours,
                     2
                 ),
 

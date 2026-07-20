@@ -134,13 +134,19 @@ final class PayrollRegisterPdfExporter
 
         $employeeRows = '';
 
+        $grossTotal = 0.0;
+
         $regularTotal = 0.0;
 
         $dailyOvertimeTotal = 0.0;
 
         $weeklyOvertimeTotal = 0.0;
 
+        $doubleTimeTotal = 0.0;
+
         $overtimeTotal = 0.0;
+
+        $premiumTotal = 0.0;
 
         $payableTotal = 0.0;
 
@@ -151,6 +157,14 @@ final class PayrollRegisterPdfExporter
             []
             as $employee
         ) {
+            $grossHours =
+                (float)(
+                    $employee['gross_hours']
+                    ??
+                    0
+                );
+
+
             $regularHours =
                 (float)(
                     $employee['regular_hours']
@@ -175,11 +189,35 @@ final class PayrollRegisterPdfExporter
                 );
 
 
+            $doubleTimeHours =
+                (float)(
+                    $employee['double_time_hours']
+                    ??
+                    0
+                );
+
+
             $overtimeHours =
                 (float)(
                     $employee['overtime_hours']
                     ??
-                    0
+                    (
+                        $dailyOvertimeHours
+                        +
+                        $weeklyOvertimeHours
+                    )
+                );
+
+
+            $premiumHours =
+                (float)(
+                    $employee['premium_hours']
+                    ??
+                    (
+                        $overtimeHours
+                        +
+                        $doubleTimeHours
+                    )
                 );
 
 
@@ -189,6 +227,10 @@ final class PayrollRegisterPdfExporter
                     ??
                     0
                 );
+
+
+            $grossTotal +=
+                $grossHours;
 
 
             $regularTotal +=
@@ -203,8 +245,16 @@ final class PayrollRegisterPdfExporter
                 $weeklyOvertimeHours;
 
 
+            $doubleTimeTotal +=
+                $doubleTimeHours;
+
+
             $overtimeTotal +=
                 $overtimeHours;
+
+
+            $premiumTotal +=
+                $premiumHours;
 
 
             $payableTotal +=
@@ -221,9 +271,13 @@ final class PayrollRegisterPdfExporter
 
             $warnings =
                 $this->warningText(
-                    $employee['errors']
-                    ??
-                    []
+                    is_array(
+                        $employee['errors']
+                        ??
+                        null
+                    )
+                        ? $employee['errors']
+                        : []
                 );
 
 
@@ -269,9 +323,7 @@ final class PayrollRegisterPdfExporter
                 '<td class="number">'
                 .
                 $this->hours(
-                    $employee['gross_hours']
-                    ??
-                    0
+                    $grossHours
                 )
                 .
                 '</td>'
@@ -303,7 +355,23 @@ final class PayrollRegisterPdfExporter
                 '<td class="number">'
                 .
                 $this->hours(
+                    $doubleTimeHours
+                )
+                .
+                '</td>'
+                .
+                '<td class="number">'
+                .
+                $this->hours(
                     $overtimeHours
+                )
+                .
+                '</td>'
+                .
+                '<td class="number">'
+                .
+                $this->hours(
+                    $premiumHours
                 )
                 .
                 '</td>'
@@ -341,7 +409,7 @@ final class PayrollRegisterPdfExporter
             $employeeRows =
                 '<tr>'
                 .
-                '<td colspan="11" class="empty">'
+                '<td colspan="13" class="empty">'
                 .
                 'No weekly payroll data is available.'
                 .
@@ -362,13 +430,13 @@ final class PayrollRegisterPdfExporter
             .
             '<style>'
             .
-            '@page { margin: 28px; }'
+            '@page { margin: 22px; }'
             .
             'body {'
             .
             'font-family: "DejaVu Sans", sans-serif;'
             .
-            'font-size: 9px;'
+            'font-size: 7px;'
             .
             'color: #222;'
             .
@@ -406,6 +474,8 @@ final class PayrollRegisterPdfExporter
             .
             'border-collapse: collapse;'
             .
+            'table-layout: fixed;'
+            .
             '}'
             .
             'th {'
@@ -414,9 +484,11 @@ final class PayrollRegisterPdfExporter
             .
             'border: 1px solid #888;'
             .
-            'padding: 5px;'
+            'padding: 4px;'
             .
             'text-align: left;'
+            .
+            'font-size: 6.5px;'
             .
             '}'
             .
@@ -424,9 +496,11 @@ final class PayrollRegisterPdfExporter
             .
             'border: 1px solid #aaa;'
             .
-            'padding: 5px;'
+            'padding: 4px;'
             .
             'vertical-align: top;'
+            .
+            'overflow-wrap: break-word;'
             .
             '}'
             .
@@ -440,7 +514,7 @@ final class PayrollRegisterPdfExporter
             .
             '.warnings {'
             .
-            'font-size: 8px;'
+            'font-size: 6.5px;'
             .
             '}'
             .
@@ -466,7 +540,7 @@ final class PayrollRegisterPdfExporter
             .
             'margin-top: 12px;'
             .
-            'font-size: 8px;'
+            'font-size: 7px;'
             .
             'color: #666;'
             .
@@ -522,7 +596,11 @@ final class PayrollRegisterPdfExporter
             .
             '<th>Weekly OT</th>'
             .
+            '<th>Double Time</th>'
+            .
             '<th>Total OT</th>'
+            .
+            '<th>Premium</th>'
             .
             '<th>Payable</th>'
             .
@@ -544,7 +622,15 @@ final class PayrollRegisterPdfExporter
             .
             '<tr class="totals">'
             .
-            '<td colspan="4">Register Totals</td>'
+            '<td colspan="3">Register Totals</td>'
+            .
+            '<td class="number">'
+            .
+            $this->hours(
+                $grossTotal
+            )
+            .
+            '</td>'
             .
             '<td class="number">'
             .
@@ -573,7 +659,23 @@ final class PayrollRegisterPdfExporter
             '<td class="number">'
             .
             $this->hours(
+                $doubleTimeTotal
+            )
+            .
+            '</td>'
+            .
+            '<td class="number">'
+            .
+            $this->hours(
                 $overtimeTotal
+            )
+            .
+            '</td>'
+            .
+            '<td class="number">'
+            .
+            $this->hours(
+                $premiumTotal
             )
             .
             '</td>'
@@ -595,6 +697,10 @@ final class PayrollRegisterPdfExporter
             '</table>'
             .
             '<div class="footer">'
+            .
+            'Total overtime includes daily and weekly overtime. '
+            .
+            'Premium hours include total overtime plus double-time hours. '
             .
             'Generated by IQwurksPunch on '
             .

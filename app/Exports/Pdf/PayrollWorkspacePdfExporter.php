@@ -176,6 +176,44 @@ final class PayrollWorkspacePdfExporter
                     );
 
 
+                $dailyOvertimeHours =
+                    (float)(
+                        $day['daily_overtime_hours']
+                        ??
+                        $day['overtime_hours']
+                        ??
+                        0
+                    );
+
+
+                $doubleTimeHours =
+                    (float)(
+                        $day['double_time_hours']
+                        ??
+                        0
+                    );
+
+
+                $totalOvertimeHours =
+                    (float)(
+                        $day['overtime_hours']
+                        ??
+                        $dailyOvertimeHours
+                    );
+
+
+                $premiumHours =
+                    (float)(
+                        $day['premium_hours']
+                        ??
+                        (
+                            $totalOvertimeHours
+                            +
+                            $doubleTimeHours
+                        )
+                    );
+
+
                 $status =
                     !empty(
                         $day['complete']
@@ -254,9 +292,31 @@ final class PayrollWorkspacePdfExporter
                     '<td class="number">'
                     .
                     $this->hours(
-                        $day['overtime_hours']
-                        ??
-                        0
+                        $dailyOvertimeHours
+                    )
+                    .
+                    '</td>'
+                    .
+                    '<td class="number">'
+                    .
+                    $this->hours(
+                        $doubleTimeHours
+                    )
+                    .
+                    '</td>'
+                    .
+                    '<td class="number">'
+                    .
+                    $this->hours(
+                        $totalOvertimeHours
+                    )
+                    .
+                    '</td>'
+                    .
+                    '<td class="number">'
+                    .
+                    $this->hours(
+                        $premiumHours
                     )
                     .
                     '</td>'
@@ -296,7 +356,7 @@ final class PayrollWorkspacePdfExporter
                 $dayRows =
                     '<tr>'
                     .
-                    '<td colspan="9" class="empty">'
+                    '<td colspan="12" class="empty">'
                     .
                     'No payroll activity is available for this employee.'
                     .
@@ -312,6 +372,54 @@ final class PayrollWorkspacePdfExporter
                 )
                     ? 'Complete'
                     : 'Needs Review';
+
+
+            $employeeDailyOvertime =
+                (float)(
+                    $employee['daily_overtime_hours']
+                    ??
+                    0
+                );
+
+
+            $employeeWeeklyOvertime =
+                (float)(
+                    $employee['weekly_overtime_hours']
+                    ??
+                    0
+                );
+
+
+            $employeeDoubleTime =
+                (float)(
+                    $employee['double_time_hours']
+                    ??
+                    0
+                );
+
+
+            $employeeTotalOvertime =
+                (float)(
+                    $employee['overtime_hours']
+                    ??
+                    (
+                        $employeeDailyOvertime
+                        +
+                        $employeeWeeklyOvertime
+                    )
+                );
+
+
+            $employeePremium =
+                (float)(
+                    $employee['premium_hours']
+                    ??
+                    (
+                        $employeeTotalOvertime
+                        +
+                        $employeeDoubleTime
+                    )
+                );
 
 
             $employeeSections .=
@@ -379,6 +487,12 @@ final class PayrollWorkspacePdfExporter
                 .
                 '<th>Daily OT</th>'
                 .
+                '<th>Double Time</th>'
+                .
+                '<th>Total OT</th>'
+                .
+                '<th>Premium</th>'
+                .
                 '<th>Payable</th>'
                 .
                 '<th>Status</th>'
@@ -428,9 +542,31 @@ final class PayrollWorkspacePdfExporter
                 '<td class="number">'
                 .
                 $this->hours(
-                    $employee['overtime_hours']
-                    ??
-                    0
+                    $employeeDailyOvertime
+                )
+                .
+                '</td>'
+                .
+                '<td class="number">'
+                .
+                $this->hours(
+                    $employeeDoubleTime
+                )
+                .
+                '</td>'
+                .
+                '<td class="number">'
+                .
+                $this->hours(
+                    $employeeTotalOvertime
+                )
+                .
+                '</td>'
+                .
+                '<td class="number">'
+                .
+                $this->hours(
+                    $employeePremium
                 )
                 .
                 '</td>'
@@ -453,6 +589,18 @@ final class PayrollWorkspacePdfExporter
                 .
                 '</table>'
                 .
+                '<div class="weekly-note">'
+                .
+                'Weekly overtime for this employee: '
+                .
+                $this->hours(
+                    $employeeWeeklyOvertime
+                )
+                .
+                ' hours.'
+                .
+                '</div>'
+                .
                 '</div>';
         }
 
@@ -468,6 +616,54 @@ final class PayrollWorkspacePdfExporter
         }
 
 
+        $reportDailyOvertime =
+            (float)(
+                $summary['totals']['daily_overtime_hours']
+                ??
+                0
+            );
+
+
+        $reportWeeklyOvertime =
+            (float)(
+                $summary['totals']['weekly_overtime_hours']
+                ??
+                0
+            );
+
+
+        $reportDoubleTime =
+            (float)(
+                $summary['totals']['double_time_hours']
+                ??
+                0
+            );
+
+
+        $reportTotalOvertime =
+            (float)(
+                $summary['totals']['overtime_hours']
+                ??
+                (
+                    $reportDailyOvertime
+                    +
+                    $reportWeeklyOvertime
+                )
+            );
+
+
+        $reportPremium =
+            (float)(
+                $summary['totals']['premium_hours']
+                ??
+                (
+                    $reportTotalOvertime
+                    +
+                    $reportDoubleTime
+                )
+            );
+
+
         return
             '<!DOCTYPE html>'
             .
@@ -479,13 +675,13 @@ final class PayrollWorkspacePdfExporter
             .
             '<style>'
             .
-            '@page { margin: 28px; }'
+            '@page { margin: 22px; }'
             .
             'body {'
             .
             'font-family: "DejaVu Sans", sans-serif;'
             .
-            'font-size: 8px;'
+            'font-size: 7px;'
             .
             'color: #222;'
             .
@@ -527,6 +723,8 @@ final class PayrollWorkspacePdfExporter
             .
             'background: #f5f5f5;'
             .
+            'line-height: 1.7;'
+            .
             '}'
             .
             '.employee-section {'
@@ -555,6 +753,8 @@ final class PayrollWorkspacePdfExporter
             .
             'border-collapse: collapse;'
             .
+            'table-layout: fixed;'
+            .
             '}'
             .
             'th {'
@@ -563,9 +763,11 @@ final class PayrollWorkspacePdfExporter
             .
             'border: 1px solid #888;'
             .
-            'padding: 4px;'
+            'padding: 3px;'
             .
             'text-align: left;'
+            .
+            'font-size: 6.5px;'
             .
             '}'
             .
@@ -573,9 +775,11 @@ final class PayrollWorkspacePdfExporter
             .
             'border: 1px solid #aaa;'
             .
-            'padding: 4px;'
+            'padding: 3px;'
             .
             'vertical-align: top;'
+            .
+            'overflow-wrap: break-word;'
             .
             '}'
             .
@@ -589,7 +793,7 @@ final class PayrollWorkspacePdfExporter
             .
             '.warnings {'
             .
-            'font-size: 7px;'
+            'font-size: 6px;'
             .
             '}'
             .
@@ -598,6 +802,16 @@ final class PayrollWorkspacePdfExporter
             'font-weight: bold;'
             .
             'background: #f5f5f5;'
+            .
+            '}'
+            .
+            '.weekly-note {'
+            .
+            'font-size: 6.5px;'
+            .
+            'color: #555;'
+            .
+            'margin-top: 4px;'
             .
             '}'
             .
@@ -615,7 +829,7 @@ final class PayrollWorkspacePdfExporter
             .
             'margin-top: 12px;'
             .
-            'font-size: 8px;'
+            'font-size: 7px;'
             .
             'color: #666;'
             .
@@ -686,9 +900,7 @@ final class PayrollWorkspacePdfExporter
             '<strong>Daily OT:</strong> '
             .
             $this->hours(
-                $summary['totals']['daily_overtime_hours']
-                ??
-                0
+                $reportDailyOvertime
             )
             .
             ' &nbsp; | &nbsp; '
@@ -696,9 +908,15 @@ final class PayrollWorkspacePdfExporter
             '<strong>Weekly OT:</strong> '
             .
             $this->hours(
-                $summary['totals']['weekly_overtime_hours']
-                ??
-                0
+                $reportWeeklyOvertime
+            )
+            .
+            ' &nbsp; | &nbsp; '
+            .
+            '<strong>Double Time:</strong> '
+            .
+            $this->hours(
+                $reportDoubleTime
             )
             .
             ' &nbsp; | &nbsp; '
@@ -706,9 +924,15 @@ final class PayrollWorkspacePdfExporter
             '<strong>Total OT:</strong> '
             .
             $this->hours(
-                $summary['totals']['overtime_hours']
-                ??
-                0
+                $reportTotalOvertime
+            )
+            .
+            ' &nbsp; | &nbsp; '
+            .
+            '<strong>Premium:</strong> '
+            .
+            $this->hours(
+                $reportPremium
             )
             .
             ' &nbsp; | &nbsp; '
@@ -756,6 +980,10 @@ final class PayrollWorkspacePdfExporter
             $employeeSections
             .
             '<div class="footer">'
+            .
+            'Total overtime includes daily and weekly overtime. '
+            .
+            'Premium hours include total overtime plus double-time hours. '
             .
             'Generated by IQwurksPunch on '
             .

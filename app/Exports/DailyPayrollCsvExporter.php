@@ -26,8 +26,12 @@ final class DailyPayrollCsvExporter extends CsvExporter
                 'Paid Break Minutes',
                 'Unpaid Break Minutes',
                 'Regular Hours',
-                'Overtime Hours',
-                'Payable Hours',
+                'Daily Overtime Hours',
+                'Weekly Overtime Hours',
+                'Double-Time Hours',
+                'Total Overtime Hours',
+                'Premium Hours',
+                'Total Payable Hours',
                 'Status',
                 'Warnings'
             ]
@@ -49,6 +53,53 @@ final class DailyPayrollCsvExporter extends CsvExporter
                     $employee['automatic_meal_deduction_minutes']
                     ??
                     0
+                );
+
+
+            $dailyOvertimeHours =
+                (float)(
+                    $employee['daily_overtime_hours']
+                    ??
+                    $employee['overtime_hours']
+                    ??
+                    0
+                );
+
+
+            /*
+             * Weekly overtime is calculated only after the complete
+             * payroll week is assembled. A daily report therefore
+             * carries zero weekly overtime hours.
+             */
+            $weeklyOvertimeHours =
+                0.0;
+
+
+            $doubleTimeHours =
+                (float)(
+                    $employee['double_time_hours']
+                    ??
+                    0
+                );
+
+
+            $totalOvertimeHours =
+                (float)(
+                    $employee['overtime_hours']
+                    ??
+                    $dailyOvertimeHours
+                );
+
+
+            $premiumHours =
+                (float)(
+                    $employee['premium_hours']
+                    ??
+                    (
+                        $totalOvertimeHours
+                        +
+                        $doubleTimeHours
+                    )
                 );
 
 
@@ -77,15 +128,10 @@ final class DailyPayrollCsvExporter extends CsvExporter
                     ''
                 ),
 
-                number_format(
-                    (float)(
-                        $employee['gross_hours']
-                        ??
-                        0
-                    ),
-                    2,
-                    '.',
-                    ''
+                $this->hours(
+                    $employee['gross_hours']
+                    ??
+                    0
                 ),
 
                 $recordedMealMinutes,
@@ -114,37 +160,36 @@ final class DailyPayrollCsvExporter extends CsvExporter
                     0
                 ),
 
-                number_format(
-                    (float)(
-                        $employee['regular_hours']
-                        ??
-                        0
-                    ),
-                    2,
-                    '.',
-                    ''
+                $this->hours(
+                    $employee['regular_hours']
+                    ??
+                    0
                 ),
 
-                number_format(
-                    (float)(
-                        $employee['overtime_hours']
-                        ??
-                        0
-                    ),
-                    2,
-                    '.',
-                    ''
+                $this->hours(
+                    $dailyOvertimeHours
                 ),
 
-                number_format(
-                    (float)(
-                        $employee['total_hours']
-                        ??
-                        0
-                    ),
-                    2,
-                    '.',
-                    ''
+                $this->hours(
+                    $weeklyOvertimeHours
+                ),
+
+                $this->hours(
+                    $doubleTimeHours
+                ),
+
+                $this->hours(
+                    $totalOvertimeHours
+                ),
+
+                $this->hours(
+                    $premiumHours
+                ),
+
+                $this->hours(
+                    $employee['total_hours']
+                    ??
+                    0
                 ),
 
                 $this->status(
@@ -154,9 +199,13 @@ final class DailyPayrollCsvExporter extends CsvExporter
                 ),
 
                 $this->errors(
-                    $employee['errors']
-                    ??
-                    []
+                    is_array(
+                        $employee['errors']
+                        ??
+                        null
+                    )
+                        ? $employee['errors']
+                        : []
                 )
             ];
         }
@@ -164,6 +213,19 @@ final class DailyPayrollCsvExporter extends CsvExporter
 
         return $this->createCsv(
             $rows
+        );
+    }
+
+
+    private function hours(
+        mixed $value
+    ): string
+    {
+        return number_format(
+            (float)$value,
+            2,
+            '.',
+            ''
         );
     }
 }

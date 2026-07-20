@@ -454,12 +454,14 @@ final class DailyPayrollCalculator
                 $dailyThreshold
             );
 
-
         $overtimeHours =
+            $dailyOvertimeHours;
+
+
+        $premiumHours =
             $dailyOvertimeHours
             +
             $doubleTimeHours;
-
 
         return [
             'complete' =>
@@ -543,6 +545,12 @@ final class DailyPayrollCalculator
             'overtime_hours' =>
                 round(
                     $overtimeHours,
+                    2
+                ),
+
+            'premium_hours' =>
+                round(
+                    $premiumHours,
                     2
                 )
         ];

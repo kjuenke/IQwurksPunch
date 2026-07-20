@@ -109,7 +109,15 @@
                         </th>
 
                         <th>
+                            Double Time
+                        </th>
+
+                        <th>
                             Total OT
+                        </th>
+
+                        <th>
+                            Premium
                         </th>
 
                         <th>
@@ -129,6 +137,44 @@
 
 
                     {% for employee in summary.employees %}
+
+                        {% set dailyOvertime =
+                            employee.daily_overtime_hours
+                            |default(0)
+                        %}
+
+
+                        {% set weeklyOvertime =
+                            employee.weekly_overtime_hours
+                            |default(0)
+                        %}
+
+
+                        {% set doubleTime =
+                            employee.double_time_hours
+                            |default(0)
+                        %}
+
+
+                        {% set totalOvertime =
+                            employee.overtime_hours
+                            |default(
+                                dailyOvertime
+                                +
+                                weeklyOvertime
+                            )
+                        %}
+
+
+                        {% set premiumHours =
+                            employee.premium_hours
+                            |default(
+                                totalOvertime
+                                +
+                                doubleTime
+                            )
+                        %}
+
 
                         <tr>
 
@@ -158,17 +204,27 @@
 
 
                             <td>
-                                {{ employee.daily_overtime_hours|number_format(2) }}
+                                {{ dailyOvertime|number_format(2) }}
                             </td>
 
 
                             <td>
-                                {{ employee.weekly_overtime_hours|number_format(2) }}
+                                {{ weeklyOvertime|number_format(2) }}
                             </td>
 
 
                             <td>
-                                {{ employee.overtime_hours|number_format(2) }}
+                                {{ doubleTime|number_format(2) }}
+                            </td>
+
+
+                            <td>
+                                {{ totalOvertime|number_format(2) }}
+                            </td>
+
+
+                            <td>
+                                {{ premiumHours|number_format(2) }}
                             </td>
 
 
@@ -204,7 +260,7 @@
 
                         <tr>
 
-                            <td colspan="10">
+                            <td colspan="12">
 
                                 <div class="table-responsive">
 
@@ -239,6 +295,14 @@
                                                 </th>
 
                                                 <th>
+                                                    Double Time
+                                                </th>
+
+                                                <th>
+                                                    Premium
+                                                </th>
+
+                                                <th>
                                                     Payable
                                                 </th>
 
@@ -254,6 +318,31 @@
                                         <tbody>
 
                                             {% for day in employee.days %}
+
+                                                {% set dayDailyOvertime =
+                                                    day.daily_overtime_hours
+                                                    |default(
+                                                        day.overtime_hours
+                                                        |default(0)
+                                                    )
+                                                %}
+
+
+                                                {% set dayDoubleTime =
+                                                    day.double_time_hours
+                                                    |default(0)
+                                                %}
+
+
+                                                {% set dayPremium =
+                                                    day.premium_hours
+                                                    |default(
+                                                        dayDailyOvertime
+                                                        +
+                                                        dayDoubleTime
+                                                    )
+                                                %}
+
 
                                                 <tr>
 
@@ -291,7 +380,17 @@
 
 
                                                     <td>
-                                                        {{ day.overtime_hours|number_format(2) }}
+                                                        {{ dayDailyOvertime|number_format(2) }}
+                                                    </td>
+
+
+                                                    <td>
+                                                        {{ dayDoubleTime|number_format(2) }}
+                                                    </td>
+
+
+                                                    <td>
+                                                        {{ dayPremium|number_format(2) }}
                                                     </td>
 
 
@@ -325,7 +424,7 @@
 
                                                     <tr class="table-warning">
 
-                                                        <td colspan="8">
+                                                        <td colspan="10">
 
                                                             <ul class="mb-0">
 
@@ -363,7 +462,7 @@
                         <tr>
 
                             <td
-                                colspan="10"
+                                colspan="12"
                                 class="text-center text-muted"
                             >
                                 No weekly payroll data available.
@@ -377,6 +476,15 @@
                 </tbody>
 
             </table>
+
+        </div>
+
+
+        <div class="small text-muted mt-3">
+
+            Total overtime includes daily and weekly overtime.
+
+            Premium hours include total overtime plus double-time hours.
 
         </div>
 
