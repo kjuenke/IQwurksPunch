@@ -21,11 +21,14 @@ class PunchReportService
 
     private PayrollCalculator $payroll;
 
+    private LaborRulesService $laborRules;
+
 
     public function __construct(
         PunchRepository $punches,
         ?CompanySettingsRepository $settings = null,
-        ?PayrollCalculator $payroll = null
+        ?PayrollCalculator $payroll = null,
+        ?LaborRulesService $laborRules = null
     )
     {
         $this->punches =
@@ -42,6 +45,12 @@ class PunchReportService
             $payroll
             ??
             new PayrollCalculator();
+
+
+        $this->laborRules =
+            $laborRules
+            ??
+            Container::laborRulesService();
     }
 
 
@@ -187,7 +196,7 @@ class PunchReportService
         $weekStart =
             $this->weekStart(
                 $referenceDate,
-                $company['pay_period_start']
+                $company['workweek_start_day']
                 ??
                 'monday'
             );
@@ -644,6 +653,10 @@ class PunchReportService
         }
 
 
+        $laborRules =
+            $this->laborRules->get();
+
+
         $timezone =
             $settings['timezone']
             ??
@@ -664,6 +677,7 @@ class PunchReportService
 
         return [
             ...$settings,
+            ...$laborRules,
 
             'timezone' =>
                 $timezone,
@@ -680,6 +694,22 @@ class PunchReportService
                     $settings['weekly_overtime_hours']
                     ??
                     40
+                ),
+
+            'double_time_hours' =>
+                (float)(
+                    $laborRules['double_time_hours']
+                    ??
+                    12
+                ),
+
+            'workweek_start_day' =>
+                (string)(
+                    $laborRules['workweek_start_day']
+                    ??
+                    $settings['pay_period_start']
+                    ??
+                    'monday'
                 ),
 
             'rounding_minutes' =>

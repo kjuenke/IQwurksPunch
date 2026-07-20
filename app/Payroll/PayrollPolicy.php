@@ -18,6 +18,10 @@ final class PayrollPolicy
 
     private float $weeklyOvertimeHours;
 
+    private float $doubleTimeHours;
+
+    private string $workweekStartDay;
+
     private bool $mealDeductionEnabled;
 
     private int $mealDeductionMinutes;
@@ -58,7 +62,7 @@ final class PayrollPolicy
 
 
         $this->dailyOvertimeHours =
-            $this->nonNegativeFloat(
+            $this->positiveFloat(
                 $settings['daily_overtime_hours']
                 ??
                 8,
@@ -67,11 +71,41 @@ final class PayrollPolicy
 
 
         $this->weeklyOvertimeHours =
-            $this->nonNegativeFloat(
+            $this->positiveFloat(
                 $settings['weekly_overtime_hours']
                 ??
                 40,
                 'weekly_overtime_hours'
+            );
+
+
+        $this->doubleTimeHours =
+            $this->positiveFloat(
+                $settings['double_time_hours']
+                ??
+                12,
+                'double_time_hours'
+            );
+
+
+        if (
+            $this->doubleTimeHours
+            <=
+            $this->dailyOvertimeHours
+        ) {
+            throw new InvalidArgumentException(
+                'double_time_hours must be greater than daily_overtime_hours.'
+            );
+        }
+
+
+        $this->workweekStartDay =
+            $this->validateWorkweekStartDay(
+                $settings['workweek_start_day']
+                ??
+                $settings['pay_period_start']
+                ??
+                'monday'
             );
 
 
@@ -129,6 +163,18 @@ final class PayrollPolicy
     public function weeklyOvertimeHours(): float
     {
         return $this->weeklyOvertimeHours;
+    }
+
+
+    public function doubleTimeHours(): float
+    {
+        return $this->doubleTimeHours;
+    }
+
+
+    public function workweekStartDay(): string
+    {
+        return $this->workweekStartDay;
     }
 
 
@@ -206,6 +252,46 @@ final class PayrollPolicy
     }
 
 
+    private function validateWorkweekStartDay(
+        mixed $value
+    ): string
+    {
+        if (!is_string($value)) {
+
+            throw new InvalidArgumentException(
+                'Invalid workweek start day.'
+            );
+        }
+
+
+        $value =
+            strtolower(
+                trim(
+                    $value
+                )
+            );
+
+
+        if (
+            !in_array(
+                $value,
+                [
+                    'sunday',
+                    'monday'
+                ],
+                true
+            )
+        ) {
+            throw new InvalidArgumentException(
+                'Workweek start day must be Sunday or Monday.'
+            );
+        }
+
+
+        return $value;
+    }
+
+
     private function nonNegativeInteger(
         mixed $value,
         string $name
@@ -235,7 +321,7 @@ final class PayrollPolicy
     }
 
 
-    private function nonNegativeFloat(
+    private function positiveFloat(
         mixed $value,
         string $name
     ): float
@@ -252,10 +338,10 @@ final class PayrollPolicy
             (float)$value;
 
 
-        if ($number < 0) {
+        if ($number <= 0) {
 
             throw new InvalidArgumentException(
-                "{$name} cannot be negative."
+                "{$name} must be greater than zero."
             );
         }
 

@@ -1,0 +1,235 @@
+{% extends "layouts/base.twig" %}
+
+{% block content %}
+
+<div class="d-flex flex-wrap justify-content-between align-items-center mb-4">
+
+    <div>
+
+        <h1 class="mb-1">
+            Labor Rules
+        </h1>
+
+        <div class="text-muted">
+            Configure overtime thresholds and the company workweek.
+        </div>
+
+    </div>
+
+
+    <a
+        href="/admin/settings"
+        class="btn btn-outline-secondary"
+    >
+
+        <i class="bi bi-building"></i>
+
+        Company Settings
+
+    </a>
+
+</div>
+
+
+<div class="card shadow-sm">
+
+    <div class="card-body">
+
+        <form
+            method="post"
+            action="/admin/labor-rules"
+        >
+
+
+            <div class="row g-4">
+
+
+                <div class="col-md-4">
+
+                    <label
+                        for="daily_overtime_hours"
+                        class="form-label"
+                    >
+                        Daily Overtime Begins After
+                    </label>
+
+                    <div class="input-group">
+
+                        <input
+                            type="number"
+                            id="daily_overtime_hours"
+                            name="daily_overtime_hours"
+                            class="form-control"
+                            min="0.25"
+                            max="24"
+                            step="0.25"
+                            value="{{ rules.daily_overtime_hours|default(8) }}"
+                            required
+                        >
+
+                        <span class="input-group-text">
+                            hours
+                        </span>
+
+                    </div>
+
+                    <div class="form-text">
+                        Hours beyond this threshold are daily overtime.
+                    </div>
+
+                </div>
+
+
+                <div class="col-md-4">
+
+                    <label
+                        for="weekly_overtime_hours"
+                        class="form-label"
+                    >
+                        Weekly Overtime Begins After
+                    </label>
+
+                    <div class="input-group">
+
+                        <input
+                            type="number"
+                            id="weekly_overtime_hours"
+                            name="weekly_overtime_hours"
+                            class="form-control"
+                            min="0.25"
+                            max="168"
+                            step="0.25"
+                            value="{{ rules.weekly_overtime_hours|default(40) }}"
+                            required
+                        >
+
+                        <span class="input-group-text">
+                            hours
+                        </span>
+
+                    </div>
+
+                    <div class="form-text">
+                        Regular weekly hours beyond this threshold become overtime.
+                    </div>
+
+                </div>
+
+
+                <div class="col-md-4">
+
+                    <label
+                        for="double_time_hours"
+                        class="form-label"
+                    >
+                        Double-Time Begins After
+                    </label>
+
+                    <div class="input-group">
+
+                        <input
+                            type="number"
+                            id="double_time_hours"
+                            name="double_time_hours"
+                            class="form-control"
+                            min="0.25"
+                            max="24"
+                            step="0.25"
+                            value="{{ rules.double_time_hours|default(12) }}"
+                            required
+                        >
+
+                        <span class="input-group-text">
+                            hours
+                        </span>
+
+                    </div>
+
+                    <div class="form-text">
+                        Daily hours beyond this threshold will later be classified as double-time.
+                    </div>
+
+                </div>
+
+
+                <div class="col-md-6">
+
+                    <label
+                        for="workweek_start_day"
+                        class="form-label"
+                    >
+                        Workweek Starts
+                    </label>
+
+                    <select
+                        id="workweek_start_day"
+                        name="workweek_start_day"
+                        class="form-select"
+                        required
+                    >
+
+                        <option
+                            value="monday"
+                            {% if rules.workweek_start_day|default('monday') == 'monday' %}
+                                selected
+                            {% endif %}
+                        >
+                            Monday
+                        </option>
+
+                        <option
+                            value="sunday"
+                            {% if rules.workweek_start_day|default('monday') == 'sunday' %}
+                                selected
+                            {% endif %}
+                        >
+                            Sunday
+                        </option>
+
+                    </select>
+
+                    <div class="form-text">
+                        Weekly overtime resets at the beginning of this day.
+                    </div>
+
+                </div>
+
+
+                <div class="col-12">
+
+                    <div class="alert alert-info mb-0">
+
+                        <i class="bi bi-info-circle"></i>
+
+                        These settings are being added first. The payroll engine will be connected to them in the next checkpoint.
+
+                    </div>
+
+                </div>
+
+
+                <div class="col-12">
+
+                    <button
+                        type="submit"
+                        class="btn btn-primary"
+                    >
+
+                        <i class="bi bi-save"></i>
+
+                        Save Labor Rules
+
+                    </button>
+
+                </div>
+
+
+            </div>
+
+        </form>
+
+    </div>
+
+</div>
+
+{% endblock %}

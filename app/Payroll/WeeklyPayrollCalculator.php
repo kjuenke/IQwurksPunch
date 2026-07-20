@@ -31,6 +31,8 @@ final class WeeklyPayrollCalculator
 
         $dailyOvertimeHours = 0.0;
 
+        $doubleTimeHours = 0.0;
+
 
         foreach ($dailyResults as $index => $dailyResult) {
 
@@ -58,7 +60,11 @@ final class WeeklyPayrollCalculator
 
 
             $dailyOvertimeHours +=
-                $day['overtime_hours'];
+                $day['daily_overtime_hours'];
+
+
+            $doubleTimeHours +=
+                $day['double_time_hours'];
 
 
             if (!$day['complete']) {
@@ -147,9 +153,23 @@ final class WeeklyPayrollCalculator
                     2
                 ),
 
+            'double_time_hours' =>
+                round(
+                    $doubleTimeHours,
+                    2
+                ),
+
             'overtime_hours' =>
                 round(
                     $overtimeHours,
+                    2
+                ),
+
+            'premium_hours' =>
+                round(
+                    $overtimeHours
+                    +
+                    $doubleTimeHours,
                     2
                 ),
 
@@ -175,8 +195,7 @@ final class WeeklyPayrollCalculator
         $requiredNumericFields = [
             'gross_hours',
             'total_hours',
-            'regular_hours',
-            'overtime_hours'
+            'regular_hours'
         ];
 
 
@@ -230,12 +249,32 @@ final class WeeklyPayrollCalculator
         if (
             $date !== null
             &&
-            !is_string($date)
+            !is_string(
+                $date
+            )
         ) {
             throw new InvalidArgumentException(
                 "Daily payroll result {$index} contains an invalid date value."
             );
         }
+
+
+        $dailyOvertimeHours =
+            (float)(
+                $dailyResult['daily_overtime_hours']
+                ??
+                $dailyResult['overtime_hours']
+                ??
+                0
+            );
+
+
+        $doubleTimeHours =
+            (float)(
+                $dailyResult['double_time_hours']
+                ??
+                0
+            );
 
 
         return [
@@ -261,8 +300,16 @@ final class WeeklyPayrollCalculator
             'regular_hours' =>
                 (float)$dailyResult['regular_hours'],
 
+            'daily_overtime_hours' =>
+                $dailyOvertimeHours,
+
+            'double_time_hours' =>
+                $doubleTimeHours,
+
             'overtime_hours' =>
-                (float)$dailyResult['overtime_hours']
+                $dailyOvertimeHours
+                +
+                $doubleTimeHours
         ];
     }
 

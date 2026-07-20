@@ -20,6 +20,7 @@ use App\Repositories\NotificationRecipientRepository;
 use App\Repositories\PunchRepository;
 use App\Repositories\ReportScheduleRepository;
 use App\Repositories\UserRepository;
+use App\Repositories\LaborRulesRepository;
 use App\Services\AuditService;
 use App\Services\AuthService;
 use App\Services\CompanySettingsService;
@@ -32,6 +33,7 @@ use App\Services\PunchReportService;
 use App\Services\PunchService;
 use App\Services\ReportEmailService;
 use App\Services\ReportScheduleService;
+use App\Services\LaborRulesService;
 use PDO;
 
 final class Container
@@ -59,6 +61,8 @@ final class Container
 
     private static ?NotificationRecipientRepository $notificationRecipientRepository = null;
 
+    private static ?LaborRulesRepository $laborRulesRepository = null;
+
     private static ?EmployeeService $employeeService = null;
 
     private static ?AuditService $auditService = null;
@@ -82,6 +86,8 @@ final class Container
     private static ?DashboardService $dashboardService = null;
 
     private static ?PayrollWorkspaceService $payrollWorkspaceService = null;
+
+    private static ?LaborRulesService $laborRulesService = null;
 
     private static ?DailyPayrollCsvExporter $dailyPayrollCsvExporter = null;
 
@@ -250,6 +256,18 @@ final class Container
         return self::$notificationRecipientRepository;
     }
 
+    public static function laborRulesRepository(): LaborRulesRepository
+    {
+        if (self::$laborRulesRepository === null) {
+
+            self::$laborRulesRepository =
+                new LaborRulesRepository(
+                    self::db()
+                );
+        }
+
+        return self::$laborRulesRepository;
+    }
 
     public static function employeeService(): EmployeeService
     {
@@ -303,7 +321,9 @@ final class Container
             self::$punchReportService =
                 new PunchReportService(
                     self::punchRepository(),
-                    self::companySettingsRepository()
+                    self::companySettingsRepository(),
+                    null,
+                    self::laborRulesService()
                 );
         }
 
@@ -398,6 +418,19 @@ final class Container
     }
 
 
+    public static function laborRulesService(): LaborRulesService
+    {
+        if (self::$laborRulesService === null) {
+
+            self::$laborRulesService =
+                new LaborRulesService(
+                    self::laborRulesRepository()
+                );
+        }
+
+        return self::$laborRulesService;
+    }
+
     public static function dashboardService(): DashboardService
     {
         if (self::$dashboardService === null) {
@@ -425,7 +458,9 @@ final class Container
             self::$payrollWorkspaceService =
                 new PayrollWorkspaceService(
                     self::punchReportService(),
-                    self::companySettingsService()
+                    self::companySettingsService(),
+                    null,
+                    self::laborRulesService()
                 );
         }
 
@@ -584,5 +619,9 @@ final class Container
         self::$payrollWorkspacePdfExporter = null;
 
         self::$employeeTimeCardPdfExporter = null;
+
+        self::$laborRulesRepository = null;
+
+        self::$laborRulesService = null;
     }
 }

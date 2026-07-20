@@ -419,25 +419,53 @@ final class DailyPayrollCalculator
             );
 
 
+        $dailyThreshold =
+            $policy->dailyOvertimeHours();
+
+
+        $doubleTimeThreshold =
+            $policy->doubleTimeHours();
+
+
         $regularHours =
             min(
                 $totalHours,
-                $policy->dailyOvertimeHours()
+                $dailyThreshold
             );
 
 
-        $overtimeHours =
+        $doubleTimeHours =
             max(
                 0,
                 $totalHours
                 -
-                $policy->dailyOvertimeHours()
+                $doubleTimeThreshold
             );
+
+
+        $dailyOvertimeHours =
+            max(
+                0,
+                min(
+                    $totalHours,
+                    $doubleTimeThreshold
+                )
+                -
+                $dailyThreshold
+            );
+
+
+        $overtimeHours =
+            $dailyOvertimeHours
+            +
+            $doubleTimeHours;
 
 
         return [
             'complete' =>
-                empty($errors),
+                empty(
+                    $errors
+                ),
 
             'errors' =>
                 $errors,
@@ -500,6 +528,18 @@ final class DailyPayrollCalculator
                     2
                 ),
 
+            'daily_overtime_hours' =>
+                round(
+                    $dailyOvertimeHours,
+                    2
+                ),
+
+            'double_time_hours' =>
+                round(
+                    $doubleTimeHours,
+                    2
+                ),
+
             'overtime_hours' =>
                 round(
                     $overtimeHours,
@@ -521,7 +561,9 @@ final class DailyPayrollCalculator
         if (
             !$policy->mealDeductionEnabled()
             ||
-            !empty($mealPeriods)
+            !empty(
+                $mealPeriods
+            )
             ||
             $grossWorkedSeconds <= 0
             ||
@@ -590,7 +632,9 @@ final class DailyPayrollCalculator
             ||
             trim(
                 $value
-            ) === ''
+            )
+            ===
+            ''
         ) {
             throw new InvalidArgumentException(
                 'Every punch must contain a valid punch_time value.'
@@ -601,7 +645,9 @@ final class DailyPayrollCalculator
         $utcTime =
             new DateTimeImmutable(
                 $value,
-                new DateTimeZone('UTC')
+                new DateTimeZone(
+                    'UTC'
+                )
             );
 
 

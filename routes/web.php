@@ -8,6 +8,7 @@ use App\Controllers\EmailHistoryController;
 use App\Controllers\EmployeeController;
 use App\Controllers\HomeController;
 use App\Controllers\KioskController;
+use App\Controllers\LaborRulesController;
 use App\Controllers\NotificationRecipientController;
 use App\Controllers\PayrollController;
 use App\Controllers\PayrollExportController;
@@ -258,6 +259,7 @@ $router->get(
     [$payrollExports, 'timeCardPdf']
 );
 
+
 /*
 |--------------------------------------------------------------------------
 | Email Reports
@@ -372,4 +374,24 @@ $router->get(
 $router->post(
     '/admin/settings',
     [$settings, 'update']
+);
+
+
+/*
+|--------------------------------------------------------------------------
+| Labor Rules
+|--------------------------------------------------------------------------
+*/
+
+$laborRules =
+    new LaborRulesController();
+
+$router->get(
+    '/admin/labor-rules',
+    [$laborRules, 'index']
+);
+
+$router->post(
+    '/admin/labor-rules',
+    [$laborRules, 'update']
 );

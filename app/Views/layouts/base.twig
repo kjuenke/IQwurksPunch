@@ -253,18 +253,63 @@
                 </li>
 
 
-                <li class="nav-item">
+                <li class="nav-item dropdown">
 
                     <a
-                        class="nav-link
+                        class="nav-link dropdown-toggle
                             {% if activeMenu == 'settings' %}
                             active
                             {% endif %}
                         "
-                        href="/admin/settings"
+                        href="#"
+                        id="settingsDropdown"
+                        role="button"
+                        data-bs-toggle="dropdown"
+                        aria-expanded="false"
                     >
                         Settings
                     </a>
+
+
+                    <ul
+                        class="dropdown-menu"
+                        aria-labelledby="settingsDropdown"
+                    >
+
+
+                        <li>
+
+                            <a
+                                class="dropdown-item"
+                                href="/admin/settings"
+                            >
+
+                                <i class="bi bi-building me-2"></i>
+
+                                Company Settings
+
+                            </a>
+
+                        </li>
+
+
+                        <li>
+
+                            <a
+                                class="dropdown-item"
+                                href="/admin/labor-rules"
+                            >
+
+                                <i class="bi bi-clock-history me-2"></i>
+
+                                Labor Rules
+
+                            </a>
+
+                        </li>
+
+
+                    </ul>
 
                 </li>
 

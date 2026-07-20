@@ -18,11 +18,14 @@ final class PayrollWorkspaceService
 
     private PayrollCalculator $payroll;
 
+    private LaborRulesService $laborRules;
+
 
     public function __construct(
         PunchReportService $reports,
         CompanySettingsService $settings,
-        ?PayrollCalculator $payroll = null
+        ?PayrollCalculator $payroll = null,
+        ?LaborRulesService $laborRules = null
     )
     {
         $this->reports =
@@ -37,6 +40,12 @@ final class PayrollWorkspaceService
             $payroll
             ??
             new PayrollCalculator();
+
+
+        $this->laborRules =
+            $laborRules
+            ??
+            \App\Core\Container::laborRulesService();
     }
 
 
@@ -399,6 +408,20 @@ final class PayrollWorkspaceService
                     0
                 ),
 
+            'daily_overtime_hours' =>
+                (float)(
+                    $employee['daily_overtime_hours']
+                    ??
+                    0
+                ),
+
+            'double_time_hours' =>
+                (float)(
+                    $employee['double_time_hours']
+                    ??
+                    0
+                ),
+
             'overtime_hours' =>
                 (float)(
                     $employee['overtime_hours']
@@ -444,7 +467,7 @@ final class PayrollWorkspaceService
                 $this->weekStart(
                     $date,
                     (string)(
-                        $company['pay_period_start']
+                        $company['workweek_start_day']
                         ??
                         'monday'
                     )
@@ -574,7 +597,13 @@ final class PayrollWorkspaceService
             'weekly_overtime_hours' =>
                 0.0,
 
+            'double_time_hours' =>
+                0.0,
+
             'overtime_hours' =>
+                0.0,
+
+            'premium_hours' =>
                 0.0,
 
             'total_hours' =>
@@ -641,7 +670,13 @@ final class PayrollWorkspaceService
             'weekly_overtime_hours' =>
                 0.0,
 
+            'double_time_hours' =>
+                0.0,
+
             'overtime_hours' =>
+                0.0,
+
+            'premium_hours' =>
                 0.0,
 
             'total_hours' =>
@@ -657,7 +692,9 @@ final class PayrollWorkspaceService
                     'regular_hours',
                     'daily_overtime_hours',
                     'weekly_overtime_hours',
+                    'double_time_hours',
                     'overtime_hours',
+                    'premium_hours',
                     'total_hours'
                 ]
                 as $field
@@ -678,7 +715,9 @@ final class PayrollWorkspaceService
                 'regular_hours',
                 'daily_overtime_hours',
                 'weekly_overtime_hours',
+                'double_time_hours',
                 'overtime_hours',
+                'premium_hours',
                 'total_hours'
             ]
             as $field
@@ -838,6 +877,10 @@ final class PayrollWorkspaceService
             [];
 
 
+        $laborRules =
+            $this->laborRules->get();
+
+
         $timezone =
             (string)(
                 $company['timezone']
@@ -860,12 +903,15 @@ final class PayrollWorkspaceService
 
         return [
             ...$company,
+            ...$laborRules,
 
             'timezone' =>
                 $timezone,
 
-            'pay_period_start' =>
+            'workweek_start_day' =>
                 (string)(
+                    $laborRules['workweek_start_day']
+                    ??
                     $company['pay_period_start']
                     ??
                     'monday'
@@ -883,6 +929,13 @@ final class PayrollWorkspaceService
                     $company['weekly_overtime_hours']
                     ??
                     40
+                ),
+
+            'double_time_hours' =>
+                (float)(
+                    $laborRules['double_time_hours']
+                    ??
+                    12
                 ),
 
             'rounding_minutes' =>
