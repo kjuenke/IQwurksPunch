@@ -23,7 +23,10 @@ class UserRepository
     {
         return (int)$this->db
             ->query(
-                'SELECT COUNT(*) FROM users'
+                '
+                SELECT COUNT(*)
+                FROM users
+                '
             )
             ->fetchColumn();
     }
@@ -35,7 +38,7 @@ class UserRepository
         string $passwordHash
     ): int
     {
-        $stmt =
+        $statement =
             $this->db->prepare(
                 "
                 INSERT INTO users
@@ -43,7 +46,8 @@ class UserRepository
                     username,
                     email,
                     password_hash,
-                    role
+                    role,
+                    active
                 )
 
                 VALUES
@@ -51,19 +55,24 @@ class UserRepository
                     :username,
                     :email,
                     :password_hash,
-                    'admin'
+                    'admin',
+                    1
                 )
                 "
             );
 
 
-        $stmt->execute(
+        $statement->execute(
             [
                 'username' =>
-                    $username,
+                    trim(
+                        $username
+                    ),
 
                 'email' =>
-                    $email,
+                    trim(
+                        $email
+                    ),
 
                 'password_hash' =>
                     $passwordHash
@@ -76,34 +85,101 @@ class UserRepository
     }
 
 
-    public function findByUsername(
-        string $username
+    public function findById(
+        int $id
     ): ?array
     {
-        $stmt =
+        $statement =
             $this->db->prepare(
-                "
+                '
                 SELECT *
                 FROM users
-                WHERE username = :username
-                "
+
+                WHERE id = :id
+
+                LIMIT 1
+                '
             );
 
 
-        $stmt->execute(
+        $statement->execute(
             [
-                'username' =>
-                    $username
+                'id' =>
+                    $id
             ]
         );
 
 
         $user =
-            $stmt->fetch(
+            $statement->fetch(
                 PDO::FETCH_ASSOC
             );
 
 
         return $user ?: null;
+    }
+
+
+    public function findByUsername(
+        string $username
+    ): ?array
+    {
+        $statement =
+            $this->db->prepare(
+                '
+                SELECT *
+                FROM users
+
+                WHERE LOWER(username) =
+                    LOWER(:username)
+
+                LIMIT 1
+                '
+            );
+
+
+        $statement->execute(
+            [
+                'username' =>
+                    trim(
+                        $username
+                    )
+            ]
+        );
+
+
+        $user =
+            $statement->fetch(
+                PDO::FETCH_ASSOC
+            );
+
+
+        return $user ?: null;
+    }
+
+
+    public function updateLastLogin(
+        int $id
+    ): bool
+    {
+        $statement =
+            $this->db->prepare(
+                '
+                UPDATE users
+
+                SET last_login =
+                    CURRENT_TIMESTAMP
+
+                WHERE id = :id
+                '
+            );
+
+
+        return $statement->execute(
+            [
+                'id' =>
+                    $id
+            ]
+        );
     }
 }

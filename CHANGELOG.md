@@ -6,6 +6,462 @@ The project follows Semantic Versioning for stable releases and generally follow
 
 ---
 
+## [0.6.0] - 2026-07-21
+
+### Added
+
+#### Database Backup and Retention
+
+- Added verified, timestamped SQLite database backups.
+- Added backup integrity checks.
+- Added foreign-key validation for backups.
+- Added a backup catalog service.
+- Added backup listing.
+- Added configurable backup retention.
+- Added retention preview mode.
+- Added explicit retention deletion mode.
+- Added backup execution locking.
+- Added backup logging and failure reporting.
+- Added automatic daily backup execution through cron.
+- Added the following console commands:
+  - `backup:create`
+  - `backup:list`
+  - `backup:prune`
+  - `backup:run`
+  - `backup:verify`
+
+#### Database Restore
+
+- Added safe database-restore previews.
+- Added explicit `--apply` restore execution.
+- Added exact backup-filename confirmation.
+- Added backup verification before restoration.
+- Added foreign-key verification before restoration.
+- Added pre-restore safety backups.
+- Added maintenance-mode integration during restoration.
+- Added SQLite WAL checkpoint handling.
+- Added stale SQLite sidecar-file cleanup.
+- Added post-restore integrity validation.
+- Added migration-history verification after restoration.
+- Added restore rollback handling.
+- Added the `backup:restore` console command.
+
+#### Database Health and Diagnostics
+
+- Added the `database:check` console command.
+- Added SQLite integrity checking.
+- Added foreign-key violation checking.
+- Added database file and directory permission checks.
+- Added SQLite version reporting.
+- Added journal-mode reporting.
+- Added application-table counts.
+- Added migration counts.
+- Added database page and unused-page statistics.
+- Added database-size and diagnostic-duration reporting.
+
+#### System Doctor
+
+- Added the `doctor` console command.
+- Added application-version checks.
+- Added PHP-version checks.
+- Added required PHP-extension checks.
+- Added Composer dependency checks.
+- Added configuration-file checks.
+- Added application-timezone checks.
+- Added SMTP configuration checks.
+- Added SMTP configuration-permission checks.
+- Added runtime-directory checks.
+- Added disk-capacity checks.
+- Added maintenance-mode checks.
+- Added active-database health checks.
+- Added migration-history checks.
+- Added verified-backup checks.
+- Added scheduler-cron checks.
+- Added automatic-backup-cron checks.
+- Added scheduler-activity checks.
+- Added mail-activity checks.
+- Added `PASS`, `WARN`, and `FAIL` diagnostic classifications.
+
+#### Scheduler and Mail Diagnostics
+
+- Added the `scheduler:check` console command.
+- Added scheduler-cron detection.
+- Added scheduler-lock inspection.
+- Added scheduler application-log inspection.
+- Added scheduler cron-output inspection.
+- Added recent scheduler-failure detection.
+- Added report-schedule validation.
+- Added scheduled-recipient validation.
+- Added last-delivery validation.
+- Added the `mail:check` console command.
+- Added SMTP hostname-resolution checks.
+- Added SMTP connectivity checks.
+- Added TLS-readiness checks.
+- Added mail-transport readiness checks.
+- Added delivery-log activity checks.
+
+#### Maintenance Mode
+
+- Added web maintenance mode.
+- Added optional maintenance reasons.
+- Added maintenance activation timestamps.
+- Added configurable retry-after behavior.
+- Added persistent maintenance state.
+- Added the following console commands:
+  - `maintenance:on`
+  - `maintenance:off`
+  - `maintenance:status`
+
+#### Supervisor Punch Correction
+
+- Added supervisor punch-history management.
+- Added manual missing-punch entry.
+- Added punch editing.
+- Added punch deletion.
+- Added required correction reasons.
+- Added typed punch-deletion confirmation.
+- Added punch-sequence validation.
+- Added transaction rollback for invalid punch sequences.
+- Added supervisor identification on corrected punches.
+- Added correction timestamps.
+- Added correction audit records.
+- Added immutable punch-correction history.
+- Added support for correcting:
+  - `clock_in`
+  - `clock_out`
+  - `break_out`
+  - `break_in`
+  - `meal_out`
+  - `meal_in`
+- Added migration `010_add_punch_correction_support.php`.
+
+#### Authentication Hardening
+
+- Added centralized supervisor route guarding.
+- Added database revalidation of authenticated supervisors.
+- Added active-account validation.
+- Added explicit administrator and supervisor role authorization.
+- Added session regeneration after login.
+- Added intended-page preservation.
+- Added complete supervisor-session cleanup during logout.
+- Added local application session storage.
+- Added strict session handling.
+- Added HTTP-only session cookies.
+- Added SameSite cookie protection.
+- Added supervisor session-activity tracking.
+
+#### Kiosk Inactivity Protection
+
+- Added a configurable kiosk inactivity timeout.
+- Added a permitted timeout range of 15 to 600 seconds.
+- Added a default timeout of 60 seconds.
+- Added a final ten-second timeout warning.
+- Added keyboard-activity detection.
+- Added mouse and pointer-activity detection.
+- Added touch-activity detection.
+- Added form-input activity detection.
+- Added automatic cleanup of unfinished kiosk interactions.
+- Added selected-employee cleanup.
+- Added PIN and temporary-authentication cleanup.
+- Added automatic return to the employee-number screen.
+- Added server-side timeout validation.
+- Added stale PIN-form rejection.
+- Added stale punch-form rejection.
+- Added migration `011_add_kiosk_inactivity_timeout.php`.
+- Added a Kiosk Safety section to Company Settings.
+
+#### Production Web Deployment
+
+- Added and validated an Nginx production deployment.
+- Added and validated PHP-FPM 8.5 operation.
+- Added public-directory document-root isolation.
+- Added front-controller routing through `public/index.php`.
+- Added protection against arbitrary PHP-file execution.
+- Added hidden-file protection.
+- Added security-related HTTP response headers.
+- Added static-asset caching.
+- Added LAN-only firewall access for the application.
+- Added PHP-FPM production overrides.
+- Added application-specific PHP-FPM error logging.
+
+#### Dedicated Physical Kiosk
+
+- Added a restricted local `kiosk` Linux account.
+- Added LightDM automatic login.
+- Added an Openbox kiosk session.
+- Added Chromium full-screen kiosk mode.
+- Added local kiosk startup at `http://127.0.0.1/kiosk`.
+- Added automatic Chromium restart after browser exit.
+- Added application-availability checks before Chromium startup.
+- Added retry behavior while the web application is unavailable.
+- Added idle mouse-cursor hiding.
+- Disabled screen blanking.
+- Disabled display power management.
+- Disabled sleep, suspend, and hibernation.
+- Added and validated kiosk recovery after Chromium termination.
+- Added and validated kiosk recovery after LightDM restart.
+- Added and validated full reboot recovery.
+
+#### SQLite WAL Mode
+
+- Added SQLite foreign-key enforcement on the primary connection.
+- Added a 10-second SQLite busy timeout.
+- Added SQLite WAL journal mode.
+- Added normal synchronous mode.
+- Added automatic WAL checkpoint configuration.
+- Added group-writable SQLite sidecar-file handling.
+- Added WAL-aware backup behavior.
+- Added WAL-aware restore behavior.
+
+#### Log Rotation
+
+- Added application log rotation.
+- Added scheduler log rotation.
+- Added cron log rotation.
+- Added mail log rotation.
+- Added PHP-FPM application error-log rotation.
+- Added kiosk browser-log rotation.
+- Added daily rotation.
+- Added 5 MB size-based rotation.
+- Added compressed log archives.
+- Added date-based archive names.
+- Added 30-rotation application-log retention.
+- Added 14-rotation kiosk-browser-log retention.
+
+#### Offline Frontend Assets
+
+- Added local Bootstrap 5.3.7 CSS.
+- Added local Bootstrap 5.3.7 JavaScript.
+- Added local Bootstrap Icons 1.13.1 CSS.
+- Added local Bootstrap Icons font files.
+- Added vendored license files.
+- Added a SHA-256 checksum manifest.
+- Removed reliance on external frontend CDNs for primary interface assets.
+- Added offline kiosk interface support.
+
+#### Console Architecture
+
+- Added lazy command loading.
+- Expanded the console application to include:
+
+```text
+help
+backup:create
+backup:list
+backup:prune
+backup:restore
+backup:run
+backup:verify
+database:check
+doctor
+mail:check
+maintenance:off
+maintenance:on
+maintenance:status
+schedule:run
+scheduler:check
+version
+```
+
+#### Automated Tests
+
+- Added punch-correction insertion tests.
+- Added punch-correction editing tests.
+- Added punch-correction deletion tests.
+- Added required-correction-reason tests.
+- Added punch-sequence validation tests.
+- Added immutable-history tests.
+- Added transaction rollback tests.
+- Expanded the automated suite to 36 tests and 188 assertions.
+
+### Changed
+
+- Updated the application version to `0.6.0`.
+- Changed the primary SQLite connection to WAL mode.
+- Changed database backups to use a live-database-safe SQLite backup process.
+- Changed restore operations to account for WAL and SQLite sidecar files.
+- Changed administrative routes to require centralized authentication guarding.
+- Changed supervisor sessions to be revalidated against the database.
+- Changed login handling to regenerate the PHP session identifier.
+- Changed logout handling to remove session state and expire the session cookie.
+- Changed application sessions to use `storage/sessions`.
+- Changed kiosk transaction handling to track server-side activity.
+- Changed the kiosk starting page to clear unfinished employee state.
+- Changed invalid employee-number and PIN responses to restart the kiosk flow safely.
+- Changed punch correction to validate the complete resulting employee punch sequence before committing.
+- Changed frontend references from CDN-hosted assets to locally stored assets.
+- Changed production execution from the PHP development server to Nginx and PHP-FPM.
+- Changed application and kiosk logs to use managed rotation.
+- Changed the Git ignore policy to exclude runtime sessions, backups, temporary files, and safety copies.
+- Updated the README for Version 0.6.
+- Updated the roadmap to mark Version 0.6 complete.
+- Added Version 0.6 release notes.
+
+### Fixed
+
+- Fixed unfinished kiosk transactions remaining visible when an employee walked away.
+- Fixed stale kiosk PIN and punch forms being usable after the configured timeout.
+- Fixed old kiosk session data potentially carrying into a new employee-number submission.
+- Fixed supervisor sessions remaining valid after an account was removed or deactivated.
+- Fixed unauthorized roles potentially retaining administrative session state.
+- Fixed SQLite concurrency limitations caused by rollback-journal operation.
+- Fixed direct active-database copying risks during backup creation.
+- Fixed restore risks caused by stale WAL, SHM, or journal files.
+- Fixed missing backup verification before restore execution.
+- Fixed invalid punch corrections potentially leaving partial database changes.
+- Fixed application frontend dependence on external CDN availability.
+- Fixed unbounded application and kiosk browser log growth.
+- Fixed runtime PHP session files appearing in Git status.
+- Removed obsolete local safety-copy files.
+- Fixed local Chromium recovery after an unexpected browser exit.
+- Fixed kiosk startup dependency on the application already being available.
+
+### Security and Data Integrity
+
+- Administrative routes now require a currently active administrator or supervisor account.
+- Supervisor identity and role are revalidated against the database.
+- Login regenerates the session identifier.
+- Logout removes authentication state and expires the session cookie.
+- Session cookies use HTTP-only and SameSite protections.
+- SMTP credentials remain in ignored local configuration.
+- Runtime session data is excluded from version control.
+- Database backups are verified before being accepted.
+- Database restores require an exact typed filename confirmation.
+- Restore execution creates a pre-restore safety backup.
+- Restore execution verifies the resulting active database.
+- Punch correction reasons are required.
+- Punch deletion requires typed confirmation.
+- Punch corrections preserve immutable history.
+- Invalid punch sequences are rolled back.
+- Kiosk timeout never creates a punch automatically.
+- Expired kiosk forms are rejected by the server.
+- Nginx exposes only the `public` directory.
+- Arbitrary PHP-file execution is blocked.
+- Hidden files are blocked.
+- Firewall access is restricted to the trusted local network.
+- SQLite foreign-key enforcement remains enabled.
+- Database integrity and foreign-key checks are available through diagnostics.
+- WAL-safe backup behavior was tested against live application writes.
+
+### Upgrade Notes
+
+Existing installations upgrading to Version 0.6.0 should:
+
+1. Create and verify a database backup.
+2. Pull or install the Version 0.6.0 source.
+3. Install or update Composer dependencies if required.
+4. Confirm runtime-directory ownership and permissions.
+5. Run all pending migrations:
+
+```bash
+php migrate.php
+```
+
+6. Confirm migrations 010 and 011 are recorded.
+7. Run:
+
+```bash
+./iqwurks database:check
+```
+
+8. Open **Settings → Company Settings**.
+9. Review the Kiosk Safety inactivity timeout.
+10. Confirm that the timeout is between 15 and 600 seconds.
+11. Test kiosk timeout behavior on the PIN screen.
+12. Test kiosk timeout behavior on the punch-options screen.
+13. Confirm that no punch is created during a timeout.
+14. Review supervisor punch-correction access.
+15. Test adding, editing, and deleting a non-production punch.
+16. Confirm correction reasons and immutable history.
+17. Review `config/backup.php`.
+18. Create a manual backup:
+
+```bash
+./iqwurks backup:create
+```
+
+19. Verify the newest backup:
+
+```bash
+./iqwurks backup:verify
+```
+
+20. Preview a restore without applying it.
+21. Install or confirm the automatic backup cron entry.
+22. Confirm the scheduler cron entry.
+23. Install or confirm the logrotate policy.
+24. Configure Nginx and PHP-FPM for production.
+25. Confirm the local session directory is writable.
+26. Confirm Bootstrap and Bootstrap Icons are served locally.
+27. Verify the vendored frontend assets:
+
+```bash
+sha256sum --check public/assets/vendor/SHA256SUMS
+```
+
+28. Run scheduler diagnostics:
+
+```bash
+./iqwurks scheduler:check
+```
+
+29. Run mail diagnostics:
+
+```bash
+./iqwurks mail:check
+```
+
+30. Run the System Doctor:
+
+```bash
+./iqwurks doctor
+```
+
+31. Run the full automated test suite:
+
+```bash
+php vendor/bin/phpunit
+```
+
+The expected Version 0.6.0 result is:
+
+```text
+OK (36 tests, 188 assertions)
+```
+
+32. Reboot the production computer.
+33. Confirm Nginx and PHP-FPM recover.
+34. Confirm cron recovers.
+35. Confirm the physical kiosk recovers.
+36. Confirm local and LAN kiosk access.
+37. Confirm supervisor login.
+38. Confirm scheduled-report activity.
+39. Confirm scheduled-backup activity.
+
+No manual data conversion is required beyond the normal migration process.
+
+### Known Limitations
+
+- Manual weekly payroll email delivery is not yet implemented.
+- Scheduled weekly payroll email delivery is not yet implemented.
+- Scheduled exception-report delivery is not yet implemented.
+- PDF and CSV email attachments are not yet implemented.
+- Payroll-period approval is not yet implemented.
+- Payroll-period locking is not yet implemented.
+- Reopening approved payroll is not yet implemented.
+- Supervisor review notes are not yet implemented.
+- Third-party payroll export profiles are not yet implemented.
+- A guided installation wizard is not yet implemented.
+- An automated application-upgrade command is not yet implemented.
+- Release packaging is not yet implemented.
+- The console does not yet provide a universal per-command `--help` option.
+- Multiple companies and multiple physical locations are not yet supported.
+- The validated production deployment uses HTTP on a trusted local network.
+- HTTPS should be added before the application is exposed through an untrusted network.
+- A newly rotated empty mail log can temporarily produce a System Doctor warning until a successful email is logged.
+
+---
+
 ## [0.5.0] - 2026-07-20
 
 ### Added

@@ -1,0 +1,355 @@
+<div
+    class="alert alert-warning d-none mx-auto mb-4"
+    style="max-width:720px;"
+    role="alert"
+    aria-live="assertive"
+    data-kiosk-timeout-warning
+>
+    <div class="d-flex align-items-center justify-content-center gap-3">
+
+        <i class="bi bi-hourglass-split fs-3"></i>
+
+        <div>
+
+            <strong>
+                Kiosk will reset in
+                <span data-kiosk-timeout-countdown>
+                    10
+                </span>
+                seconds.
+            </strong>
+
+            <div>
+                Touch the screen, move the mouse, or press a key to continue.
+            </div>
+
+        </div>
+
+    </div>
+</div>
+
+
+<div
+    data-kiosk-inactivity-timeout
+    data-timeout-seconds="{{ kioskTimeoutSeconds|default(60)|e('html_attr') }}"
+    hidden
+>
+</div>
+
+
+<script>
+    (() => {
+        const timeoutController =
+            document.querySelector(
+                '[data-kiosk-inactivity-timeout]'
+            );
+
+
+        if (!timeoutController) {
+            return;
+        }
+
+
+        const timeoutSeconds =
+            Number.parseInt(
+                timeoutController.dataset.timeoutSeconds
+                ||
+                '60',
+                10
+            );
+
+
+        if (
+            !Number.isFinite(
+                timeoutSeconds
+            )
+            ||
+            timeoutSeconds < 1
+        ) {
+            return;
+        }
+
+
+        const timeoutMilliseconds =
+            timeoutSeconds
+            *
+            1000;
+
+
+        const warningSeconds =
+            Math.min(
+                10,
+                Math.max(
+                    1,
+                    timeoutSeconds - 1
+                )
+            );
+
+
+        const warningElement =
+            document.querySelector(
+                '[data-kiosk-timeout-warning]'
+            );
+
+
+        const countdownElement =
+            document.querySelector(
+                '[data-kiosk-timeout-countdown]'
+            );
+
+
+        const heartbeatMinimumIntervalMilliseconds =
+            5000;
+
+
+        let deadline =
+            Date.now()
+            +
+            timeoutMilliseconds;
+
+
+        let lastHeartbeatAt =
+            0;
+
+
+        let heartbeatInProgress =
+            false;
+
+
+        let resetting =
+            false;
+
+
+        const hideWarning = () => {
+            if (!warningElement) {
+                return;
+            }
+
+
+            warningElement.classList.add(
+                'd-none'
+            );
+        };
+
+
+        const showWarning = (
+            secondsRemaining
+        ) => {
+            if (
+                !warningElement
+                ||
+                !countdownElement
+            ) {
+                return;
+            }
+
+
+            countdownElement.textContent =
+                String(
+                    secondsRemaining
+                );
+
+
+            warningElement.classList.remove(
+                'd-none'
+            );
+        };
+
+
+        const resetKiosk = () => {
+            if (resetting) {
+                return;
+            }
+
+
+            resetting =
+                true;
+
+
+            window.location.replace(
+                '/kiosk?reset=timeout'
+            );
+        };
+
+
+        const sendHeartbeat = () => {
+            const now =
+                Date.now();
+
+
+            if (
+                heartbeatInProgress
+                ||
+                (
+                    now
+                    -
+                    lastHeartbeatAt
+                )
+                <
+                heartbeatMinimumIntervalMilliseconds
+            ) {
+                return;
+            }
+
+
+            heartbeatInProgress =
+                true;
+
+
+            lastHeartbeatAt =
+                now;
+
+
+            window.fetch(
+                '/kiosk?activity=1',
+                {
+                    method: 'GET',
+                    credentials: 'same-origin',
+                    cache: 'no-store',
+                    headers: {
+                        'X-Kiosk-Activity': '1'
+                    }
+                }
+            )
+                .then((response) => {
+                    if (response.status === 409) {
+                        resetKiosk();
+                    }
+                })
+                .catch(() => {
+                    /*
+                     * The local countdown still protects the kiosk if the
+                     * heartbeat request temporarily fails.
+                     */
+                })
+                .finally(() => {
+                    heartbeatInProgress =
+                        false;
+                });
+        };
+
+
+        const recordActivity = () => {
+            if (resetting) {
+                return;
+            }
+
+
+            deadline =
+                Date.now()
+                +
+                timeoutMilliseconds;
+
+
+            hideWarning();
+
+
+            sendHeartbeat();
+        };
+
+
+        const checkTimeout = () => {
+            if (resetting) {
+                return;
+            }
+
+
+            const remainingMilliseconds =
+                deadline
+                -
+                Date.now();
+
+
+            if (remainingMilliseconds <= 0) {
+                resetKiosk();
+
+
+                return;
+            }
+
+
+            const remainingSeconds =
+                Math.ceil(
+                    remainingMilliseconds
+                    /
+                    1000
+                );
+
+
+            if (
+                remainingSeconds
+                <=
+                warningSeconds
+            ) {
+                showWarning(
+                    remainingSeconds
+                );
+
+            } else {
+
+                hideWarning();
+            }
+        };
+
+
+        const activityEvents = [
+            'keydown',
+            'pointerdown',
+            'pointermove',
+            'touchstart',
+            'input',
+            'change',
+            'wheel'
+        ];
+
+
+        activityEvents.forEach((eventName) => {
+            document.addEventListener(
+                eventName,
+                recordActivity,
+                {
+                    passive: true
+                }
+            );
+        });
+
+
+        document.querySelectorAll(
+            'form'
+        ).forEach((form) => {
+            form.addEventListener(
+                'submit',
+                recordActivity
+            );
+        });
+
+
+        document.addEventListener(
+            'visibilitychange',
+            () => {
+                if (
+                    document.visibilityState
+                    ===
+                    'visible'
+                ) {
+                    checkTimeout();
+                }
+            }
+        );
+
+
+        window.addEventListener(
+            'pageshow',
+            checkTimeout
+        );
+
+
+        window.setInterval(
+            checkTimeout,
+            250
+        );
+
+
+        checkTimeout();
+    })();
+</script>

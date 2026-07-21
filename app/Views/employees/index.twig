@@ -11,7 +11,7 @@
         </h1>
 
         <div class="text-muted">
-            Manage active, inactive, and historical employee records.
+            Manage employees, kiosk access, and payroll punch records.
         </div>
 
     </div>
@@ -34,7 +34,6 @@
 <div class="card shadow-sm">
 
     <div class="card-body">
-
 
         <div class="table-responsive">
 
@@ -74,7 +73,6 @@
 
 
                 <tbody>
-
 
                     {% for employee in employees %}
 
@@ -122,12 +120,15 @@
                                 {% if employee.punch_count > 0 %}
 
                                     <span class="badge text-bg-info">
+
                                         {{ employee.punch_count }}
+
                                         {% if employee.punch_count == 1 %}
                                             punch
                                         {% else %}
                                             punches
                                         {% endif %}
+
                                     </span>
 
                                 {% else %}
@@ -144,6 +145,17 @@
                             <td>
 
                                 <div class="d-flex flex-wrap gap-2">
+
+                                    <a
+                                        href="/employees/punches/{{ employee.id }}"
+                                        class="btn btn-sm btn-outline-info"
+                                    >
+
+                                        <i class="bi bi-clock-history"></i>
+
+                                        Manage Punches
+
+                                    </a>
 
 
                                     <a
@@ -274,7 +286,6 @@
 
                                     {% endif %}
 
-
                                 </div>
 
 
@@ -294,7 +305,6 @@
 
                         </tr>
 
-
                     {% else %}
 
                         <tr>
@@ -310,17 +320,14 @@
 
                     {% endfor %}
 
-
                 </tbody>
 
             </table>
 
         </div>
 
-
     </div>
 
 </div>
-
 
 {% endblock %}

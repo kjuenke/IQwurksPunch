@@ -4,6 +4,47 @@
 
 {% include "kiosk/_clock.twig" %}
 
+
+{% if kioskResetReason == 'timeout' %}
+
+    <div
+        class="alert alert-info mx-auto mb-4"
+        style="max-width:600px;"
+        role="alert"
+    >
+        <i class="bi bi-shield-check me-2"></i>
+
+        The unfinished kiosk transaction was cleared after a period of
+        inactivity.
+    </div>
+
+{% elseif kioskResetReason == 'invalid-pin' %}
+
+    <div
+        class="alert alert-danger mx-auto mb-4"
+        style="max-width:600px;"
+        role="alert"
+    >
+        <i class="bi bi-exclamation-triangle me-2"></i>
+
+        Invalid PIN. Please begin again.
+    </div>
+
+{% elseif kioskResetReason == 'employee-not-found' %}
+
+    <div
+        class="alert alert-danger mx-auto mb-4"
+        style="max-width:600px;"
+        role="alert"
+    >
+        <i class="bi bi-person-x me-2"></i>
+
+        Employee not found. Please check the employee number.
+    </div>
+
+{% endif %}
+
+
 <div class="container text-center">
 
     <h1 class="mb-4">
@@ -11,25 +52,37 @@
     </h1>
 
 
-    <div class="card shadow-sm mx-auto"
-         style="max-width:400px;">
+    <div
+        class="card shadow-sm mx-auto"
+        style="max-width:400px;"
+    >
 
         <div class="card-body">
 
-            <form method="post"
-                  action="/kiosk/authenticate">
+            <form
+                method="post"
+                action="/kiosk/authenticate"
+                autocomplete="off"
+            >
 
 
-                <label class="form-label">
+                <label
+                    class="form-label"
+                    for="employee_number"
+                >
                     Employee Number
                 </label>
 
 
                 <input
                     type="text"
+                    id="employee_number"
                     name="employee_number"
                     class="form-control form-control-lg text-center mb-3"
+                    inputmode="numeric"
+                    autocomplete="off"
                     autofocus
+                    required
                 >
 
 

@@ -3,9 +3,9 @@ declare(strict_types=1);
 
 namespace App\Controllers;
 
-use App\Controllers\Controller;
-use App\Services\AuthService;
 use App\Core\Container;
+use App\Core\Flash;
+use App\Services\AuthService;
 
 class AuthController extends Controller
 {
@@ -18,12 +18,32 @@ class AuthController extends Controller
             Container::authService();
     }
 
+
     public function login(): void
     {
+        if (
+            (int)(
+                $_SESSION['user_id']
+                ??
+                0
+            )
+            >
+            0
+        ) {
+            header(
+                'Location: /dashboard'
+            );
+
+
+            exit;
+        }
+
+
         $this->render(
             'auth/login.twig',
             [
-                'title' => 'Supervisor Login'
+                'title' =>
+                    'Supervisor Login'
             ]
         );
     }
@@ -31,22 +51,75 @@ class AuthController extends Controller
 
     public function authenticate(): void
     {
-        $username = $_POST['username'] ?? '';
-        $password = $_POST['password'] ?? '';
+        $username =
+            trim(
+                (string)(
+                    $_POST['username']
+                    ??
+                    ''
+                )
+            );
 
 
-        if ($this->auth->attemptLogin(
-            $username,
-            $password
-        )) {
+        $password =
+            (string)(
+                $_POST['password']
+                ??
+                ''
+            );
 
-            header('Location: /dashboard');
+
+        if (
+            !$this->auth->attemptLogin(
+                $username,
+                $password
+            )
+        ) {
+            Flash::error(
+                'Invalid username or password, or the account is inactive.'
+            );
+
+
+            header(
+                'Location: /login'
+            );
+
+
             exit;
-
         }
 
 
-        die('Invalid username or password');
+        $destination =
+            (string)(
+                $_SESSION['intended_url']
+                ??
+                '/dashboard'
+            );
+
+
+        unset(
+            $_SESSION['intended_url']
+        );
+
+
+        if (
+            !$this->isSafeDestination(
+                $destination
+            )
+        ) {
+            $destination =
+                '/dashboard';
+        }
+
+
+        header(
+            'Location: '
+            .
+            $destination
+        );
+
+
+        exit;
     }
 
 
@@ -54,7 +127,57 @@ class AuthController extends Controller
     {
         $this->auth->logout();
 
-        header('Location: /login');
+
+        header(
+            'Location: /login'
+        );
+
+
         exit;
+    }
+
+
+    private function isSafeDestination(
+        string $destination
+    ): bool
+    {
+        if (
+            !str_starts_with(
+                $destination,
+                '/'
+            )
+            ||
+            str_starts_with(
+                $destination,
+                '//'
+            )
+        ) {
+            return false;
+        }
+
+
+        $path =
+            parse_url(
+                $destination,
+                PHP_URL_PATH
+            );
+
+
+        if (!is_string($path)) {
+
+            return false;
+        }
+
+
+        return
+            !in_array(
+                $path,
+                [
+                    '/login',
+                    '/logout',
+                    '/setup'
+                ],
+                true
+            );
     }
 }

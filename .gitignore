@@ -20,6 +20,10 @@ config/mail.php
 /storage/backups/*
 !/storage/backups/.gitkeep
 
+# Sessions
+/storage/sessions/*
+!/storage/sessions/.gitkeep
+
 # Cache and temporary files
 /storage/cache/*
 !/storage/cache/.gitkeep
@@ -40,7 +44,9 @@ config/mail.php
 .DS_Store
 Thumbs.db
 
-# Local backup files
+# Local backup and safety-copy files
 *.backup
+*.backup-*
+*.before-*
 *.bak
 *~

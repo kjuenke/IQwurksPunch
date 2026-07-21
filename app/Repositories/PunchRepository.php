@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace App\Repositories;
 
 use PDO;
+use RuntimeException;
 
 class PunchRepository
 {
@@ -24,27 +25,33 @@ class PunchRepository
         string $type
     ): bool
     {
-        $stmt =
+        $statement =
             $this->db->prepare(
                 "
                 INSERT INTO punches
                 (
                     employee_id,
                     punch_time,
-                    punch_type
+                    punch_type,
+                    source,
+                    notes,
+                    correction_reason
                 )
 
                 VALUES
                 (
                     :employee_id,
                     CURRENT_TIMESTAMP,
-                    :punch_type
+                    :punch_type,
+                    'kiosk',
+                    '',
+                    ''
                 )
                 "
             );
 
 
-        return $stmt->execute(
+        return $statement->execute(
             [
                 'employee_id' =>
                     $employeeId,
@@ -56,11 +63,197 @@ class PunchRepository
     }
 
 
+    public function createManual(
+        int $employeeId,
+        string $punchTimeUtc,
+        string $punchType,
+        string $notes,
+        int $userId,
+        string $reason
+    ): int
+    {
+        $statement =
+            $this->db->prepare(
+                "
+                INSERT INTO punches
+                (
+                    employee_id,
+                    punch_time,
+                    punch_type,
+                    source,
+                    notes,
+                    corrected_at,
+                    corrected_by_user_id,
+                    correction_reason
+                )
+
+                VALUES
+                (
+                    :employee_id,
+                    :punch_time,
+                    :punch_type,
+                    'manual',
+                    :notes,
+                    CURRENT_TIMESTAMP,
+                    :corrected_by_user_id,
+                    :correction_reason
+                )
+                "
+            );
+
+
+        $statement->execute(
+            [
+                'employee_id' =>
+                    $employeeId,
+
+                'punch_time' =>
+                    $punchTimeUtc,
+
+                'punch_type' =>
+                    $punchType,
+
+                'notes' =>
+                    $notes,
+
+                'corrected_by_user_id' =>
+                    $userId,
+
+                'correction_reason' =>
+                    $reason
+            ]
+        );
+
+
+        return (int)$this->db
+            ->lastInsertId();
+    }
+
+
+    public function find(
+        int $id
+    ): ?array
+    {
+        $statement =
+            $this->db->prepare(
+                "
+                SELECT
+                    punches.*,
+                    employees.employee_number,
+                    employees.first_name,
+                    employees.last_name,
+                    employees.department
+
+                FROM punches
+
+                JOIN employees
+                    ON employees.id = punches.employee_id
+
+                WHERE punches.id = :id
+
+                LIMIT 1
+                "
+            );
+
+
+        $statement->execute(
+            [
+                'id' =>
+                    $id
+            ]
+        );
+
+
+        $punch =
+            $statement->fetch(
+                PDO::FETCH_ASSOC
+            );
+
+
+        return $punch ?: null;
+    }
+
+
+    public function updateManual(
+        int $id,
+        string $punchTimeUtc,
+        string $punchType,
+        string $notes,
+        int $userId,
+        string $reason
+    ): bool
+    {
+        $statement =
+            $this->db->prepare(
+                "
+                UPDATE punches
+
+                SET
+                    punch_time = :punch_time,
+                    punch_type = :punch_type,
+                    source = 'manual',
+                    notes = :notes,
+                    corrected_at = CURRENT_TIMESTAMP,
+                    corrected_by_user_id = :corrected_by_user_id,
+                    correction_reason = :correction_reason
+
+                WHERE id = :id
+                "
+            );
+
+
+        return $statement->execute(
+            [
+                'punch_time' =>
+                    $punchTimeUtc,
+
+                'punch_type' =>
+                    $punchType,
+
+                'notes' =>
+                    $notes,
+
+                'corrected_by_user_id' =>
+                    $userId,
+
+                'correction_reason' =>
+                    $reason,
+
+                'id' =>
+                    $id
+            ]
+        );
+    }
+
+
+    public function delete(
+        int $id
+    ): bool
+    {
+        $statement =
+            $this->db->prepare(
+                "
+                DELETE FROM punches
+
+                WHERE id = :id
+                "
+            );
+
+
+        return $statement->execute(
+            [
+                'id' =>
+                    $id
+            ]
+        );
+    }
+
+
     public function latest(
         int $employeeId
     ): ?array
     {
-        $stmt =
+        $statement =
             $this->db->prepare(
                 "
                 SELECT *
@@ -68,14 +261,16 @@ class PunchRepository
 
                 WHERE employee_id = :employee_id
 
-                ORDER BY punch_time DESC
+                ORDER BY
+                    punch_time DESC,
+                    id DESC
 
                 LIMIT 1
                 "
             );
 
 
-        $stmt->execute(
+        $statement->execute(
             [
                 'employee_id' =>
                     $employeeId
@@ -84,7 +279,7 @@ class PunchRepository
 
 
         $result =
-            $stmt->fetch(
+            $statement->fetch(
                 PDO::FETCH_ASSOC
             );
 
@@ -93,11 +288,14 @@ class PunchRepository
     }
 
 
+    /**
+     * @return array<int,array<string,mixed>>
+     */
     public function employeePunches(
         int $employeeId
     ): array
     {
-        $stmt =
+        $statement =
             $this->db->prepare(
                 "
                 SELECT *
@@ -105,12 +303,14 @@ class PunchRepository
 
                 WHERE employee_id = :employee_id
 
-                ORDER BY punch_time ASC
+                ORDER BY
+                    punch_time ASC,
+                    id ASC
                 "
             );
 
 
-        $stmt->execute(
+        $statement->execute(
             [
                 'employee_id' =>
                     $employeeId
@@ -118,7 +318,48 @@ class PunchRepository
         );
 
 
-        return $stmt->fetchAll(
+        return $statement->fetchAll(
+            PDO::FETCH_ASSOC
+        );
+    }
+
+
+    /**
+     * @return array<int,array<string,mixed>>
+     */
+    public function employeePunchesExcept(
+        int $employeeId,
+        int $excludedPunchId
+    ): array
+    {
+        $statement =
+            $this->db->prepare(
+                "
+                SELECT *
+                FROM punches
+
+                WHERE employee_id = :employee_id
+                  AND id <> :excluded_punch_id
+
+                ORDER BY
+                    punch_time ASC,
+                    id ASC
+                "
+            );
+
+
+        $statement->execute(
+            [
+                'employee_id' =>
+                    $employeeId,
+
+                'excluded_punch_id' =>
+                    $excludedPunchId
+            ]
+        );
+
+
+        return $statement->fetchAll(
             PDO::FETCH_ASSOC
         );
     }
@@ -128,13 +369,15 @@ class PunchRepository
      * Returns punches whose UTC timestamps fall within:
      *
      *     start <= punch_time < end
+     *
+     * @return array<int,array<string,mixed>>
      */
     public function punchesBetween(
         string $startUtc,
         string $endUtc
     ): array
     {
-        $stmt =
+        $statement =
             $this->db->prepare(
                 "
                 SELECT
@@ -155,12 +398,13 @@ class PunchRepository
                 ORDER BY
                     employees.last_name ASC,
                     employees.first_name ASC,
-                    punches.punch_time ASC
+                    punches.punch_time ASC,
+                    punches.id ASC
                 "
             );
 
 
-        $stmt->execute(
+        $statement->execute(
             [
                 'start_utc' =>
                     $startUtc,
@@ -171,7 +415,7 @@ class PunchRepository
         );
 
 
-        return $stmt->fetchAll(
+        return $statement->fetchAll(
             PDO::FETCH_ASSOC
         );
     }
@@ -182,6 +426,8 @@ class PunchRepository
      *
      * New payroll reporting should use punchesBetween() with UTC boundaries
      * derived from the configured company timezone.
+     *
+     * @return array<int,array<string,mixed>>
      */
     public function dailyPunches(
         string $date
@@ -211,11 +457,22 @@ class PunchRepository
     }
 
 
+    /**
+     * @return array<int,array<string,mixed>>
+     */
     public function recent(
         int $limit = 100
     ): array
     {
-        $stmt =
+        if ($limit < 1) {
+
+            throw new RuntimeException(
+                'Punch result limit must be greater than zero.'
+            );
+        }
+
+
+        $statement =
             $this->db->prepare(
                 "
                 SELECT
@@ -230,24 +487,26 @@ class PunchRepository
                 JOIN employees
                     ON employees.id = punches.employee_id
 
-                ORDER BY punch_time DESC
+                ORDER BY
+                    punches.punch_time DESC,
+                    punches.id DESC
 
                 LIMIT :limit
                 "
             );
 
 
-        $stmt->bindValue(
+        $statement->bindValue(
             ':limit',
             $limit,
             PDO::PARAM_INT
         );
 
 
-        $stmt->execute();
+        $statement->execute();
 
 
-        return $stmt->fetchAll(
+        return $statement->fetchAll(
             PDO::FETCH_ASSOC
         );
     }

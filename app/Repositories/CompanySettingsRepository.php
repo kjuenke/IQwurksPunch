@@ -10,15 +10,18 @@ class CompanySettingsRepository
     private PDO $db;
 
 
-    public function __construct(PDO $db)
+    public function __construct(
+        PDO $db
+    )
     {
-        $this->db = $db;
+        $this->db =
+            $db;
     }
 
 
     public function get(): ?array
     {
-        $stmt =
+        $statement =
             $this->db->query(
                 "
                 SELECT *
@@ -29,10 +32,15 @@ class CompanySettingsRepository
 
 
         $result =
-            $stmt->fetch(PDO::FETCH_ASSOC);
+            $statement->fetch(
+                PDO::FETCH_ASSOC
+            );
 
 
-        return $result ?: null;
+        return
+            $result
+            ?:
+            null;
     }
 
 
@@ -40,7 +48,7 @@ class CompanySettingsRepository
         array $data
     ): bool
     {
-        $stmt =
+        $statement =
             $this->db->prepare(
                 "
                 UPDATE company_settings
@@ -79,6 +87,9 @@ class CompanySettingsRepository
 
                 paid_break_minutes = :paid_break_minutes,
 
+                kiosk_inactivity_timeout_seconds =
+                    :kiosk_inactivity_timeout_seconds,
+
                 updated_at = CURRENT_TIMESTAMP
 
                 WHERE id = 1
@@ -86,7 +97,7 @@ class CompanySettingsRepository
             );
 
 
-        return $stmt->execute(
+        return $statement->execute(
             [
                 'company_name' =>
                     $data['company_name'],
@@ -134,7 +145,10 @@ class CompanySettingsRepository
                     $data['meal_deduction_minutes'],
 
                 'paid_break_minutes' =>
-                    $data['paid_break_minutes']
+                    $data['paid_break_minutes'],
+
+                'kiosk_inactivity_timeout_seconds' =>
+                    $data['kiosk_inactivity_timeout_seconds']
             ]
         );
     }

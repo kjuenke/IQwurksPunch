@@ -2,8 +2,23 @@
 <?php
 declare(strict_types=1);
 
+use App\Console\CommandInterface;
 use App\Console\ConsoleApplication;
+use App\Console\LazyCommand;
+use App\Console\Commands\BackupCreateCommand;
+use App\Console\Commands\BackupListCommand;
+use App\Console\Commands\BackupPruneCommand;
+use App\Console\Commands\BackupRestoreCommand;
+use App\Console\Commands\BackupRunCommand;
+use App\Console\Commands\BackupVerifyCommand;
+use App\Console\Commands\DatabaseCheckCommand;
+use App\Console\Commands\DoctorCommand;
+use App\Console\Commands\MailCheckCommand;
+use App\Console\Commands\MaintenanceOffCommand;
+use App\Console\Commands\MaintenanceOnCommand;
+use App\Console\Commands\MaintenanceStatusCommand;
 use App\Console\Commands\ScheduleRunCommand;
+use App\Console\Commands\SchedulerCheckCommand;
 use App\Console\Commands\VersionCommand;
 use App\Core\AppInfo;
 use App\Core\Config;
@@ -11,51 +26,91 @@ use App\Core\Container;
 use App\Repositories\CompanySettingsRepository;
 
 require __DIR__
-    . '/vendor/autoload.php';
+    .
+    '/vendor/autoload.php';
 
 
 Config::load();
 
 
-try {
-
-    $repository =
-        new CompanySettingsRepository(
-            Container::db()
-        );
+$requestedCommand =
+    $argv[1]
+    ??
+    'help';
 
 
-    $company =
-        $repository->get();
+$databaseIndependentCommands = [
+    'help',
+    '--help',
+    '-h',
+    'version',
+    'backup:list',
+    'backup:prune',
+    'backup:restore',
+    'backup:verify',
+    'database:check',
+    'doctor',
+    'mail:check',
+    'maintenance:on',
+    'maintenance:off',
+    'maintenance:status',
+    'scheduler:check',
+];
 
 
-    $timezone =
-        $company['timezone']
-        ??
-        'America/Los_Angeles';
-
-
-    if (
-        !in_array(
-            $timezone,
-            timezone_identifiers_list(),
-            true
-        )
-    ) {
-        $timezone =
-            'America/Los_Angeles';
-    }
-
-
-    date_default_timezone_set(
-        $timezone
-    );
-
-} catch (\Throwable $e) {
-
+if (
+    in_array(
+        $requestedCommand,
+        $databaseIndependentCommands,
+        true
+    )
+) {
     date_default_timezone_set(
         'America/Los_Angeles'
     );
+
+} else {
+
+    try {
+
+        $repository =
+            new CompanySettingsRepository(
+                Container::db()
+            );
+
+
+        $company =
+            $repository->get();
+
+
+        $timezone =
+            $company['timezone']
+            ??
+            'America/Los_Angeles';
+
+
+        if (
+            !in_array(
+                $timezone,
+                timezone_identifiers_list(),
+                true
+            )
+        ) {
+            $timezone =
+                'America/Los_Angeles';
+        }
+
+
+        date_default_timezone_set(
+            $timezone
+        );
+
+    } catch (\Throwable $exception) {
+
+        date_default_timezone_set(
+            'America/Los_Angeles'
+        );
+    }
 }
 
 
@@ -72,7 +127,127 @@ $console->register(
 
 
 $console->register(
-    new ScheduleRunCommand()
+    new MaintenanceOnCommand()
+);
+
+
+$console->register(
+    new MaintenanceStatusCommand()
+);
+
+
+$console->register(
+    new MaintenanceOffCommand()
+);
+
+
+$console->register(
+    new LazyCommand(
+        'backup:create',
+        'Create and verify a timestamped SQLite database backup.',
+        static fn (): CommandInterface =>
+            new BackupCreateCommand()
+    )
+);
+
+
+$console->register(
+    new LazyCommand(
+        'backup:list',
+        'List available SQLite database backups.',
+        static fn (): CommandInterface =>
+            new BackupListCommand()
+    )
+);
+
+
+$console->register(
+    new LazyCommand(
+        'backup:prune',
+        'Preview or delete backups exceeding the retention limit.',
+        static fn (): CommandInterface =>
+            new BackupPruneCommand()
+    )
+);
+
+
+$console->register(
+    new LazyCommand(
+        'backup:restore',
+        'Preview or safely restore a verified SQLite backup.',
+        static fn (): CommandInterface =>
+            new BackupRestoreCommand()
+    )
+);
+
+
+$console->register(
+    new LazyCommand(
+        'backup:run',
+        'Create a verified backup and apply retention safely.',
+        static fn (): CommandInterface =>
+            new BackupRunCommand()
+    )
+);
+
+
+$console->register(
+    new LazyCommand(
+        'backup:verify',
+        'Verify the newest, a named, or all SQLite backups.',
+        static fn (): CommandInterface =>
+            new BackupVerifyCommand()
+    )
+);
+
+
+$console->register(
+    new LazyCommand(
+        'database:check',
+        'Check active SQLite database health and integrity.',
+        static fn (): CommandInterface =>
+            new DatabaseCheckCommand()
+    )
+);
+
+
+$console->register(
+    new LazyCommand(
+        'doctor',
+        'Run application, database, backup, mail, and scheduler diagnostics.',
+        static fn (): CommandInterface =>
+            new DoctorCommand()
+    )
+);
+
+
+$console->register(
+    new LazyCommand(
+        'mail:check',
+        'Check SMTP configuration, connectivity, TLS, and delivery status.',
+        static fn (): CommandInterface =>
+            new MailCheckCommand()
+    )
+);
+
+
+$console->register(
+    new LazyCommand(
+        'scheduler:check',
+        'Check scheduler cron, locks, activity, schedule, and recipients.',
+        static fn (): CommandInterface =>
+            new SchedulerCheckCommand()
+    )
+);
+
+
+$console->register(
+    new LazyCommand(
+        'schedule:run',
+        'Send the scheduled payroll report when it is due.',
+        static fn (): CommandInterface =>
+            new ScheduleRunCommand()
+    )
 );
 
 

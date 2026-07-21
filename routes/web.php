@@ -12,6 +12,7 @@ use App\Controllers\LaborRulesController;
 use App\Controllers\NotificationRecipientController;
 use App\Controllers\PayrollController;
 use App\Controllers\PayrollExportController;
+use App\Controllers\PunchCorrectionController;
 use App\Controllers\ReportController;
 use App\Controllers\ReportEmailController;
 use App\Controllers\SettingsController;
@@ -145,6 +146,46 @@ $router->post(
 $router->post(
     '/employees/delete',
     [$employees, 'delete']
+);
+
+
+/*
+|--------------------------------------------------------------------------
+| Employee Punch Corrections
+|--------------------------------------------------------------------------
+*/
+
+$punchCorrections =
+    new PunchCorrectionController();
+
+$router->get(
+    '/employees/punches/{id}',
+    [$punchCorrections, 'index']
+);
+
+$router->get(
+    '/employees/punches/{id}/create',
+    [$punchCorrections, 'create']
+);
+
+$router->post(
+    '/employees/punches/{id}/create',
+    [$punchCorrections, 'store']
+);
+
+$router->get(
+    '/employees/punches/edit/{id}',
+    [$punchCorrections, 'edit']
+);
+
+$router->post(
+    '/employees/punches/edit/{id}',
+    [$punchCorrections, 'update']
+);
+
+$router->post(
+    '/employees/punches/delete/{id}',
+    [$punchCorrections, 'delete']
 );
 
 

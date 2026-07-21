@@ -9,8 +9,15 @@ use App\Services\CompanySettingsService;
 use App\Services\EmployeeService;
 use App\Services\PunchService;
 
-class KioskController extends Controller
+final class KioskController extends Controller
 {
+    private const DEFAULT_TIMEOUT_SECONDS = 60;
+
+    private const MINIMUM_TIMEOUT_SECONDS = 15;
+
+    private const MAXIMUM_TIMEOUT_SECONDS = 600;
+
+
     private EmployeeService $employees;
 
     private PunchService $punches;
@@ -35,6 +42,32 @@ class KioskController extends Controller
 
     public function index(): void
     {
+        if ($this->isActivityHeartbeatRequest()) {
+
+            $this->handleActivityHeartbeat();
+
+
+            return;
+        }
+
+
+        $resetReason =
+            trim(
+                (string)(
+                    $_GET['reset']
+                    ??
+                    ''
+                )
+            );
+
+
+        /*
+         * Loading the starting kiosk page always ends any unfinished
+         * employee interaction.
+         */
+        $this->clearKioskSession();
+
+
         $this->render(
             'kiosk/index.twig',
             [
@@ -42,7 +75,13 @@ class KioskController extends Controller
                     'Employee Clock',
 
                 'kioskTimezone' =>
-                    $this->kioskTimezone()
+                    $this->kioskTimezone(),
+
+                'kioskTimeoutSeconds' =>
+                    $this->kioskTimeoutSeconds(),
+
+                'kioskResetReason' =>
+                    $resetReason
             ]
         );
     }
@@ -50,11 +89,20 @@ class KioskController extends Controller
 
     public function authenticate(): void
     {
+        /*
+         * A new employee-number submission always replaces any stale kiosk
+         * transaction left in the current browser session.
+         */
+        $this->clearKioskSession();
+
+
         $employeeNumber =
             trim(
-                $_POST['employee_number']
-                ??
-                ''
+                (string)(
+                    $_POST['employee_number']
+                    ??
+                    ''
+                )
             );
 
 
@@ -67,29 +115,31 @@ class KioskController extends Controller
 
         if (!$employee) {
 
-            Flash::error(
-                'Employee not found.'
+            $this->redirectToKiosk(
+                'employee-not-found'
             );
-
-
-            header(
-                'Location: /kiosk'
-            );
-
-            exit;
         }
 
 
         $_SESSION['kiosk_employee_id'] =
-            $employee['id'];
+            (int)$employee['id'];
 
 
         $_SESSION['kiosk_employee_name'] =
-            $employee['first_name']
-            .
-            ' '
-            .
-            $employee['last_name'];
+            trim(
+                (string)$employee['first_name']
+                .
+                ' '
+                .
+                (string)$employee['last_name']
+            );
+
+
+        $_SESSION['kiosk_authenticated'] =
+            false;
+
+
+        $this->touchKioskActivity();
 
 
         $this->render(
@@ -102,7 +152,10 @@ class KioskController extends Controller
                     $employee,
 
                 'kioskTimezone' =>
-                    $this->kioskTimezone()
+                    $this->kioskTimezone(),
+
+                'kioskTimeoutSeconds' =>
+                    $this->kioskTimeoutSeconds()
             ]
         );
     }
@@ -111,31 +164,32 @@ class KioskController extends Controller
     public function verifyPin(): void
     {
         $employeeId =
-            $_SESSION['kiosk_employee_id']
-            ??
-            null;
-
-
-        if (!$employeeId) {
-
-            header(
-                'Location: /kiosk'
-            );
-
-            exit;
-        }
+            $this->requireActiveKioskTransaction();
 
 
         $employee =
             $this->employees->find(
-                (int)$employeeId
+                $employeeId
             );
 
 
+        if (!$employee) {
+
+            $this->clearKioskSession();
+
+
+            $this->redirectToKiosk(
+                'employee-not-found'
+            );
+        }
+
+
         $pin =
-            $_POST['pin']
-            ??
-            '';
+            (string)(
+                $_POST['pin']
+                ??
+                ''
+            );
 
 
         if (
@@ -145,16 +199,12 @@ class KioskController extends Controller
             )
         ) {
 
-            Flash::error(
-                'Invalid PIN.'
+            $this->clearKioskSession();
+
+
+            $this->redirectToKiosk(
+                'invalid-pin'
             );
-
-
-            header(
-                'Location: /kiosk'
-            );
-
-            exit;
         }
 
 
@@ -162,9 +212,12 @@ class KioskController extends Controller
             true;
 
 
+        $this->touchKioskActivity();
+
+
         $status =
             $this->punches->status(
-                (int)$employee['id']
+                $employeeId
             );
 
 
@@ -181,7 +234,10 @@ class KioskController extends Controller
                     $status,
 
                 'kioskTimezone' =>
-                    $this->kioskTimezone()
+                    $this->kioskTimezone(),
+
+                'kioskTimeoutSeconds' =>
+                    $this->kioskTimeoutSeconds()
             ]
         );
     }
@@ -189,27 +245,18 @@ class KioskController extends Controller
 
     public function punch(): void
     {
-        if (
-            empty(
-                $_SESSION['kiosk_authenticated']
-            )
-        ) {
-            header(
-                'Location: /kiosk'
-            );
-
-            exit;
-        }
-
-
         $employeeId =
-            (int)$_SESSION['kiosk_employee_id'];
+            $this->requireActiveKioskTransaction(
+                true
+            );
 
 
         $type =
-            $_POST['type']
-            ??
-            '';
+            (string)(
+                $_POST['type']
+                ??
+                ''
+            );
 
 
         $result =
@@ -217,6 +264,13 @@ class KioskController extends Controller
                 $employeeId,
                 $type
             );
+
+
+        /*
+         * The kiosk transaction ends immediately after the punch attempt,
+         * whether the punch succeeds or fails.
+         */
+        $this->clearKioskSession();
 
 
         if (!$result['success']) {
@@ -237,7 +291,227 @@ class KioskController extends Controller
             'Location: /kiosk'
         );
 
+
         exit;
+    }
+
+
+    private function requireActiveKioskTransaction(
+        bool $requireAuthentication = false
+    ): int
+    {
+        $employeeId =
+            (int)(
+                $_SESSION['kiosk_employee_id']
+                ??
+                0
+            );
+
+
+        if (
+            $employeeId <= 0
+            ||
+            $this->kioskTransactionExpired()
+        ) {
+
+            $this->clearKioskSession();
+
+
+            $this->redirectToKiosk(
+                'timeout'
+            );
+        }
+
+
+        if (
+            $requireAuthentication
+            &&
+            empty(
+                $_SESSION['kiosk_authenticated']
+            )
+        ) {
+
+            $this->clearKioskSession();
+
+
+            $this->redirectToKiosk(
+                'timeout'
+            );
+        }
+
+
+        /*
+         * Submitting a valid form is itself kiosk activity.
+         */
+        $this->touchKioskActivity();
+
+
+        return $employeeId;
+    }
+
+
+    private function isActivityHeartbeatRequest(): bool
+    {
+        return
+            (string)(
+                $_GET['activity']
+                ??
+                ''
+            )
+            ===
+            '1';
+    }
+
+
+    private function handleActivityHeartbeat(): void
+    {
+        header(
+            'Cache-Control: no-store, no-cache, must-revalidate'
+        );
+
+
+        if (
+            (int)(
+                $_SESSION['kiosk_employee_id']
+                ??
+                0
+            )
+            <=
+            0
+        ) {
+
+            http_response_code(
+                204
+            );
+
+
+            return;
+        }
+
+
+        if ($this->kioskTransactionExpired()) {
+
+            $this->clearKioskSession();
+
+
+            http_response_code(
+                409
+            );
+
+
+            return;
+        }
+
+
+        $this->touchKioskActivity();
+
+
+        http_response_code(
+            204
+        );
+    }
+
+
+    private function kioskTransactionExpired(): bool
+    {
+        $lastActivity =
+            (int)(
+                $_SESSION['kiosk_last_activity']
+                ??
+                0
+            );
+
+
+        if ($lastActivity <= 0) {
+
+            return true;
+        }
+
+
+        return
+            (
+                time()
+                -
+                $lastActivity
+            )
+            >=
+            $this->kioskTimeoutSeconds();
+    }
+
+
+    private function touchKioskActivity(): void
+    {
+        $_SESSION['kiosk_last_activity'] =
+            time();
+    }
+
+
+    private function clearKioskSession(): void
+    {
+        unset(
+            $_SESSION['kiosk_employee_id'],
+            $_SESSION['kiosk_employee_name'],
+            $_SESSION['kiosk_authenticated'],
+            $_SESSION['kiosk_last_activity']
+        );
+    }
+
+
+    private function redirectToKiosk(
+        string $reason = ''
+    ): never
+    {
+        $location =
+            '/kiosk';
+
+
+        if ($reason !== '') {
+
+            $location .=
+                '?reset='
+                .
+                rawurlencode(
+                    $reason
+                );
+        }
+
+
+        header(
+            'Location: '
+            .
+            $location
+        );
+
+
+        exit;
+    }
+
+
+    private function kioskTimeoutSeconds(): int
+    {
+        $settings =
+            $this->settings->get();
+
+
+        $timeout =
+            (int)(
+                $settings['kiosk_inactivity_timeout_seconds']
+                ??
+                self::DEFAULT_TIMEOUT_SECONDS
+            );
+
+
+        if (
+            $timeout < self::MINIMUM_TIMEOUT_SECONDS
+            ||
+            $timeout > self::MAXIMUM_TIMEOUT_SECONDS
+        ) {
+
+            return self::DEFAULT_TIMEOUT_SECONDS;
+        }
+
+
+        return $timeout;
     }
 
 
@@ -248,9 +522,11 @@ class KioskController extends Controller
 
 
         $timezone =
-            $settings['timezone']
-            ??
-            'America/Los_Angeles';
+            (string)(
+                $settings['timezone']
+                ??
+                'America/Los_Angeles'
+            );
 
 
         if (
@@ -260,6 +536,7 @@ class KioskController extends Controller
                 true
             )
         ) {
+
             return 'America/Los_Angeles';
         }
 

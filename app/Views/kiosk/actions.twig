@@ -4,109 +4,131 @@
 
 {% include "kiosk/_clock.twig" %}
 
+{% include "kiosk/_inactivity_timeout.twig" %}
+
+
 <div class="container text-center">
 
-<h1>
-Hello {{ employee.first_name }}
-{{ employee.last_name }}
-</h1>
+    <h1>
+        Hello {{ employee.first_name }}
+        {{ employee.last_name }}
+    </h1>
 
 
-<div class="card shadow-sm mx-auto my-4"
-     style="max-width:400px;">
+    <div
+        class="card shadow-sm mx-auto my-4"
+        style="max-width:400px;"
+    >
 
-<div class="card-body">
-
-
-<h4>
-Current Status
-</h4>
+        <div class="card-body">
 
 
-<h2>
-
-{% if status.state == 'working' %}
-
-<span class="text-success">
-{{ status.label }}
-</span>
-
-{% else %}
-
-<span class="text-secondary">
-{{ status.label }}
-</span>
-
-{% endif %}
-
-</h2>
+            <h4>
+                Current Status
+            </h4>
 
 
-{% if status.punch %}
+            <h2>
 
-<p>
-Last punch:
-<br>
+                {% if status.state == 'working' %}
 
-{{ status.punch.punch_time|company_date }}
+                    <span class="text-success">
+                        {{ status.label }}
+                    </span>
 
-</p>
+                {% else %}
 
-{% endif %}
+                    <span class="text-secondary">
+                        {{ status.label }}
+                    </span>
 
+                {% endif %}
 
-</div>
-
-</div>
-
-
-<div class="d-grid gap-3 mx-auto"
-     style="max-width:400px;">
+            </h2>
 
 
-{% if status.state == 'working' %}
+            {% if status.punch %}
 
-<form method="post"
-      action="/kiosk/punch">
+                <p>
+                    Last punch:
+                    <br>
 
-<input type="hidden"
-       name="type"
-       value="clock_out">
+                    {{ status.punch.punch_time|company_date }}
+                </p>
 
-<button
-class="btn btn-danger btn-lg w-100">
-
-Clock Out
-
-</button>
-
-</form>
+            {% endif %}
 
 
-{% else %}
+        </div>
+
+    </div>
 
 
-<form method="post"
-      action="/kiosk/punch">
-
-<input type="hidden"
-       name="type"
-       value="clock_in">
-
-<button
-class="btn btn-success btn-lg w-100">
-
-Clock In
-
-</button>
-
-</form>
+    <div
+        class="d-grid gap-3 mx-auto"
+        style="max-width:400px;"
+    >
 
 
-{% endif %}
+        {% if status.state == 'working' %}
+
+            <form
+                method="post"
+                action="/kiosk/punch"
+            >
+
+                <input
+                    type="hidden"
+                    name="type"
+                    value="clock_out"
+                >
+
+                <button
+                    class="btn btn-danger btn-lg w-100"
+                    type="submit"
+                >
+                    Clock Out
+                </button>
+
+            </form>
 
 
-</div>
+        {% else %}
+
+
+            <form
+                method="post"
+                action="/kiosk/punch"
+            >
+
+                <input
+                    type="hidden"
+                    name="type"
+                    value="clock_in"
+                >
+
+                <button
+                    class="btn btn-success btn-lg w-100"
+                    type="submit"
+                >
+                    Clock In
+                </button>
+
+            </form>
+
+
+        {% endif %}
+
+
+        <a
+            href="/kiosk"
+            class="btn btn-outline-secondary btn-lg w-100"
+        >
+            Cancel
+        </a>
+
+
+    </div>
 
 
 </div>

@@ -4,57 +4,83 @@
 
 {% include "kiosk/_clock.twig" %}
 
+{% include "kiosk/_inactivity_timeout.twig" %}
+
+
 <div class="container text-center">
 
-<h1 class="mb-4">
-Enter PIN
-</h1>
+    <h1 class="mb-4">
+        Enter PIN
+    </h1>
 
 
-<div class="card shadow-sm mx-auto"
-     style="max-width:400px;">
+    <div
+        class="card shadow-sm mx-auto"
+        style="max-width:400px;"
+    >
 
-<div class="card-body">
-
-
-<p class="lead">
-
-{{ employee.first_name }}
-{{ employee.last_name }}
-
-</p>
+        <div class="card-body">
 
 
-<form method="post"
-      action="/kiosk/verify-pin">
+            <p class="lead">
+
+                {{ employee.first_name }}
+                {{ employee.last_name }}
+
+            </p>
 
 
-<input
-    type="password"
-    name="pin"
-    maxlength="4"
-    inputmode="numeric"
-    class="form-control form-control-lg text-center mb-3"
-    autofocus
->
+            <form
+                method="post"
+                action="/kiosk/verify-pin"
+                autocomplete="off"
+            >
 
 
-<button
-    class="btn btn-success btn-lg w-100"
-    type="submit"
->
-
-Continue
-
-</button>
+                <label
+                    class="visually-hidden"
+                    for="pin"
+                >
+                    Employee PIN
+                </label>
 
 
-</form>
+                <input
+                    type="password"
+                    id="pin"
+                    name="pin"
+                    maxlength="4"
+                    inputmode="numeric"
+                    pattern="[0-9]{4}"
+                    autocomplete="off"
+                    class="form-control form-control-lg text-center mb-3"
+                    autofocus
+                    required
+                >
 
 
-</div>
+                <button
+                    class="btn btn-success btn-lg w-100"
+                    type="submit"
+                >
+                    Continue
+                </button>
 
-</div>
+
+            </form>
+
+
+            <a
+                href="/kiosk"
+                class="btn btn-outline-secondary w-100 mt-3"
+            >
+                Cancel
+            </a>
+
+
+        </div>
+
+    </div>
 
 </div>
 

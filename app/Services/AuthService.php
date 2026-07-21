@@ -7,6 +7,12 @@ use App\Repositories\UserRepository;
 
 class AuthService
 {
+    private const AUTHORIZED_ROLES = [
+        'admin',
+        'supervisor'
+    ];
+
+
     private UserRepository $users;
 
 
@@ -18,9 +24,13 @@ class AuthService
             $users;
     }
 
+
     public function setupComplete(): bool
     {
-        return $this->users->countUsers() > 0;
+        return
+            $this->users->countUsers()
+            >
+            0;
     }
 
 
@@ -28,12 +38,14 @@ class AuthService
         string $username,
         string $email,
         string $password
-    ): int {
+    ): int
+    {
+        $hash =
+            password_hash(
+                $password,
+                PASSWORD_DEFAULT
+            );
 
-        $hash = password_hash(
-            $password,
-            PASSWORD_DEFAULT
-        );
 
         return $this->users->create(
             $username,
@@ -46,23 +58,110 @@ class AuthService
     public function attemptLogin(
         string $username,
         string $password
-    ): bool {
+    ): bool
+    {
+        $username =
+            trim(
+                $username
+            );
 
-        $user = $this->users
-            ->findByUsername($username);
+
+        if (
+            $username === ''
+            ||
+            $password === ''
+        ) {
+            return false;
+        }
+
+
+        $user =
+            $this->users->findByUsername(
+                $username
+            );
+
 
         if (!$user) {
+
             return false;
         }
 
-        if (!password_verify(
-            $password,
-            $user['password_hash']
-        )) {
+
+        if (
+            (int)(
+                $user['active']
+                ??
+                0
+            )
+            !==
+            1
+        ) {
             return false;
         }
 
-        $_SESSION['user_id'] = $user['id'];
+
+        $role =
+            strtolower(
+                trim(
+                    (string)(
+                        $user['role']
+                        ??
+                        ''
+                    )
+                )
+            );
+
+
+        if (
+            !in_array(
+                $role,
+                self::AUTHORIZED_ROLES,
+                true
+            )
+        ) {
+            return false;
+        }
+
+
+        if (
+            !password_verify(
+                $password,
+                (string)$user['password_hash']
+            )
+        ) {
+            return false;
+        }
+
+
+        session_regenerate_id(
+            true
+        );
+
+
+        $_SESSION['user_id'] =
+            (int)$user['id'];
+
+
+        $_SESSION['username'] =
+            (string)$user['username'];
+
+
+        $_SESSION['user_role'] =
+            $role;
+
+
+        $_SESSION['authenticated_at'] =
+            time();
+
+
+        $_SESSION['last_activity'] =
+            time();
+
+
+        $this->users->updateLastLogin(
+            (int)$user['id']
+        );
+
 
         return true;
     }
@@ -70,6 +169,66 @@ class AuthService
 
     public function logout(): void
     {
-        unset($_SESSION['user_id']);
+        $_SESSION = [];
+
+
+        if (
+            ini_get(
+                'session.use_cookies'
+            )
+        ) {
+            $parameters =
+                session_get_cookie_params();
+
+
+            setcookie(
+                session_name(),
+                '',
+                [
+                    'expires' =>
+                        time()
+                        -
+                        42000,
+
+                    'path' =>
+                        $parameters['path']
+                        ??
+                        '/',
+
+                    'domain' =>
+                        $parameters['domain']
+                        ??
+                        '',
+
+                    'secure' =>
+                        (bool)(
+                            $parameters['secure']
+                            ??
+                            false
+                        ),
+
+                    'httponly' =>
+                        (bool)(
+                            $parameters['httponly']
+                            ??
+                            true
+                        ),
+
+                    'samesite' =>
+                        $parameters['samesite']
+                        ??
+                        'Lax'
+                ]
+            );
+        }
+
+
+        if (
+            session_status()
+            ===
+            PHP_SESSION_ACTIVE
+        ) {
+            session_destroy();
+        }
     }
 }

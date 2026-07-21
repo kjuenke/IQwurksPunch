@@ -114,6 +114,14 @@ class CompanySettingsService
             );
 
 
+        $kioskInactivityTimeoutSeconds =
+            (int)(
+                $data['kiosk_inactivity_timeout_seconds']
+                ??
+                60
+            );
+
+
         if ($companyName === '') {
 
             $errors['company_name'] =
@@ -245,6 +253,17 @@ class CompanySettingsService
         }
 
 
+        if (
+            $kioskInactivityTimeoutSeconds < 15
+            ||
+            $kioskInactivityTimeoutSeconds > 600
+        ) {
+
+            $errors['kiosk_inactivity_timeout_seconds'] =
+                'Kiosk inactivity timeout must be between 15 and 600 seconds.';
+        }
+
+
         if (!empty($errors)) {
 
             return [
@@ -326,7 +345,10 @@ class CompanySettingsService
                         $mealDeductionMinutes,
 
                     'paid_break_minutes' =>
-                        $paidBreakMinutes
+                        $paidBreakMinutes,
+
+                    'kiosk_inactivity_timeout_seconds' =>
+                        $kioskInactivityTimeoutSeconds
                 ]
             );
 
