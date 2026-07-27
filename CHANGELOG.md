@@ -6,6 +6,464 @@ The project follows Semantic Versioning for stable releases and generally follow
 
 ---
 
+## [0.7.0] - 2026-07-27
+
+### Added
+
+#### Payroll Review Periods
+
+- Added payroll periods with company-local inclusive start and end dates.
+- Added payroll-period names with a maximum length of 150 characters.
+- Added a maximum period duration of 31 calendar days.
+- Added overlapping-period prevention.
+- Added payroll-period list, creation, and detail interfaces.
+- Added direct links between payroll periods and matching Payroll Workspace reports.
+- Added migration `012_create_payroll_review_tables.php`.
+
+Payroll-period states are:
+
+```text
+open
+under_review
+approved
+locked
+```
+
+#### Payroll Review and Approval Workflow
+
+- Added transition from `open` to `under_review`.
+- Added transition from `under_review` back to `open`.
+- Added transition from `under_review` to `approved`.
+- Added transition from `approved` to `locked`.
+- Added reopening from `approved` or `locked` to `under_review`.
+- Added explicit approval confirmation.
+- Added exact `LOCK` confirmation for final locking.
+- Added required reopening reasons of at least 10 characters.
+- Added a maximum workflow-reason length of 1,000 characters.
+- Added concurrency-aware state transitions.
+- Added transactional state changes and immutable history creation.
+- Added approval blocking while unresolved exceptions remain.
+- Added approving and locking supervisor metadata.
+- Added approval and lock timestamps.
+- Added clearing of active approval and lock fields during reopening while preserving prior history.
+
+#### Immutable Workflow Records
+
+- Added `payroll_period_history`.
+- Added immutable history for:
+  - Period creation
+  - Beginning review
+  - Returning to open
+  - Approval
+  - Locking
+  - Reopening
+  - Review-note creation
+  - Exception resolution
+  - Exception acceptance
+- Added previous and new status values.
+- Added acting-user identification.
+- Added preserved workflow reasons.
+- Added workflow-history display on the payroll-period detail page.
+
+#### Payroll Review Notes
+
+- Added immutable supervisor review notes.
+- Added note author and timestamp metadata.
+- Added note creation while a period is open or under review.
+- Added required nonblank note validation.
+- Added a maximum review-note length of 1,000 characters.
+- Added matching browser-side `maxlength` enforcement.
+- Added user-facing immutable-record guidance.
+- Added transactional note and history creation.
+
+#### Payroll Exception Review
+
+- Added payroll-exception synchronization from Payroll Workspace results.
+- Added stable SHA-256 exception keys.
+- Added support for:
+  - Missing clock-out activity
+  - Missing clock-in activity
+  - Unmatched meal activity
+  - Unmatched break activity
+  - Overlapping punch activity
+  - Zero-duration shifts
+  - Invalid punch sequences
+  - Payroll calculation warnings
+- Added open, resolved, and accepted exception states.
+- Added exception refreshing.
+- Added deletion of stale open exceptions.
+- Added reopening of resolved exceptions when the issue returns.
+- Added preservation of accepted exceptions during refresh.
+- Added optional resolution notes.
+- Added required explanations when accepting an exception.
+- Added a minimum accepted-exception explanation length of 10 characters.
+- Added a maximum exception-note length of 1,000 characters.
+- Added transactional exception status and history updates.
+
+Exception states are:
+
+```text
+open
+resolved
+accepted
+```
+
+#### Punch Protection
+
+- Added `PayrollPeriodProtectionService`.
+- Added company-timezone conversion of stored UTC punch timestamps.
+- Added service-layer protection for approved and locked payroll periods.
+- Added protection when:
+  - Creating a manual punch
+  - Editing an existing punch
+  - Deleting a punch
+- Added validation of both original and proposed punch dates during edits.
+- Added detailed protected-period error messages.
+- Added shared protection-service registration through the dependency container.
+
+Punch corrections are protected when the company-local punch date falls within an:
+
+```text
+approved
+locked
+```
+
+payroll period.
+
+#### Payroll Report Metadata
+
+- Added exact payroll-period association to Payroll Workspace reports.
+- Added partial-overlap detection.
+- Added explicit no-association reporting.
+- Prevented partial report ranges from inheriting approval or lock status.
+- Added payroll-period metadata including:
+  - Period ID
+  - Period name
+  - Date range
+  - Workflow status
+  - Created-by metadata
+  - Review metadata
+  - Approval metadata
+  - Lock metadata
+  - Open exception count
+  - Total exception count
+  - Approval-blocked state
+- Added protected-period warnings for approved and locked reports.
+- Added direct links from associated reports to payroll-period details.
+
+#### CSV, PDF, and Email Metadata
+
+- Added payroll-period metadata to Payroll Workspace CSV exports.
+- Added payroll-period metadata to Payroll Workspace PDFs.
+- Added payroll-period metadata to employee time-card PDFs.
+- Added partial-overlap and no-association notices to exported reports.
+- Added approved and locked punch-protection notices to PDFs.
+- Added payroll-period metadata to manual and scheduled daily payroll emails.
+- Added workflow status, exception counts, and approval metadata to email content.
+- Added payroll-period association metadata to report-generation logs.
+
+#### Authorization Hardening
+
+- Added reusable database-backed authorization validation by user ID.
+- Added active-account enforcement.
+- Added administrator and supervisor role enforcement.
+- Added database revalidation to payroll-period workflow actions.
+- Added database revalidation to punch-correction actions.
+- Added session synchronization from current database user records.
+- Added session cleanup when an account is missing, inactive, or unauthorized.
+- Added automated authorization tests for:
+  - Active administrators
+  - Active supervisors
+  - Inactive accounts
+  - Unauthorized roles
+  - Missing accounts
+  - Invalid user IDs
+  - Session synchronization
+
+#### CSRF Protection
+
+- Added `CsrfService`.
+- Added cryptographically secure 256-bit session tokens.
+- Added constant-time token comparison.
+- Added token creation, rotation, validation, and cleanup.
+- Added automatic CSRF fields to rendered POST forms.
+- Added centralized CSRF enforcement for all POST requests.
+- Added safe same-host redirects after invalid CSRF submissions.
+- Added route-specific fallback redirects.
+- Added `303 See Other` responses for rejected POST requests.
+- Added no-cache handling for rejected requests.
+- Changed logout from GET to a CSRF-protected POST form.
+- Removed the obsolete state-changing GET email-report route.
+- Added automated CSRF tests.
+
+#### Automated Tests
+
+- Added payroll-period creation and validation tests.
+- Added overlap-prevention tests.
+- Added approval and workflow-transition tests.
+- Added concurrency and rollback tests.
+- Added payroll-period protection tests.
+- Added protected punch-correction regression tests.
+- Added payroll-exception synchronization tests.
+- Added exception-resolution and acceptance tests.
+- Added immutable review-note tests.
+- Added review-note boundary tests.
+- Added payroll report metadata tests.
+- Added CSV and PDF metadata tests.
+- Added payroll email metadata tests.
+- Added authorization tests.
+- Added CSRF tests.
+
+The Version 0.7 test suite contains:
+
+```text
+136 tests
+693 assertions
+```
+
+### Changed
+
+- Updated the application version to `0.7.0`.
+- Changed payroll review from informal report warnings into an explicit auditable workflow.
+- Changed approved and locked payroll periods to protect matching punch dates.
+- Changed punch protection to use the configured company timezone.
+- Changed workflow actions to use database-validated authenticated users.
+- Changed state transitions to verify the expected current database status.
+- Changed approval to require zero unresolved exceptions.
+- Changed reopening to clear active approval and lock metadata without erasing history.
+- Changed reports to distinguish exact associations from partial overlaps.
+- Changed Payroll Workspace CSV, PDF, and email outputs to include workflow metadata.
+- Changed all POST requests to require CSRF validation.
+- Changed `/logout` to POST only.
+- Removed `/reports/send-daily-email`.
+- Changed CSV generation to explicitly supply the PHP 8.5 escape argument.
+- Added Payroll Periods to the Reports navigation.
+
+### Fixed
+
+- Fixed approved and locked payroll periods remaining editable through punch correction.
+- Fixed punch edits protecting only the proposed date instead of both the original and proposed dates.
+- Fixed workflow transitions potentially relying on stale browser state.
+- Fixed approval, locking, reopening, and exception changes lacking transactional immutable history.
+- Fixed resolved exceptions remaining resolved when the underlying issue returned.
+- Fixed partial-overlap reports potentially appearing to inherit a payroll-period status.
+- Fixed logout changing application state through GET.
+- Fixed the legacy email GET route bypassing CSRF validation.
+- Fixed PHP 8.5 CSV deprecation warnings.
+- Fixed payroll review notes having no application-level maximum length.
+- Fixed controller-local authorization checks trusting only a positive session user ID.
+
+### Security and Data Integrity
+
+- Every POST request now requires a valid session-bound CSRF token.
+- CSRF tokens use `random_bytes()` and `hash_equals()`.
+- Logout is POST only and CSRF protected.
+- Payroll workflow users are revalidated against the database.
+- Inactive accounts and unauthorized roles cannot perform workflow actions.
+- Payroll-period transitions use transactions and expected-state updates.
+- Approval is blocked while open exceptions remain.
+- Approved and locked periods protect matching company-local punch dates.
+- Both original and proposed punch dates are protected during editing.
+- Workflow history and review notes are append only.
+- Exception resolutions and acceptances are preserved with immutable history.
+- Reopening clears active metadata without deleting historical events.
+- Payroll-period overlap prevention protects date-range integrity.
+- Exact and partial report associations are distinguished.
+- SQLite foreign-key enforcement and WAL mode remain enabled.
+
+### Database Changes
+
+Added migration:
+
+```text
+012_create_payroll_review_tables.php
+```
+
+Added tables:
+
+```text
+payroll_periods
+payroll_period_history
+payroll_review_notes
+payroll_exception_resolutions
+```
+
+Added supporting indexes for:
+
+- Payroll-period dates
+- Payroll-period status
+- Workflow history
+- Workflow users
+- Review notes
+- Exception status
+- Exception employees
+
+The validated Version 0.7 database contains:
+
+```text
+16 tables
+12 applied migrations
+```
+
+### Upgrade Notes
+
+Installations upgrading from Version 0.6.0 should:
+
+1. Create and verify a database backup:
+
+```bash
+./iqwurks backup:create
+./iqwurks backup:verify
+```
+
+2. Enable maintenance mode:
+
+```bash
+./iqwurks maintenance:on Version 0.7 upgrade
+```
+
+3. Install the Version 0.7 source.
+4. Install or update Composer dependencies if required.
+5. Run migrations:
+
+```bash
+php migrate.php
+```
+
+6. Confirm migration 012 is recorded.
+7. Run database diagnostics:
+
+```bash
+./iqwurks database:check
+```
+
+8. Confirm:
+
+```text
+Integrity: ok
+Foreign-key violations: 0
+Journal mode: wal
+Tables: 16
+Migrations: 12
+```
+
+9. Log in as an active administrator or supervisor.
+10. Create a test payroll period.
+11. Confirm overlapping payroll periods are rejected.
+12. Open the exact matching Payroll Workspace date range.
+13. Refresh payroll exceptions.
+14. Resolve or accept any test exceptions.
+15. Begin payroll review.
+16. Confirm approval is blocked while an open exception exists.
+17. Approve the test payroll period.
+18. Confirm matching punch corrections are blocked.
+19. Lock the test payroll period using exact `LOCK` confirmation.
+20. Reopen the test payroll period with a reason of at least 10 characters.
+21. Confirm prior workflow events remain in history.
+22. Confirm review-note length validation.
+23. Confirm Payroll Workspace CSV metadata.
+24. Confirm Payroll Workspace PDF metadata.
+25. Confirm employee time-card PDF metadata.
+26. Confirm daily payroll email metadata.
+27. Confirm logout works through the POST form.
+28. Confirm GET `/logout` returns a not-found response.
+29. Confirm GET `/reports/send-daily-email` returns a not-found response.
+30. Run the complete automated suite:
+
+```bash
+php vendor/bin/phpunit --display-deprecations
+```
+
+Expected:
+
+```text
+OK (136 tests, 693 assertions)
+```
+
+31. Run scheduler diagnostics:
+
+```bash
+./iqwurks scheduler:check
+```
+
+32. Run mail diagnostics:
+
+```bash
+./iqwurks mail:check
+```
+
+33. Run the System Doctor:
+
+```bash
+./iqwurks doctor
+```
+
+34. Disable maintenance mode:
+
+```bash
+./iqwurks maintenance:off
+```
+
+35. Perform browser smoke testing for:
+    - Employee kiosk
+    - Supervisor login
+    - Dashboard
+    - Employee administration
+    - Punch correction
+    - Payroll reports
+    - Payroll Workspace
+    - Payroll periods
+    - Email reports
+    - Settings
+    - Logout
+
+No manual data conversion is required beyond migration 012.
+
+### Known Limitations
+
+- Workflow metadata is associated only when a report range exactly matches one payroll period.
+- Partial overlaps intentionally do not inherit approval or lock status.
+- Advanced payroll-period list filtering is not yet implemented.
+- Standalone reopen and workflow-history pages are not yet implemented.
+- Export filenames do not yet include workflow-status suffixes.
+- Department-level payroll-review summaries are not yet implemented.
+- External payroll-provider export profiles are not yet implemented.
+- Manual and scheduled weekly payroll emails are not yet implemented.
+- Scheduled exception-report delivery is not yet implemented.
+- PDF and CSV email attachments are not yet implemented.
+- A guided installation wizard is not yet implemented.
+- An automated application-upgrade command is not yet implemented.
+- Release packaging is not yet implemented.
+- The console does not yet provide a universal per-command `--help` option.
+- Multiple companies and physical locations are not yet supported.
+- The validated deployment uses HTTP on a trusted local network.
+- HTTPS should be added before exposing the application across an untrusted network.
+
+### Release Validation
+
+Current validated baseline:
+
+```text
+Application version: 0.7.0
+PHP version: 8.5.4
+PHPUnit version: 12.5.31
+Tests: 136
+Assertions: 693
+Database tables: 16
+Applied migrations: 12
+SQLite journal mode: wal
+Database integrity: ok
+Foreign-key violations: 0
+```
+
+All application, migration, route, and test PHP files pass syntax validation.
+
+`git diff --check` reports no whitespace errors.
+
+Version 0.7.0 completed production validation, backup verification, diagnostics, browser acceptance testing, and release preparation.
+
+---
+
 ## [0.6.0] - 2026-07-21
 
 ### Added

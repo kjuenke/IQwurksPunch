@@ -12,6 +12,7 @@ use App\Controllers\LaborRulesController;
 use App\Controllers\NotificationRecipientController;
 use App\Controllers\PayrollController;
 use App\Controllers\PayrollExportController;
+use App\Controllers\PayrollPeriodController;
 use App\Controllers\PunchCorrectionController;
 use App\Controllers\ReportController;
 use App\Controllers\ReportEmailController;
@@ -25,7 +26,8 @@ use App\Controllers\SetupController;
 |--------------------------------------------------------------------------
 */
 
-$home = new HomeController();
+$home =
+    new HomeController();
 
 $router->get(
     '/',
@@ -39,7 +41,8 @@ $router->get(
 |--------------------------------------------------------------------------
 */
 
-$setup = new SetupController();
+$setup =
+    new SetupController();
 
 $router->get(
     '/setup',
@@ -58,7 +61,8 @@ $router->post(
 |--------------------------------------------------------------------------
 */
 
-$auth = new AuthController();
+$auth =
+    new AuthController();
 
 $router->get(
     '/login',
@@ -70,7 +74,7 @@ $router->post(
     [$auth, 'authenticate']
 );
 
-$router->get(
+$router->post(
     '/logout',
     [$auth, 'logout']
 );
@@ -82,7 +86,8 @@ $router->get(
 |--------------------------------------------------------------------------
 */
 
-$dashboard = new DashboardController();
+$dashboard =
+    new DashboardController();
 
 $router->get(
     '/dashboard',
@@ -96,7 +101,8 @@ $router->get(
 |--------------------------------------------------------------------------
 */
 
-$employees = new EmployeeController();
+$employees =
+    new EmployeeController();
 
 $router->get(
     '/employees',
@@ -195,7 +201,8 @@ $router->post(
 |--------------------------------------------------------------------------
 */
 
-$kiosk = new KioskController();
+$kiosk =
+    new KioskController();
 
 $router->get(
     '/kiosk',
@@ -224,7 +231,8 @@ $router->post(
 |--------------------------------------------------------------------------
 */
 
-$reports = new ReportController();
+$reports =
+    new ReportController();
 
 $router->get(
     '/reports/punches',
@@ -238,7 +246,8 @@ $router->get(
 |--------------------------------------------------------------------------
 */
 
-$payroll = new PayrollController();
+$payroll =
+    new PayrollController();
 
 $router->get(
     '/reports/payroll',
@@ -253,6 +262,81 @@ $router->get(
 $router->get(
     '/reports/payroll/workspace',
     [$payroll, 'workspace']
+);
+
+
+/*
+|--------------------------------------------------------------------------
+| Payroll Review Periods
+|--------------------------------------------------------------------------
+*/
+
+$payrollPeriods =
+    new PayrollPeriodController();
+
+$router->get(
+    '/payroll-periods',
+    [$payrollPeriods, 'index']
+);
+
+$router->get(
+    '/payroll-periods/create',
+    [$payrollPeriods, 'create']
+);
+
+$router->post(
+    '/payroll-periods/create',
+    [$payrollPeriods, 'store']
+);
+
+$router->get(
+    '/payroll-periods/{id}',
+    [$payrollPeriods, 'show']
+);
+
+$router->post(
+    '/payroll-periods/{id}/begin-review',
+    [$payrollPeriods, 'beginReview']
+);
+
+$router->post(
+    '/payroll-periods/{id}/return-open',
+    [$payrollPeriods, 'returnToOpen']
+);
+
+$router->post(
+    '/payroll-periods/{id}/approve',
+    [$payrollPeriods, 'approve']
+);
+
+$router->post(
+    '/payroll-periods/{id}/lock',
+    [$payrollPeriods, 'lock']
+);
+
+$router->post(
+    '/payroll-periods/{id}/reopen',
+    [$payrollPeriods, 'reopen']
+);
+
+$router->post(
+    '/payroll-periods/{id}/notes',
+    [$payrollPeriods, 'addNote']
+);
+
+$router->post(
+    '/payroll-periods/{id}/exceptions/refresh',
+    [$payrollPeriods, 'refreshExceptions']
+);
+
+$router->post(
+    '/payroll-periods/{id}/exceptions/resolve',
+    [$payrollPeriods, 'resolveException']
+);
+
+$router->post(
+    '/payroll-periods/{id}/exceptions/accept',
+    [$payrollPeriods, 'acceptException']
 );
 
 
@@ -307,7 +391,8 @@ $router->get(
 |--------------------------------------------------------------------------
 */
 
-$email = new EmailController();
+$email =
+    new EmailController();
 
 $router->get(
     '/reports/email-test',
@@ -315,7 +400,8 @@ $router->get(
 );
 
 
-$reportEmail = new ReportEmailController();
+$reportEmail =
+    new ReportEmailController();
 
 $router->get(
     '/reports/email',
@@ -335,23 +421,12 @@ $router->post(
 
 /*
 |--------------------------------------------------------------------------
-| Legacy Manual Email Route
-|--------------------------------------------------------------------------
-*/
-
-$router->get(
-    '/reports/send-daily-email',
-    [$reportEmail, 'sendDaily']
-);
-
-
-/*
-|--------------------------------------------------------------------------
 | Email History
 |--------------------------------------------------------------------------
 */
 
-$emailHistory = new EmailHistoryController();
+$emailHistory =
+    new EmailHistoryController();
 
 $router->get(
     '/reports/email-history',
@@ -405,7 +480,8 @@ $router->post(
 |--------------------------------------------------------------------------
 */
 
-$settings = new SettingsController();
+$settings =
+    new SettingsController();
 
 $router->get(
     '/admin/settings',

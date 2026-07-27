@@ -5,10 +5,8 @@ namespace App\Controllers;
 
 use App\Core\Container;
 use App\Core\Flash;
-use App\Repositories\EmployeeRepository;
-use App\Repositories\PunchCorrectionHistoryRepository;
-use App\Repositories\PunchRepository;
 use App\Services\AuditService;
+use App\Services\AuthGuardService;
 use App\Services\EmployeeService;
 use App\Services\PunchCorrectionService;
 
@@ -20,35 +18,27 @@ final class PunchCorrectionController extends Controller
 
     private AuditService $audit;
 
+    private AuthGuardService $authGuard;
+
 
     public function __construct()
     {
-        $database =
-            Container::db();
-
-
         $this->employees =
             Container::employeeService();
 
 
         $this->corrections =
-            new PunchCorrectionService(
-                $database,
-                new PunchRepository(
-                    $database
-                ),
-                new PunchCorrectionHistoryRepository(
-                    $database
-                ),
-                new EmployeeRepository(
-                    $database
-                ),
-                date_default_timezone_get()
-            );
+            Container::punchCorrectionService();
 
 
         $this->audit =
             Container::auditService();
+
+
+        $this->authGuard =
+            new AuthGuardService(
+                Container::userRepository()
+            );
     }
 
 
@@ -705,31 +695,20 @@ final class PunchCorrectionController extends Controller
 
     private function requireSupervisor(): int
     {
-        $userId =
-            (int)(
-                $_SESSION['user_id']
-                ??
-                0
-            );
-
-
-        if ($userId <= 0) {
-
-            Flash::error(
-                'Please log in as a supervisor.'
-            );
-
-
-            header(
-                'Location: /login'
-            );
-
-
-            exit;
-        }
-
-
-        return $userId;
+        return
+            $this->authGuard
+                ->requireAuthorizedUserId(
+                    (string)(
+                        $_SERVER['REQUEST_URI']
+                        ??
+                        '/employees'
+                    ),
+                    (string)(
+                        $_SERVER['REQUEST_METHOD']
+                        ??
+                        'GET'
+                    )
+                );
     }
 
 
@@ -810,6 +789,7 @@ final class PunchCorrectionController extends Controller
                 &&
                 $error !== ''
             ) {
+
                 return $error;
             }
         }

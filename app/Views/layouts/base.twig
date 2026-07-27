@@ -109,7 +109,7 @@
 
                     <a
                         class="nav-link dropdown-toggle
-                            {% if activeMenu == 'reports' %}
+                            {% if activeMenu == 'reports' or activeMenu == 'payroll-periods' %}
                             active
                             {% endif %}
                         "
@@ -187,6 +187,26 @@
                                 <i class="bi bi-funnel me-2"></i>
 
                                 Payroll Workspace
+
+                            </a>
+
+                        </li>
+
+
+                        <li>
+
+                            <a
+                                class="dropdown-item
+                                    {% if activeMenu == 'payroll-periods' %}
+                                    active
+                                    {% endif %}
+                                "
+                                href="/payroll-periods"
+                            >
+
+                                <i class="bi bi-calendar2-check me-2"></i>
+
+                                Payroll Periods
 
                             </a>
 
@@ -338,16 +358,24 @@
 
                 <li class="nav-item">
 
-                    <a
-                        class="nav-link"
-                        href="/logout"
+                    <form
+                        method="post"
+                        action="/logout"
+                        class="d-inline"
                     >
 
-                        <i class="bi bi-box-arrow-right"></i>
+                        <button
+                            type="submit"
+                            class="nav-link border-0 bg-transparent"
+                        >
 
-                        Logout
+                            <i class="bi bi-box-arrow-right"></i>
 
-                    </a>
+                            Logout
+
+                        </button>
+
+                    </form>
 
                 </li>
 

@@ -399,8 +399,333 @@ final class PayrollWorkspaceCsvExporter extends CsvExporter
         ];
 
 
+        $this->appendPayrollPeriodMetadata(
+            $rows,
+            $summary
+        );
+
+
         return $this->createCsv(
             $rows
+        );
+    }
+
+
+    /**
+     * @param array<int,array<int,mixed>> $rows
+     * @param array<string,mixed> $summary
+     */
+    private function appendPayrollPeriodMetadata(
+        array &$rows,
+        array $summary
+    ): void
+    {
+        $association =
+            (string)(
+                $summary['payroll_period_association']
+                ??
+                'none'
+            );
+
+
+        $associationMessage =
+            (string)(
+                $summary[
+                    'payroll_period_association_message'
+                ]
+                ??
+                'This report is not associated with a payroll period.'
+            );
+
+
+        $rows[] = [];
+
+
+        $rows[] = [
+            'Payroll-Period Association',
+            $this->associationLabel(
+                $association
+            )
+        ];
+
+
+        $rows[] = [
+            'Payroll-Period Association Message',
+            $associationMessage
+        ];
+
+
+        $payrollPeriod =
+            $summary['payroll_period']
+            ??
+            null;
+
+
+        if (
+            $association !== 'exact'
+            ||
+            !is_array(
+                $payrollPeriod
+            )
+        ) {
+
+            $rows[] = [
+                'Payroll Period ID',
+                ''
+            ];
+
+
+            $rows[] = [
+                'Payroll Period Name',
+                ''
+            ];
+
+
+            $rows[] = [
+                'Payroll Workflow Status',
+                'Not Associated'
+            ];
+
+
+            $rows[] = [
+                'Open Payroll Exceptions',
+                ''
+            ];
+
+
+            $rows[] = [
+                'Total Payroll Exceptions',
+                ''
+            ];
+
+
+            $rows[] = [
+                'Approval Blocked',
+                ''
+            ];
+
+
+            return;
+        }
+
+
+        $rows[] = [
+            'Payroll Period ID',
+            (int)(
+                $payrollPeriod['id']
+                ??
+                0
+            )
+        ];
+
+
+        $rows[] = [
+            'Payroll Period Name',
+            (string)(
+                $payrollPeriod['period_name']
+                ??
+                ''
+            )
+        ];
+
+
+        $rows[] = [
+            'Payroll Period Start',
+            (string)(
+                $payrollPeriod['start_date']
+                ??
+                ''
+            )
+        ];
+
+
+        $rows[] = [
+            'Payroll Period End',
+            (string)(
+                $payrollPeriod['end_date']
+                ??
+                ''
+            )
+        ];
+
+
+        $rows[] = [
+            'Payroll Workflow Status',
+            $this->workflowStatusLabel(
+                (string)(
+                    $payrollPeriod['status']
+                    ??
+                    ''
+                )
+            )
+        ];
+
+
+        $rows[] = [
+            'Open Payroll Exceptions',
+            (int)(
+                $payrollPeriod['open_exception_count']
+                ??
+                0
+            )
+        ];
+
+
+        $rows[] = [
+            'Total Payroll Exceptions',
+            (int)(
+                $payrollPeriod['total_exception_count']
+                ??
+                0
+            )
+        ];
+
+
+        $rows[] = [
+            'Approval Blocked',
+            !empty(
+                $payrollPeriod['approval_blocked']
+            )
+                ? 'Yes'
+                : 'No'
+        ];
+
+
+        $rows[] = [
+            'Created At',
+            (string)(
+                $payrollPeriod['created_at']
+                ??
+                ''
+            )
+        ];
+
+
+        $rows[] = [
+            'Created By',
+            (string)(
+                $payrollPeriod['created_by_username']
+                ??
+                ''
+            )
+        ];
+
+
+        $rows[] = [
+            'Review Started At',
+            (string)(
+                $payrollPeriod['review_started_at']
+                ??
+                ''
+            )
+        ];
+
+
+        $rows[] = [
+            'Reviewed By',
+            (string)(
+                $payrollPeriod['reviewed_by_username']
+                ??
+                ''
+            )
+        ];
+
+
+        $rows[] = [
+            'Approved At',
+            (string)(
+                $payrollPeriod['approved_at']
+                ??
+                ''
+            )
+        ];
+
+
+        $rows[] = [
+            'Approved By',
+            (string)(
+                $payrollPeriod['approved_by_username']
+                ??
+                ''
+            )
+        ];
+
+
+        $rows[] = [
+            'Locked At',
+            (string)(
+                $payrollPeriod['locked_at']
+                ??
+                ''
+            )
+        ];
+
+
+        $rows[] = [
+            'Locked By',
+            (string)(
+                $payrollPeriod['locked_by_username']
+                ??
+                ''
+            )
+        ];
+
+
+        $rows[] = [
+            'Payroll Period Detail',
+            (string)(
+                $payrollPeriod['detail_url']
+                ??
+                ''
+            )
+        ];
+    }
+
+
+    private function associationLabel(
+        string $association
+    ): string
+    {
+        return
+            match ($association) {
+
+                'exact' =>
+                    'Exact Match',
+
+                'partial_overlap' =>
+                    'Partial Overlap',
+
+                'none' =>
+                    'No Association',
+
+                default =>
+                    ucwords(
+                        str_replace(
+                            '_',
+                            ' ',
+                            $association
+                        )
+                    )
+            };
+    }
+
+
+    private function workflowStatusLabel(
+        string $status
+    ): string
+    {
+        if ($status === '') {
+
+            return 'Unknown';
+        }
+
+
+        return ucwords(
+            str_replace(
+                '_',
+                ' ',
+                $status
+            )
         );
     }
 

@@ -47,13 +47,16 @@ final class PunchCorrectionService
 
     private DateTimeZone $utcTimezone;
 
+    private ?PayrollPeriodProtectionService $payrollPeriodProtection;
+
 
     public function __construct(
         PDO $db,
         PunchRepository $punches,
         PunchCorrectionHistoryRepository $history,
         EmployeeRepository $employees,
-        ?string $companyTimezone = null
+        ?string $companyTimezone = null,
+        ?PayrollPeriodProtectionService $payrollPeriodProtection = null
     )
     {
         $this->db =
@@ -70,6 +73,10 @@ final class PunchCorrectionService
 
         $this->employees =
             $employees;
+
+
+        $this->payrollPeriodProtection =
+            $payrollPeriodProtection;
 
 
         $timezone =
@@ -242,6 +249,11 @@ final class PunchCorrectionService
 
         try {
 
+            $this->assertTimestampIsEditable(
+                $validated['data']['punch_time_utc']
+            );
+
+
             $this->db->beginTransaction();
 
 
@@ -413,6 +425,16 @@ final class PunchCorrectionService
 
 
         try {
+
+            $this->assertTimestampIsEditable(
+                (string)$existing['punch_time']
+            );
+
+
+            $this->assertTimestampIsEditable(
+                $validated['data']['punch_time_utc']
+            );
+
 
             $this->db->beginTransaction();
 
@@ -606,6 +628,11 @@ final class PunchCorrectionService
 
 
         try {
+
+            $this->assertTimestampIsEditable(
+                (string)$existing['punch_time']
+            );
+
 
             $this->db->beginTransaction();
 
@@ -1362,5 +1389,24 @@ final class PunchCorrectionService
                 ''
             )
         );
+    }
+
+
+    private function assertTimestampIsEditable(
+        string $utcTimestamp
+    ): void
+    {
+        if ($this->payrollPeriodProtection === null) {
+
+            return;
+        }
+
+
+        $this->payrollPeriodProtection
+            ->assertUtcTimestampIsEditable(
+                $utcTimestamp,
+                $this->companyTimezone
+                    ->getName()
+            );
     }
 }

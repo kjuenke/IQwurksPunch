@@ -36,6 +36,7 @@ final class EmployeeTimeCardPdfExporter
             !==
             1
         ) {
+
             throw new InvalidArgumentException(
                 'An employee time card requires exactly one selected employee with payroll activity.'
             );
@@ -243,6 +244,12 @@ final class EmployeeTimeCardPdfExporter
                 : 'Needs Review';
 
 
+        $payrollPeriodSection =
+            $this->payrollPeriodSection(
+                $summary
+            );
+
+
         $dayRows = '';
 
 
@@ -419,11 +426,7 @@ final class EmployeeTimeCardPdfExporter
                     .
                     '<td colspan="10">'
                     .
-                    '<strong>'
-                    .
-                    'Warning: '
-                    .
-                    '</strong>'
+                    '<strong>Warning: </strong>'
                     .
                     $this->escape(
                         $warnings
@@ -705,6 +708,46 @@ final class EmployeeTimeCardPdfExporter
             .
             '}'
             .
+            '.payroll-period {'
+            .
+            'border: 1px solid #5b7fa3;'
+            .
+            'background: #eef5fb;'
+            .
+            'padding: 7px;'
+            .
+            'margin-bottom: 10px;'
+            .
+            'line-height: 1.6;'
+            .
+            '}'
+            .
+            '.payroll-period.warning {'
+            .
+            'border-color: #b8860b;'
+            .
+            'background: #fff7d6;'
+            .
+            '}'
+            .
+            '.payroll-period.neutral {'
+            .
+            'border-color: #aaa;'
+            .
+            'background: #f7f7f7;'
+            .
+            '}'
+            .
+            '.payroll-period-title {'
+            .
+            'font-size: 9px;'
+            .
+            'font-weight: bold;'
+            .
+            'margin-bottom: 4px;'
+            .
+            '}'
+            .
             '.totals-table {'
             .
             'margin-bottom: 12px;'
@@ -744,6 +787,32 @@ final class EmployeeTimeCardPdfExporter
             'vertical-align: top;'
             .
             'overflow-wrap: break-word;'
+            .
+            '}'
+            .
+            '.payroll-period-grid {'
+            .
+            'width: 100%;'
+            .
+            'border-collapse: collapse;'
+            .
+            'table-layout: fixed;'
+            .
+            '}'
+            .
+            '.payroll-period .payroll-period-grid td {'
+            .
+            'border: none;'
+            .
+            'padding: 2px 10px 2px 0;'
+            .
+            'vertical-align: top;'
+            .
+            '}'
+            .
+            '.payroll-period-label {'
+            .
+            'font-weight: bold;'
             .
             '}'
             .
@@ -866,6 +935,8 @@ final class EmployeeTimeCardPdfExporter
             $timezone
             .
             '</div>'
+            .
+            $payrollPeriodSection
             .
             '<div class="employee-box">'
             .
@@ -1134,6 +1205,343 @@ final class EmployeeTimeCardPdfExporter
             '</body>'
             .
             '</html>';
+    }
+
+
+    /**
+     * @param array<string,mixed> $summary
+     */
+    private function payrollPeriodSection(
+        array $summary
+    ): string
+    {
+        $association =
+            (string)(
+                $summary['payroll_period_association']
+                ??
+                'none'
+            );
+
+
+        $message =
+            (string)(
+                $summary[
+                    'payroll_period_association_message'
+                ]
+                ??
+                'This time card is not associated with a payroll period.'
+            );
+
+
+        $payrollPeriod =
+            $summary['payroll_period']
+            ??
+            null;
+
+
+        if (
+            $association === 'exact'
+            &&
+            is_array(
+                $payrollPeriod
+            )
+        ) {
+            $status =
+                (string)(
+                    $payrollPeriod['status']
+                    ??
+                    ''
+                );
+
+
+            $approvalBlocked =
+                !empty(
+                    $payrollPeriod['approval_blocked']
+                )
+                    ? 'Yes'
+                    : 'No';
+
+
+            return
+                '<div class="payroll-period">'
+                .
+                '<div class="payroll-period-title">'
+                .
+                'Exact Payroll-Period Association'
+                .
+                '</div>'
+                .
+                '<table class="payroll-period-grid">'
+                .
+                '<tr>'
+                .
+                '<td>'
+                .
+                '<span class="payroll-period-label">Period:</span> '
+                .
+                $this->escape(
+                    (string)(
+                        $payrollPeriod['period_name']
+                        ??
+                        ''
+                    )
+                )
+                .
+                '</td>'
+                .
+                '<td>'
+                .
+                '<span class="payroll-period-label">Period ID:</span> '
+                .
+                (int)(
+                    $payrollPeriod['id']
+                    ??
+                    0
+                )
+                .
+                '</td>'
+                .
+                '<td>'
+                .
+                '<span class="payroll-period-label">Workflow status:</span> '
+                .
+                $this->escape(
+                    $this->workflowStatusLabel(
+                        $status
+                    )
+                )
+                .
+                '</td>'
+                .
+                '</tr>'
+                .
+                '<tr>'
+                .
+                '<td>'
+                .
+                '<span class="payroll-period-label">Open exceptions:</span> '
+                .
+                (int)(
+                    $payrollPeriod['open_exception_count']
+                    ??
+                    0
+                )
+                .
+                '</td>'
+                .
+                '<td>'
+                .
+                '<span class="payroll-period-label">Total exceptions:</span> '
+                .
+                (int)(
+                    $payrollPeriod['total_exception_count']
+                    ??
+                    0
+                )
+                .
+                '</td>'
+                .
+                '<td>'
+                .
+                '<span class="payroll-period-label">Approval blocked:</span> '
+                .
+                $approvalBlocked
+                .
+                '</td>'
+                .
+                '</tr>'
+                .
+                '<tr>'
+                .
+                '<td>'
+                .
+                '<span class="payroll-period-label">Review started:</span> '
+                .
+                $this->workflowRecord(
+                    $payrollPeriod['review_started_at']
+                    ??
+                    null,
+                    $payrollPeriod['reviewed_by_username']
+                    ??
+                    null
+                )
+                .
+                '</td>'
+                .
+                '<td>'
+                .
+                '<span class="payroll-period-label">Approved:</span> '
+                .
+                $this->workflowRecord(
+                    $payrollPeriod['approved_at']
+                    ??
+                    null,
+                    $payrollPeriod['approved_by_username']
+                    ??
+                    null
+                )
+                .
+                '</td>'
+                .
+                '<td>'
+                .
+                '<span class="payroll-period-label">Locked:</span> '
+                .
+                $this->workflowRecord(
+                    $payrollPeriod['locked_at']
+                    ??
+                    null,
+                    $payrollPeriod['locked_by_username']
+                    ??
+                    null
+                )
+                .
+                '</td>'
+                .
+                '</tr>'
+                .
+                '</table>'
+                .
+                (
+                    in_array(
+                        $status,
+                        [
+                            'approved',
+                            'locked'
+                        ],
+                        true
+                    )
+                        ? '<div><strong>Punch protection:</strong> '
+                        .
+                        'Punch corrections in this period require reopening the payroll period.'
+                        .
+                        '</div>'
+                        : ''
+                )
+                .
+                '</div>';
+        }
+
+
+        if ($association === 'partial_overlap') {
+
+            return
+                '<div class="payroll-period warning">'
+                .
+                '<div class="payroll-period-title">'
+                .
+                'Partial Payroll-Period Overlap'
+                .
+                '</div>'
+                .
+                $this->escape(
+                    $message
+                )
+                .
+                '<br>'
+                .
+                'This time card does not carry payroll approval, lock, or exception-resolution status because its report range is not an exact match.'
+                .
+                '</div>';
+        }
+
+
+        return
+            '<div class="payroll-period neutral">'
+            .
+            '<div class="payroll-period-title">'
+            .
+            'No Payroll-Period Association'
+            .
+            '</div>'
+            .
+            $this->escape(
+                $message
+            )
+            .
+            '<br>'
+            .
+            'This time card does not carry payroll review, approval, lock, or exception-resolution status.'
+            .
+            '</div>';
+    }
+
+
+    private function workflowRecord(
+        mixed $timestamp,
+        mixed $username
+    ): string
+    {
+        $timestamp =
+            trim(
+                (string)(
+                    $timestamp
+                    ??
+                    ''
+                )
+            );
+
+
+        $username =
+            trim(
+                (string)(
+                    $username
+                    ??
+                    ''
+                )
+            );
+
+
+        if (
+            $timestamp === ''
+            &&
+            $username === ''
+        ) {
+
+            return '—';
+        }
+
+
+        $record =
+            $timestamp === ''
+                ? 'Time unavailable'
+                : $this->escape(
+                    $timestamp
+                );
+
+
+        if ($username !== '') {
+
+            $record .=
+                ' by '
+                .
+                $this->escape(
+                    $username
+                );
+        }
+
+
+        return $record;
+    }
+
+
+    private function workflowStatusLabel(
+        string $status
+    ): string
+    {
+        if ($status === '') {
+
+            return 'Unknown';
+        }
+
+
+        return ucwords(
+            str_replace(
+                '_',
+                ' ',
+                $status
+            )
+        );
     }
 
 

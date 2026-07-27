@@ -2,8 +2,9 @@
 declare(strict_types=1);
 
 use App\Core\Container;
-use App\Repositories\UserRepository;
+use App\Core\Flash;
 use App\Services\AuthGuardService;
+use App\Services\CsrfService;
 use App\Services\MaintenanceModeService;
 
 require_once __DIR__
@@ -275,25 +276,276 @@ $app =
     '/../bootstrap/app.php';
 
 
-$guard =
-    new AuthGuardService(
-        new UserRepository(
-            Container::db()
-        )
-    );
-
-
-$guard->enforce(
+$requestUri =
     (string)(
         $_SERVER['REQUEST_URI']
         ??
         '/'
-    ),
-    (string)(
-        $_SERVER['REQUEST_METHOD']
-        ??
-        'GET'
-    )
+    );
+
+
+$requestMethod =
+    strtoupper(
+        (string)(
+            $_SERVER['REQUEST_METHOD']
+            ??
+            'GET'
+        )
+    );
+
+
+if ($requestMethod === 'POST') {
+
+    $csrf =
+        new CsrfService();
+
+
+    try {
+
+        $csrf->requireValidToken(
+            $_POST
+        );
+
+    } catch (\RuntimeException $exception) {
+
+        Flash::error(
+            $exception->getMessage()
+        );
+
+
+        $requestPath =
+            parse_url(
+                $requestUri,
+                PHP_URL_PATH
+            );
+
+
+        $requestPath =
+            is_string(
+                $requestPath
+            )
+                ? $requestPath
+                : '/';
+
+
+        $redirectTarget =
+            null;
+
+
+        $referer =
+            trim(
+                (string)(
+                    $_SERVER['HTTP_REFERER']
+                    ??
+                    ''
+                )
+            );
+
+
+        if ($referer !== '') {
+
+            $refererParts =
+                parse_url(
+                    $referer
+                );
+
+
+            if (
+                is_array(
+                    $refererParts
+                )
+            ) {
+
+                $refererPath =
+                    $refererParts['path']
+                    ??
+                    null;
+
+
+                $refererHost =
+                    strtolower(
+                        trim(
+                            (string)(
+                                $refererParts['host']
+                                ??
+                                ''
+                            )
+                        )
+                    );
+
+
+                $currentHost =
+                    parse_url(
+                        'http://'
+                        .
+                        (string)(
+                            $_SERVER['HTTP_HOST']
+                            ??
+                            ''
+                        ),
+                        PHP_URL_HOST
+                    );
+
+
+                $currentHost =
+                    strtolower(
+                        trim(
+                            is_string(
+                                $currentHost
+                            )
+                                ? $currentHost
+                                : ''
+                        )
+                    );
+
+
+                $safeHost =
+                    $refererHost === ''
+                    ||
+                    (
+                        $currentHost !== ''
+                        &&
+                        hash_equals(
+                            $currentHost,
+                            $refererHost
+                        )
+                    );
+
+
+                $safePath =
+                    is_string(
+                        $refererPath
+                    )
+                    &&
+                    str_starts_with(
+                        $refererPath,
+                        '/'
+                    )
+                    &&
+                    !str_starts_with(
+                        $refererPath,
+                        '//'
+                    );
+
+
+                if (
+                    $safeHost
+                    &&
+                    $safePath
+                ) {
+
+                    $redirectTarget =
+                        $refererPath;
+
+
+                    $refererQuery =
+                        $refererParts['query']
+                        ??
+                        null;
+
+
+                    if (
+                        is_string(
+                            $refererQuery
+                        )
+                        &&
+                        $refererQuery !== ''
+                    ) {
+
+                        $redirectTarget .=
+                            '?'
+                            .
+                            $refererQuery;
+                    }
+                }
+            }
+        }
+
+
+        if ($redirectTarget === null) {
+
+            if ($requestPath === '/login') {
+
+                $redirectTarget =
+                    '/login';
+
+            } elseif ($requestPath === '/setup') {
+
+                $redirectTarget =
+                    '/setup';
+
+            } elseif (
+                $requestPath === '/kiosk'
+                ||
+                str_starts_with(
+                    $requestPath,
+                    '/kiosk/'
+                )
+            ) {
+
+                $redirectTarget =
+                    '/kiosk';
+
+            } elseif (
+                $requestPath === '/payroll-periods'
+                ||
+                str_starts_with(
+                    $requestPath,
+                    '/payroll-periods/'
+                )
+            ) {
+
+                $redirectTarget =
+                    '/payroll-periods';
+
+            } elseif (
+                $requestPath === '/employees'
+                ||
+                str_starts_with(
+                    $requestPath,
+                    '/employees/'
+                )
+            ) {
+
+                $redirectTarget =
+                    '/employees';
+
+            } else {
+
+                $redirectTarget =
+                    '/dashboard';
+            }
+        }
+
+
+        header(
+            'Cache-Control: no-store, no-cache, must-revalidate, max-age=0'
+        );
+
+
+        header(
+            'Location: '
+            .
+            $redirectTarget,
+            true,
+            303
+        );
+
+
+        exit;
+    }
+}
+
+
+$guard =
+    new AuthGuardService(
+        Container::userRepository()
+    );
+
+
+$guard->enforce(
+    $requestUri,
+    $requestMethod
 );
 
 

@@ -4,8 +4,10 @@ declare(strict_types=1);
 namespace Tests\Unit\Services;
 
 use App\Repositories\EmployeeRepository;
+use App\Repositories\PayrollPeriodRepository;
 use App\Repositories\PunchCorrectionHistoryRepository;
 use App\Repositories\PunchRepository;
+use App\Services\PayrollPeriodProtectionService;
 use App\Services\PunchCorrectionService;
 use PDO;
 use PHPUnit\Framework\TestCase;
@@ -13,6 +15,8 @@ use PHPUnit\Framework\TestCase;
 final class PunchCorrectionServiceTest extends TestCase
 {
     private PDO $database;
+
+    private PayrollPeriodRepository $payrollPeriodRepository;
 
     private PunchCorrectionService $service;
 
@@ -67,13 +71,26 @@ final class PunchCorrectionServiceTest extends TestCase
             );
 
 
+        $this->payrollPeriodRepository =
+            new PayrollPeriodRepository(
+                $this->database
+            );
+
+
+        $payrollPeriodProtection =
+            new PayrollPeriodProtectionService(
+                $this->payrollPeriodRepository
+            );
+
+
         $this->service =
             new PunchCorrectionService(
                 $this->database,
                 $punches,
                 $history,
                 $employees,
-                'America/Los_Angeles'
+                'America/Los_Angeles',
+                $payrollPeriodProtection
             );
     }
 
@@ -645,6 +662,409 @@ final class PunchCorrectionServiceTest extends TestCase
     }
 
 
+    public function testCreateIsBlockedInsideApprovedPayrollPeriod(): void
+    {
+        $this->createPayrollPeriod(
+            'Approved Weekly Payroll',
+            '2026-01-05',
+            '2026-01-11',
+            'approved'
+        );
+
+
+        $result =
+            $this->service->create(
+                10,
+                [
+                    'punch_time' =>
+                        '2026-01-05T08:00',
+
+                    'punch_type' =>
+                        'clock_in',
+
+                    'notes' =>
+                        'Protected creation attempt',
+
+                    'reason' =>
+                        'Testing approved payroll protection'
+                ],
+                7
+            );
+
+
+        self::assertFalse(
+            $result['success']
+        );
+
+
+        self::assertArrayHasKey(
+            'punch',
+            $result['errors']
+        );
+
+
+        self::assertStringContainsString(
+            'approved payroll period',
+            $result['errors']['punch']
+        );
+
+
+        self::assertStringContainsString(
+            '"Approved Weekly Payroll"',
+            $result['errors']['punch']
+        );
+
+
+        self::assertStringContainsString(
+            'Reopen the payroll period before making corrections.',
+            $result['errors']['punch']
+        );
+
+
+        self::assertSame(
+            0,
+            $this->countRows(
+                'punches'
+            )
+        );
+
+
+        self::assertSame(
+            0,
+            $this->countRows(
+                'punch_correction_history'
+            )
+        );
+    }
+
+
+    public function testUpdateIsBlockedWhenOriginalPunchIsInsideLockedPeriod(): void
+    {
+        $this->insertPunch(
+            '2026-01-05 16:00:00',
+            'clock_in'
+        );
+
+
+        $clockOutId =
+            $this->insertPunch(
+                '2026-01-06 01:00:00',
+                'clock_out'
+            );
+
+
+        $this->createPayrollPeriod(
+            'Locked Weekly Payroll',
+            '2026-01-05',
+            '2026-01-11',
+            'locked'
+        );
+
+
+        $result =
+            $this->service->update(
+                $clockOutId,
+                [
+                    'punch_time' =>
+                        '2026-01-05T17:30',
+
+                    'punch_type' =>
+                        'clock_out',
+
+                    'notes' =>
+                        'Blocked locked-period update',
+
+                    'reason' =>
+                        'Testing locked payroll protection'
+                ],
+                7
+            );
+
+
+        self::assertFalse(
+            $result['success']
+        );
+
+
+        self::assertArrayHasKey(
+            'punch',
+            $result['errors']
+        );
+
+
+        self::assertStringContainsString(
+            'locked payroll period',
+            $result['errors']['punch']
+        );
+
+
+        $punch =
+            $this->punchById(
+                $clockOutId
+            );
+
+
+        self::assertSame(
+            '2026-01-06 01:00:00',
+            $punch['punch_time']
+        );
+
+
+        self::assertSame(
+            'kiosk',
+            $punch['source']
+        );
+
+
+        self::assertSame(
+            0,
+            $this->countRows(
+                'punch_correction_history'
+            )
+        );
+    }
+
+
+    public function testUpdateCannotMoveEditablePunchIntoApprovedPeriod(): void
+    {
+        $this->insertPunch(
+            '2026-01-12 16:00:00',
+            'clock_in'
+        );
+
+
+        $clockOutId =
+            $this->insertPunch(
+                '2026-01-13 01:00:00',
+                'clock_out'
+            );
+
+
+        $this->createPayrollPeriod(
+            'Approved Weekly Payroll',
+            '2026-01-05',
+            '2026-01-11',
+            'approved'
+        );
+
+
+        $result =
+            $this->service->update(
+                $clockOutId,
+                [
+                    'punch_time' =>
+                        '2026-01-05T17:00',
+
+                    'punch_type' =>
+                        'clock_out',
+
+                    'notes' =>
+                        'Attempt to move into approved period',
+
+                    'reason' =>
+                        'Testing protected destination date'
+                ],
+                7
+            );
+
+
+        self::assertFalse(
+            $result['success']
+        );
+
+
+        self::assertStringContainsString(
+            'approved payroll period',
+            $result['errors']['punch']
+        );
+
+
+        $punch =
+            $this->punchById(
+                $clockOutId
+            );
+
+
+        self::assertSame(
+            '2026-01-13 01:00:00',
+            $punch['punch_time']
+        );
+
+
+        self::assertSame(
+            0,
+            $this->countRows(
+                'punch_correction_history'
+            )
+        );
+    }
+
+
+    public function testDeleteIsBlockedInsideLockedPayrollPeriod(): void
+    {
+        $this->insertPunch(
+            '2026-01-05 16:00:00',
+            'clock_in'
+        );
+
+
+        $clockOutId =
+            $this->insertPunch(
+                '2026-01-06 01:00:00',
+                'clock_out'
+            );
+
+
+        $this->createPayrollPeriod(
+            'Final Locked Payroll',
+            '2026-01-05',
+            '2026-01-11',
+            'locked'
+        );
+
+
+        $result =
+            $this->service->delete(
+                $clockOutId,
+                'Testing locked-period deletion protection',
+                7
+            );
+
+
+        self::assertFalse(
+            $result['success']
+        );
+
+
+        self::assertArrayHasKey(
+            'punch',
+            $result['errors']
+        );
+
+
+        self::assertStringContainsString(
+            'locked payroll period',
+            $result['errors']['punch']
+        );
+
+
+        self::assertSame(
+            2,
+            $this->countRows(
+                'punches'
+            )
+        );
+
+
+        self::assertSame(
+            0,
+            $this->countRows(
+                'punch_correction_history'
+            )
+        );
+    }
+
+
+    public function testCorrectionIsAllowedAfterLockedPeriodIsReopened(): void
+    {
+        $this->insertPunch(
+            '2026-01-05 16:00:00',
+            'clock_in'
+        );
+
+
+        $clockOutId =
+            $this->insertPunch(
+                '2026-01-06 01:00:00',
+                'clock_out'
+            );
+
+
+        $payrollPeriodId =
+            $this->createPayrollPeriod(
+                'Reopened Weekly Payroll',
+                '2026-01-05',
+                '2026-01-11',
+                'locked'
+            );
+
+
+        $blockedResult =
+            $this->service->delete(
+                $clockOutId,
+                'Confirm deletion is initially blocked',
+                7
+            );
+
+
+        self::assertFalse(
+            $blockedResult['success']
+        );
+
+
+        $this->reopenPayrollPeriod(
+            $payrollPeriodId
+        );
+
+
+        $period =
+            $this->payrollPeriodRepository
+                ->find(
+                    $payrollPeriodId
+                );
+
+
+        self::assertNotNull(
+            $period
+        );
+
+
+        self::assertSame(
+            'under_review',
+            $period['status']
+        );
+
+
+        $result =
+            $this->service->delete(
+                $clockOutId,
+                'Correct payroll after reopening period',
+                7
+            );
+
+
+        self::assertTrue(
+            $result['success']
+        );
+
+
+        self::assertSame(
+            1,
+            $this->countRows(
+                'punches'
+            )
+        );
+
+
+        $history =
+            $this->historyByPunchId(
+                $clockOutId
+            );
+
+
+        self::assertSame(
+            'deleted',
+            $history['action']
+        );
+
+
+        self::assertSame(
+            'Correct payroll after reopening period',
+            $history['reason']
+        );
+    }
+
+
     private function createSchema(): void
     {
         $this->database->exec(
@@ -678,6 +1098,114 @@ final class PunchCorrectionServiceTest extends TestCase
                 notes TEXT NOT NULL DEFAULT '',
                 created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
                 updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            )
+            "
+        );
+
+
+        $this->database->exec(
+            "
+            CREATE TABLE payroll_periods
+            (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+
+                period_name TEXT NOT NULL,
+
+                start_date TEXT NOT NULL,
+
+                end_date TEXT NOT NULL,
+
+                status TEXT NOT NULL
+                    DEFAULT 'open',
+
+                created_by_user_id INTEGER NOT NULL,
+
+                reviewed_by_user_id INTEGER NULL,
+
+                approved_by_user_id INTEGER NULL,
+
+                locked_by_user_id INTEGER NULL,
+
+                created_at DATETIME NOT NULL
+                    DEFAULT CURRENT_TIMESTAMP,
+
+                review_started_at DATETIME NULL,
+
+                approved_at DATETIME NULL,
+
+                locked_at DATETIME NULL,
+
+                updated_at DATETIME NOT NULL
+                    DEFAULT CURRENT_TIMESTAMP,
+
+                FOREIGN KEY
+                (
+                    created_by_user_id
+                )
+                REFERENCES users(id)
+                ON DELETE RESTRICT,
+
+                FOREIGN KEY
+                (
+                    reviewed_by_user_id
+                )
+                REFERENCES users(id)
+                ON DELETE RESTRICT,
+
+                FOREIGN KEY
+                (
+                    approved_by_user_id
+                )
+                REFERENCES users(id)
+                ON DELETE RESTRICT,
+
+                FOREIGN KEY
+                (
+                    locked_by_user_id
+                )
+                REFERENCES users(id)
+                ON DELETE RESTRICT,
+
+                CHECK
+                (
+                    status IN
+                    (
+                        'open',
+                        'under_review',
+                        'approved',
+                        'locked'
+                    )
+                ),
+
+                CHECK
+                (
+                    start_date <= end_date
+                )
+            )
+            "
+        );
+
+
+        $this->database->exec(
+            "
+            CREATE INDEX idx_payroll_periods_dates
+
+            ON payroll_periods
+            (
+                start_date,
+                end_date
+            )
+            "
+        );
+
+
+        $this->database->exec(
+            "
+            CREATE INDEX idx_payroll_periods_status
+
+            ON payroll_periods
+            (
+                status
             )
             "
         );
@@ -795,6 +1323,202 @@ final class PunchCorrectionServiceTest extends TestCase
     }
 
 
+    private function createPayrollPeriod(
+        string $periodName,
+        string $startDate,
+        string $endDate,
+        string $status
+    ): int
+    {
+        $reviewedByUserId =
+            in_array(
+                $status,
+                [
+                    'under_review',
+                    'approved',
+                    'locked'
+                ],
+                true
+            )
+                ? 7
+                : null;
+
+
+        $reviewStartedAt =
+            $reviewedByUserId === null
+                ? null
+                : '2026-01-12 12:00:00';
+
+
+        $approvedByUserId =
+            in_array(
+                $status,
+                [
+                    'approved',
+                    'locked'
+                ],
+                true
+            )
+                ? 7
+                : null;
+
+
+        $approvedAt =
+            $approvedByUserId === null
+                ? null
+                : '2026-01-12 13:00:00';
+
+
+        $lockedByUserId =
+            $status === 'locked'
+                ? 7
+                : null;
+
+
+        $lockedAt =
+            $status === 'locked'
+                ? '2026-01-12 14:00:00'
+                : null;
+
+
+        $statement =
+            $this->database->prepare(
+                "
+                INSERT INTO payroll_periods
+                (
+                    period_name,
+                    start_date,
+                    end_date,
+                    status,
+                    created_by_user_id,
+                    reviewed_by_user_id,
+                    approved_by_user_id,
+                    locked_by_user_id,
+                    review_started_at,
+                    approved_at,
+                    locked_at
+                )
+
+                VALUES
+                (
+                    :period_name,
+                    :start_date,
+                    :end_date,
+                    :status,
+                    7,
+                    :reviewed_by_user_id,
+                    :approved_by_user_id,
+                    :locked_by_user_id,
+                    :review_started_at,
+                    :approved_at,
+                    :locked_at
+                )
+                "
+            );
+
+
+        $statement->execute(
+            [
+                'period_name' =>
+                    $periodName,
+
+                'start_date' =>
+                    $startDate,
+
+                'end_date' =>
+                    $endDate,
+
+                'status' =>
+                    $status,
+
+                'reviewed_by_user_id' =>
+                    $reviewedByUserId,
+
+                'approved_by_user_id' =>
+                    $approvedByUserId,
+
+                'locked_by_user_id' =>
+                    $lockedByUserId,
+
+                'review_started_at' =>
+                    $reviewStartedAt,
+
+                'approved_at' =>
+                    $approvedAt,
+
+                'locked_at' =>
+                    $lockedAt
+            ]
+        );
+
+
+        return
+            (int)$this->database
+                ->lastInsertId();
+    }
+
+
+    private function reopenPayrollPeriod(
+        int $payrollPeriodId
+    ): void
+    {
+        $statement =
+            $this->database->prepare(
+                "
+                UPDATE payroll_periods
+
+                SET
+                    status =
+                        'under_review',
+
+                    reviewed_by_user_id =
+                        7,
+
+                    review_started_at =
+                        CURRENT_TIMESTAMP,
+
+                    approved_by_user_id =
+                        NULL,
+
+                    approved_at =
+                        NULL,
+
+                    locked_by_user_id =
+                        NULL,
+
+                    locked_at =
+                        NULL,
+
+                    updated_at =
+                        CURRENT_TIMESTAMP
+
+                WHERE id =
+                    :id
+
+                  AND status IN
+                  (
+                      'approved',
+                      'locked'
+                  )
+                "
+            );
+
+
+        $statement->execute(
+            [
+                'id' =>
+                    $payrollPeriodId
+            ]
+        );
+
+
+        self::assertSame(
+            1,
+            $statement->rowCount()
+        );
+    }
+
+
     private function insertPunch(
         string $punchTime,
         string $punchType
@@ -837,8 +1561,9 @@ final class PunchCorrectionServiceTest extends TestCase
         );
 
 
-        return (int)$this->database
-            ->lastInsertId();
+        return
+            (int)$this->database
+                ->lastInsertId();
     }
 
 
@@ -943,10 +1668,11 @@ final class PunchCorrectionServiceTest extends TestCase
         }
 
 
-        return (int)$this->database
-            ->query(
-                $sql
-            )
-            ->fetchColumn();
+        return
+            (int)$this->database
+                ->query(
+                    $sql
+                )
+                ->fetchColumn();
     }
 }

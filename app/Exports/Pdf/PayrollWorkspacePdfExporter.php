@@ -144,6 +144,12 @@ final class PayrollWorkspacePdfExporter
             );
 
 
+        $payrollPeriodSection =
+            $this->payrollPeriodSection(
+                $summary
+            );
+
+
         $employeeSections = '';
 
 
@@ -715,7 +721,7 @@ final class PayrollWorkspacePdfExporter
             .
             '.summary {'
             .
-            'margin-bottom: 14px;'
+            'margin-bottom: 10px;'
             .
             'padding: 8px;'
             .
@@ -724,6 +730,72 @@ final class PayrollWorkspacePdfExporter
             'background: #f5f5f5;'
             .
             'line-height: 1.7;'
+            .
+            '}'
+            .
+            '.payroll-period {'
+            .
+            'margin-bottom: 14px;'
+            .
+            'padding: 8px;'
+            .
+            'border: 1px solid #5b7fa3;'
+            .
+            'background: #eef5fb;'
+            .
+            'line-height: 1.6;'
+            .
+            '}'
+            .
+            '.payroll-period.warning {'
+            .
+            'border-color: #b8860b;'
+            .
+            'background: #fff7d6;'
+            .
+            '}'
+            .
+            '.payroll-period.neutral {'
+            .
+            'border-color: #aaa;'
+            .
+            'background: #f7f7f7;'
+            .
+            '}'
+            .
+            '.payroll-period-title {'
+            .
+            'font-size: 9px;'
+            .
+            'font-weight: bold;'
+            .
+            'margin-bottom: 5px;'
+            .
+            '}'
+            .
+            '.payroll-period-grid {'
+            .
+            'width: 100%;'
+            .
+            'border-collapse: collapse;'
+            .
+            'table-layout: fixed;'
+            .
+            '}'
+            .
+            '.payroll-period-grid td {'
+            .
+            'border: none;'
+            .
+            'padding: 2px 8px 2px 0;'
+            .
+            'vertical-align: top;'
+            .
+            '}'
+            .
+            '.payroll-period-label {'
+            .
+            'font-weight: bold;'
             .
             '}'
             .
@@ -977,6 +1049,8 @@ final class PayrollWorkspacePdfExporter
             .
             '</div>'
             .
+            $payrollPeriodSection
+            .
             $employeeSections
             .
             '<div class="footer">'
@@ -996,6 +1070,396 @@ final class PayrollWorkspacePdfExporter
             '</body>'
             .
             '</html>';
+    }
+
+
+    /**
+     * @param array<string,mixed> $summary
+     */
+    private function payrollPeriodSection(
+        array $summary
+    ): string
+    {
+        $association =
+            (string)(
+                $summary['payroll_period_association']
+                ??
+                'none'
+            );
+
+
+        $message =
+            (string)(
+                $summary[
+                    'payroll_period_association_message'
+                ]
+                ??
+                'This report is not associated with a payroll period.'
+            );
+
+
+        $payrollPeriod =
+            $summary['payroll_period']
+            ??
+            null;
+
+
+        if (
+            $association === 'exact'
+            &&
+            is_array(
+                $payrollPeriod
+            )
+        ) {
+            $status =
+                (string)(
+                    $payrollPeriod['status']
+                    ??
+                    ''
+                );
+
+
+            $approvalBlocked =
+                !empty(
+                    $payrollPeriod['approval_blocked']
+                )
+                    ? 'Yes'
+                    : 'No';
+
+
+            return
+                '<div class="payroll-period">'
+                .
+                '<div class="payroll-period-title">'
+                .
+                'Exact Payroll-Period Association'
+                .
+                '</div>'
+                .
+                '<table class="payroll-period-grid">'
+                .
+                '<tr>'
+                .
+                '<td>'
+                .
+                '<span class="payroll-period-label">Period:</span> '
+                .
+                $this->escape(
+                    (string)(
+                        $payrollPeriod['period_name']
+                        ??
+                        ''
+                    )
+                )
+                .
+                '</td>'
+                .
+                '<td>'
+                .
+                '<span class="payroll-period-label">Period ID:</span> '
+                .
+                (int)(
+                    $payrollPeriod['id']
+                    ??
+                    0
+                )
+                .
+                '</td>'
+                .
+                '<td>'
+                .
+                '<span class="payroll-period-label">Workflow status:</span> '
+                .
+                $this->escape(
+                    $this->workflowStatusLabel(
+                        $status
+                    )
+                )
+                .
+                '</td>'
+                .
+                '</tr>'
+                .
+                '<tr>'
+                .
+                '<td>'
+                .
+                '<span class="payroll-period-label">Period range:</span> '
+                .
+                $this->escape(
+                    (string)(
+                        $payrollPeriod['start_date']
+                        ??
+                        ''
+                    )
+                )
+                .
+                ' through '
+                .
+                $this->escape(
+                    (string)(
+                        $payrollPeriod['end_date']
+                        ??
+                        ''
+                    )
+                )
+                .
+                '</td>'
+                .
+                '<td>'
+                .
+                '<span class="payroll-period-label">Open exceptions:</span> '
+                .
+                (int)(
+                    $payrollPeriod['open_exception_count']
+                    ??
+                    0
+                )
+                .
+                '</td>'
+                .
+                '<td>'
+                .
+                '<span class="payroll-period-label">Total exceptions:</span> '
+                .
+                (int)(
+                    $payrollPeriod['total_exception_count']
+                    ??
+                    0
+                )
+                .
+                '</td>'
+                .
+                '</tr>'
+                .
+                '<tr>'
+                .
+                '<td>'
+                .
+                '<span class="payroll-period-label">Approval blocked:</span> '
+                .
+                $approvalBlocked
+                .
+                '</td>'
+                .
+                '<td>'
+                .
+                '<span class="payroll-period-label">Created:</span> '
+                .
+                $this->workflowRecord(
+                    $payrollPeriod['created_at']
+                    ??
+                    null,
+                    $payrollPeriod['created_by_username']
+                    ??
+                    null
+                )
+                .
+                '</td>'
+                .
+                '<td>'
+                .
+                '<span class="payroll-period-label">Review started:</span> '
+                .
+                $this->workflowRecord(
+                    $payrollPeriod['review_started_at']
+                    ??
+                    null,
+                    $payrollPeriod['reviewed_by_username']
+                    ??
+                    null
+                )
+                .
+                '</td>'
+                .
+                '</tr>'
+                .
+                '<tr>'
+                .
+                '<td>'
+                .
+                '<span class="payroll-period-label">Approved:</span> '
+                .
+                $this->workflowRecord(
+                    $payrollPeriod['approved_at']
+                    ??
+                    null,
+                    $payrollPeriod['approved_by_username']
+                    ??
+                    null
+                )
+                .
+                '</td>'
+                .
+                '<td>'
+                .
+                '<span class="payroll-period-label">Locked:</span> '
+                .
+                $this->workflowRecord(
+                    $payrollPeriod['locked_at']
+                    ??
+                    null,
+                    $payrollPeriod['locked_by_username']
+                    ??
+                    null
+                )
+                .
+                '</td>'
+                .
+                '<td>'
+                .
+                '<span class="payroll-period-label">Association:</span> '
+                .
+                $this->escape(
+                    $message
+                )
+                .
+                '</td>'
+                .
+                '</tr>'
+                .
+                '</table>'
+                .
+                (
+                    in_array(
+                        $status,
+                        [
+                            'approved',
+                            'locked'
+                        ],
+                        true
+                    )
+                        ? '<div><strong>Punch protection:</strong> '
+                        .
+                        'Punch corrections in this period require reopening the payroll period.'
+                        .
+                        '</div>'
+                        : ''
+                )
+                .
+                '</div>';
+        }
+
+
+        if ($association === 'partial_overlap') {
+
+            return
+                '<div class="payroll-period warning">'
+                .
+                '<div class="payroll-period-title">'
+                .
+                'Partial Payroll-Period Overlap'
+                .
+                '</div>'
+                .
+                $this->escape(
+                    $message
+                )
+                .
+                '<br>'
+                .
+                'This export does not carry payroll approval, lock, or exception-resolution status because the report range is not an exact match.'
+                .
+                '</div>';
+        }
+
+
+        return
+            '<div class="payroll-period neutral">'
+            .
+            '<div class="payroll-period-title">'
+            .
+            'No Payroll-Period Association'
+            .
+            '</div>'
+            .
+            $this->escape(
+                $message
+            )
+            .
+            '<br>'
+            .
+            'This export does not carry payroll review, approval, lock, or exception-resolution status.'
+            .
+            '</div>';
+    }
+
+
+    private function workflowRecord(
+        mixed $timestamp,
+        mixed $username
+    ): string
+    {
+        $timestamp =
+            trim(
+                (string)(
+                    $timestamp
+                    ??
+                    ''
+                )
+            );
+
+
+        $username =
+            trim(
+                (string)(
+                    $username
+                    ??
+                    ''
+                )
+            );
+
+
+        if (
+            $timestamp === ''
+            &&
+            $username === ''
+        ) {
+
+            return '—';
+        }
+
+
+        $record =
+            $timestamp === ''
+                ? 'Time unavailable'
+                : $this->escape(
+                    $timestamp
+                );
+
+
+        if ($username !== '') {
+
+            $record .=
+                ' by '
+                .
+                $this->escape(
+                    $username
+                );
+        }
+
+
+        return $record;
+    }
+
+
+    private function workflowStatusLabel(
+        string $status
+    ): string
+    {
+        if ($status === '') {
+
+            return 'Unknown';
+        }
+
+
+        return ucwords(
+            str_replace(
+                '_',
+                ' ',
+                $status
+            )
+        );
     }
 
 

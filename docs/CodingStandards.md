@@ -1055,7 +1055,11 @@ Required practices include:
 * Restricted administrative routes
 * No credential logging
 * No secrets committed to Git
-* CSRF protection for state-changing forms in a future security sprint
+* CSRF protection for all state-changing POST requests
+* Cryptographically secure session-bound CSRF tokens
+* Automatic CSRF fields in rendered POST forms
+* Centralized server-side CSRF validation
+* POST-only state-changing routes
 
 Security issues take priority over feature development.
 

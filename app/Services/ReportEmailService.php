@@ -18,6 +18,8 @@ class ReportEmailService
 
     private CompanySettingsRepository $settings;
 
+    private PayrollReportPeriodMetadataService $periodMetadata;
+
     private LoggerInterface $logger;
 
 
@@ -35,6 +37,10 @@ class ReportEmailService
             Container::companySettingsRepository();
 
 
+        $this->periodMetadata =
+            Container::payrollReportPeriodMetadataService();
+
+
         $this->logger =
             Container::logger(
                 'reports'
@@ -45,7 +51,10 @@ class ReportEmailService
     public function sendDailyPayrollReport(): bool
     {
         $company =
-            $this->settings->get();
+            $this->settings
+                ->get()
+            ??
+            [];
 
 
         $timezone =
@@ -63,6 +72,7 @@ class ReportEmailService
                 true
             )
         ) {
+
             $timezone =
                 'America/Los_Angeles';
         }
@@ -96,9 +106,36 @@ class ReportEmailService
         try {
 
             $summary =
-                $this->reports->dailySummary(
-                    $reportDate
+                $this->reports
+                    ->dailySummary(
+                        $reportDate
+                    );
+
+
+            $periodMetadata =
+                $this->periodMetadata
+                    ->forRange(
+                        $reportDate,
+                        $reportDate
+                    );
+
+
+            $association =
+                (string)(
+                    $periodMetadata['association_status']
+                    ??
+                    'none'
                 );
+
+
+            $payrollPeriod =
+                is_array(
+                    $periodMetadata['payroll_period']
+                    ??
+                    null
+                )
+                    ? $periodMetadata['payroll_period']
+                    : null;
 
 
             $companyName =
@@ -129,6 +166,12 @@ class ReportEmailService
                 $timezone
                 .
                 "\n\n";
+
+
+            $body .=
+                $this->payrollPeriodBody(
+                    $periodMetadata
+                );
 
 
             $body .=
@@ -328,6 +371,7 @@ class ReportEmailService
                             $employee['department']
                         )
                     ) {
+
                         $body .=
                             'Department: '
                             .
@@ -584,18 +628,37 @@ class ReportEmailService
                         $premiumTotal,
 
                     'total_hours' =>
-                        $payableTotal
+                        $payableTotal,
+
+                    'payroll_period_association' =>
+                        $association,
+
+                    'payroll_period_id' =>
+                        $payrollPeriod['id']
+                        ??
+                        null,
+
+                    'payroll_period_status' =>
+                        $payrollPeriod['status']
+                        ??
+                        null,
+
+                    'open_payroll_exception_count' =>
+                        $payrollPeriod['open_exception_count']
+                        ??
+                        null
                 ]
             );
 
 
             $sent =
-                $this->mail->send(
-                    $companyName
-                    .
-                    ' Daily Payroll Report',
-                    $body
-                );
+                $this->mail
+                    ->send(
+                        $companyName
+                        .
+                        ' Daily Payroll Report',
+                        $body
+                    );
 
 
             if (!$sent) {
@@ -612,7 +675,10 @@ class ReportEmailService
                         'employee_count' =>
                             count(
                                 $summary
-                            )
+                            ),
+
+                        'payroll_period_association' =>
+                            $association
                     ]
                 );
 
@@ -633,7 +699,10 @@ class ReportEmailService
                     'employee_count' =>
                         count(
                             $summary
-                        )
+                        ),
+
+                    'payroll_period_association' =>
+                        $association
                 ]
             );
 
@@ -668,6 +737,381 @@ class ReportEmailService
 
             throw $exception;
         }
+    }
+
+
+    /**
+     * @param array{
+     *     association_status?:mixed,
+     *     association_message?:mixed,
+     *     payroll_period?:mixed
+     * } $metadata
+     */
+    private function payrollPeriodBody(
+        array $metadata
+    ): string
+    {
+        $association =
+            (string)(
+                $metadata['association_status']
+                ??
+                'none'
+            );
+
+
+        $message =
+            trim(
+                (string)(
+                    $metadata['association_message']
+                    ??
+                    'This report is not associated with a payroll period.'
+                )
+            );
+
+
+        $payrollPeriod =
+            $metadata['payroll_period']
+            ??
+            null;
+
+
+        $body =
+            "Payroll-Period Association\n"
+            .
+            "--------------------------\n";
+
+
+        if (
+            $association === 'exact'
+            &&
+            is_array(
+                $payrollPeriod
+            )
+        ) {
+
+            $status =
+                (string)(
+                    $payrollPeriod['status']
+                    ??
+                    ''
+                );
+
+
+            $body .=
+                "Association: Exact Match\n";
+
+
+            $body .=
+                'Payroll Period ID: '
+                .
+                (int)(
+                    $payrollPeriod['id']
+                    ??
+                    0
+                )
+                .
+                "\n";
+
+
+            $body .=
+                'Payroll Period Name: '
+                .
+                (string)(
+                    $payrollPeriod['period_name']
+                    ??
+                    ''
+                )
+                .
+                "\n";
+
+
+            $body .=
+                'Payroll Period Range: '
+                .
+                (string)(
+                    $payrollPeriod['start_date']
+                    ??
+                    ''
+                )
+                .
+                ' through '
+                .
+                (string)(
+                    $payrollPeriod['end_date']
+                    ??
+                    ''
+                )
+                .
+                "\n";
+
+
+            $body .=
+                'Workflow Status: '
+                .
+                $this->workflowStatusLabel(
+                    $status
+                )
+                .
+                "\n";
+
+
+            $body .=
+                'Open Payroll Exceptions: '
+                .
+                (int)(
+                    $payrollPeriod['open_exception_count']
+                    ??
+                    0
+                )
+                .
+                "\n";
+
+
+            $body .=
+                'Total Payroll Exceptions: '
+                .
+                (int)(
+                    $payrollPeriod['total_exception_count']
+                    ??
+                    0
+                )
+                .
+                "\n";
+
+
+            $body .=
+                'Approval Blocked: '
+                .
+                (
+                    !empty(
+                        $payrollPeriod['approval_blocked']
+                    )
+                        ? 'Yes'
+                        : 'No'
+                )
+                .
+                "\n";
+
+
+            $body .=
+                'Created: '
+                .
+                $this->workflowRecord(
+                    $payrollPeriod['created_at']
+                    ??
+                    null,
+                    $payrollPeriod['created_by_username']
+                    ??
+                    null
+                )
+                .
+                "\n";
+
+
+            $body .=
+                'Review Started: '
+                .
+                $this->workflowRecord(
+                    $payrollPeriod['review_started_at']
+                    ??
+                    null,
+                    $payrollPeriod['reviewed_by_username']
+                    ??
+                    null
+                )
+                .
+                "\n";
+
+
+            $body .=
+                'Approved: '
+                .
+                $this->workflowRecord(
+                    $payrollPeriod['approved_at']
+                    ??
+                    null,
+                    $payrollPeriod['approved_by_username']
+                    ??
+                    null
+                )
+                .
+                "\n";
+
+
+            $body .=
+                'Locked: '
+                .
+                $this->workflowRecord(
+                    $payrollPeriod['locked_at']
+                    ??
+                    null,
+                    $payrollPeriod['locked_by_username']
+                    ??
+                    null
+                )
+                .
+                "\n";
+
+
+            if ($message !== '') {
+
+                $body .=
+                    'Association Note: '
+                    .
+                    $message
+                    .
+                    "\n";
+            }
+
+
+            if (
+                in_array(
+                    $status,
+                    [
+                        'approved',
+                        'locked'
+                    ],
+                    true
+                )
+            ) {
+
+                $body .=
+                    "Punch Protection: Punch corrections in this period require reopening the payroll period.\n";
+            }
+
+
+            return
+                $body
+                .
+                "\n";
+        }
+
+
+        if ($association === 'partial_overlap') {
+
+            $body .=
+                "Association: Partial Overlap\n";
+
+
+            if ($message !== '') {
+
+                $body .=
+                    'Association Note: '
+                    .
+                    $message
+                    .
+                    "\n";
+            }
+
+
+            $body .=
+                "This daily report does not inherit payroll review, approval, "
+                .
+                "lock, or exception-resolution status because the one-day "
+                .
+                "report range is not an exact payroll-period match.\n\n";
+
+
+            return $body;
+        }
+
+
+        $body .=
+            "Association: None\n";
+
+
+        if ($message !== '') {
+
+            $body .=
+                'Association Note: '
+                .
+                $message
+                .
+                "\n";
+        }
+
+
+        $body .=
+            "This daily report does not carry payroll review, approval, "
+            .
+            "lock, or exception-resolution status.\n\n";
+
+
+        return $body;
+    }
+
+
+    private function workflowRecord(
+        mixed $timestamp,
+        mixed $username
+    ): string
+    {
+        $timestamp =
+            trim(
+                (string)(
+                    $timestamp
+                    ??
+                    ''
+                )
+            );
+
+
+        $username =
+            trim(
+                (string)(
+                    $username
+                    ??
+                    ''
+                )
+            );
+
+
+        if (
+            $timestamp === ''
+            &&
+            $username === ''
+        ) {
+
+            return 'Not recorded';
+        }
+
+
+        $record =
+            $timestamp === ''
+                ? 'Time unavailable'
+                : $timestamp;
+
+
+        if ($username !== '') {
+
+            $record .=
+                ' by '
+                .
+                $username;
+        }
+
+
+        return $record;
+    }
+
+
+    private function workflowStatusLabel(
+        string $status
+    ): string
+    {
+        if ($status === '') {
+
+            return 'Unknown';
+        }
+
+
+        return ucwords(
+            str_replace(
+                '_',
+                ' ',
+                $status
+            )
+        );
     }
 
 

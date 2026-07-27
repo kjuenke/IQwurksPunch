@@ -1,0 +1,269 @@
+{% extends 'layouts/base.twig' %}
+
+
+{% block content %}
+
+<div class="row justify-content-center">
+
+    <div class="col-xl-8 col-lg-9">
+
+        <div class="d-flex justify-content-between align-items-center mb-4">
+
+            <div>
+
+                <h1 class="h3 mb-1">
+                    Create Payroll Period
+                </h1>
+
+                <p class="text-muted mb-0">
+                    Define the date range that will move through payroll review and approval.
+                </p>
+
+            </div>
+
+
+            <a
+                href="/payroll-periods"
+                class="btn btn-outline-secondary"
+            >
+
+                <i class="bi bi-arrow-left me-1"></i>
+
+                Back
+
+            </a>
+
+        </div>
+
+
+        {% if errors.payroll_period|default('') %}
+
+            <div
+                class="alert alert-danger"
+                role="alert"
+            >
+
+                <div class="d-flex">
+
+                    <div class="me-3">
+
+                        <i class="bi bi-exclamation-triangle-fill"></i>
+
+                    </div>
+
+                    <div>
+
+                        <strong>Unable to create payroll period.</strong>
+
+                        <div>
+                            {{ errors.payroll_period }}
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        {% endif %}
+
+
+        <div class="card shadow-sm">
+
+            <div class="card-header bg-body-tertiary">
+
+                <span class="fw-semibold">
+                    Payroll Period Details
+                </span>
+
+            </div>
+
+
+            <div class="card-body">
+
+                <form
+                    method="post"
+                    action="/payroll-periods/create"
+                >
+
+                    <div class="mb-4">
+
+                        <label
+                            for="period_name"
+                            class="form-label"
+                        >
+                            Period Name
+                        </label>
+
+                        <input
+                            type="text"
+                            class="form-control
+                                {% if errors.period_name|default('') %}
+                                    is-invalid
+                                {% endif %}
+                            "
+                            id="period_name"
+                            name="period_name"
+                            value="{{ old.period_name|default('') }}"
+                            maxlength="150"
+                            required
+                            autofocus
+                        >
+
+                        {% if errors.period_name|default('') %}
+
+                            <div class="invalid-feedback">
+                                {{ errors.period_name }}
+                            </div>
+
+                        {% else %}
+
+                            <div class="form-text">
+                                Use a recognizable name such as “Weekly Payroll 2026-07-20 through 2026-07-26.”
+                            </div>
+
+                        {% endif %}
+
+                    </div>
+
+
+                    <div class="row">
+
+                        <div class="col-md-6 mb-4">
+
+                            <label
+                                for="start_date"
+                                class="form-label"
+                            >
+                                Start Date
+                            </label>
+
+                            <input
+                                type="date"
+                                class="form-control
+                                    {% if errors.start_date|default('') %}
+                                        is-invalid
+                                    {% endif %}
+                                "
+                                id="start_date"
+                                name="start_date"
+                                value="{{ old.start_date|default('') }}"
+                                required
+                            >
+
+                            {% if errors.start_date|default('') %}
+
+                                <div class="invalid-feedback">
+                                    {{ errors.start_date }}
+                                </div>
+
+                            {% endif %}
+
+                        </div>
+
+
+                        <div class="col-md-6 mb-4">
+
+                            <label
+                                for="end_date"
+                                class="form-label"
+                            >
+                                End Date
+                            </label>
+
+                            <input
+                                type="date"
+                                class="form-control
+                                    {% if errors.end_date|default('') %}
+                                        is-invalid
+                                    {% endif %}
+                                "
+                                id="end_date"
+                                name="end_date"
+                                value="{{ old.end_date|default('') }}"
+                                required
+                            >
+
+                            {% if errors.end_date|default('') %}
+
+                                <div class="invalid-feedback">
+                                    {{ errors.end_date }}
+                                </div>
+
+                            {% endif %}
+
+                        </div>
+
+                    </div>
+
+
+                    <div class="alert alert-light border">
+
+                        <div class="d-flex">
+
+                            <div class="me-3 text-primary">
+
+                                <i class="bi bi-calendar-check"></i>
+
+                            </div>
+
+                            <div>
+
+                                <div class="fw-semibold">
+                                    Creation rules
+                                </div>
+
+                                <div class="small text-muted">
+
+                                    Dates are interpreted using the company timezone:
+
+                                    <strong>
+                                        {{ companyTimezone }}
+                                    </strong>
+
+                                    <br>
+
+                                    Payroll periods cannot overlap and may contain no more than 31 calendar days.
+
+                                </div>
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+
+                    <div class="d-flex flex-column flex-sm-row justify-content-end gap-2">
+
+                        <a
+                            href="/payroll-periods"
+                            class="btn btn-outline-secondary"
+                        >
+                            Cancel
+                        </a>
+
+                        <button
+                            type="submit"
+                            class="btn btn-primary"
+                        >
+
+                            <i class="bi bi-calendar-plus me-1"></i>
+
+                            Create Payroll Period
+
+                        </button>
+
+                    </div>
+
+                </form>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+{% endblock %}

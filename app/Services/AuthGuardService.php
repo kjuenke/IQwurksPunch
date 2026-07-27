@@ -5,6 +5,7 @@ namespace App\Services;
 
 use App\Core\Flash;
 use App\Repositories\UserRepository;
+use RuntimeException;
 
 final class AuthGuardService
 {
@@ -67,10 +68,23 @@ final class AuthGuardService
                 true
             )
         ) {
+
             return;
         }
 
 
+        $this->requireAuthorizedUserId(
+            $requestUri,
+            $requestMethod
+        );
+    }
+
+
+    public function requireAuthorizedUserId(
+        string $requestUri,
+        string $requestMethod
+    ): int
+    {
         $userId =
             (int)(
                 $_SESSION['user_id']
@@ -89,13 +103,14 @@ final class AuthGuardService
         }
 
 
-        $user =
-            $this->users->findById(
-                $userId
-            );
+        try {
 
+            $user =
+                $this->authorizedUserForId(
+                    $userId
+                );
 
-        if (!$user) {
+        } catch (RuntimeException $exception) {
 
             $this->clearSupervisorSession();
 
@@ -103,6 +118,52 @@ final class AuthGuardService
             $this->redirectToLogin(
                 $requestUri,
                 $requestMethod,
+                $exception->getMessage()
+            );
+        }
+
+
+        $role =
+            (string)$user['role'];
+
+
+        $this->synchronizeSession(
+            $user,
+            $role
+        );
+
+
+        return (int)$user['id'];
+    }
+
+
+    /**
+     * Validate an account without redirecting or terminating execution.
+     *
+     * @return array<string,mixed>
+     */
+    public function authorizedUserForId(
+        int $userId
+    ): array
+    {
+        if ($userId <= 0) {
+
+            throw new RuntimeException(
+                'No authenticated supervisor account was provided.'
+            );
+        }
+
+
+        $user =
+            $this->users
+                ->findById(
+                    $userId
+                );
+
+
+        if (!$user) {
+
+            throw new RuntimeException(
                 'Your supervisor account could not be found. Please log in again.'
             );
         }
@@ -117,12 +178,8 @@ final class AuthGuardService
             !==
             1
         ) {
-            $this->clearSupervisorSession();
 
-
-            $this->redirectToLogin(
-                $requestUri,
-                $requestMethod,
+            throw new RuntimeException(
                 'Your supervisor account is inactive.'
             );
         }
@@ -147,35 +204,38 @@ final class AuthGuardService
                 true
             )
         ) {
-            $this->clearSupervisorSession();
 
-
-            $this->redirectToLogin(
-                $requestUri,
-                $requestMethod,
+            throw new RuntimeException(
                 'Your account is not authorized to access supervisor pages.'
             );
         }
 
 
-        $_SESSION['user_id'] =
-            (int)$user['id'];
-
-
-        $_SESSION['username'] =
-            (string)(
-                $user['username']
+        $verifiedUserId =
+            (int)(
+                $user['id']
                 ??
-                ''
+                0
             );
 
 
-        $_SESSION['user_role'] =
+        if ($verifiedUserId <= 0) {
+
+            throw new RuntimeException(
+                'Your supervisor account could not be verified. Please log in again.'
+            );
+        }
+
+
+        $user['id'] =
+            $verifiedUserId;
+
+
+        $user['role'] =
             $role;
 
 
-        $_SESSION['last_activity'] =
-            time();
+        return $user;
     }
 
 
@@ -206,6 +266,35 @@ final class AuthGuardService
     }
 
 
+    /**
+     * @param array<string,mixed> $user
+     */
+    private function synchronizeSession(
+        array $user,
+        string $role
+    ): void
+    {
+        $_SESSION['user_id'] =
+            (int)$user['id'];
+
+
+        $_SESSION['username'] =
+            (string)(
+                $user['username']
+                ??
+                ''
+            );
+
+
+        $_SESSION['user_role'] =
+            $role;
+
+
+        $_SESSION['last_activity'] =
+            time();
+    }
+
+
     private function redirectToLogin(
         string $requestUri,
         string $requestMethod,
@@ -223,6 +312,7 @@ final class AuthGuardService
                 $requestUri
             )
         ) {
+
             $_SESSION['intended_url'] =
                 $requestUri;
         }
@@ -265,6 +355,7 @@ final class AuthGuardService
             $_SESSION['user_id'],
             $_SESSION['username'],
             $_SESSION['user_role'],
+            $_SESSION['authenticated_at'],
             $_SESSION['last_activity']
         );
     }

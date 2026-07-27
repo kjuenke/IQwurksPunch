@@ -458,86 +458,297 @@ version
 
 ## Version 0.7 — Payroll Review and Approval
 
-**Status: Planned**
+**Status: Completed — July 27, 2026**
 
-Version 0.7 is expected to focus on structured payroll review, exception resolution, and approval controls.
+Version 0.7 introduces an explicit, auditable payroll-review workflow built around payroll periods, exception resolution, approval, locking, reopening, and protected payroll records.
 
-Planned work:
+Completed work:
 
-### Missing-Punch Review
+### Payroll Periods
 
-- Centralized missing-punch queue
-- Incomplete-shift review
-- Unmatched break review
-- Unmatched meal review
-- Employee-specific exception pages
-- Date-range exception filtering
-- Department exception filtering
-- Supervisor resolution status
-- Required resolution notes
+- Company-local inclusive payroll-period date ranges
+- Payroll-period names
+- Maximum period duration of 31 calendar days
+- Overlapping-period prevention
+- Newest-first payroll-period list
+- Payroll-period creation page
+- Payroll-period detail page
+- Status badges
+- Direct links to matching Payroll Workspace reports
 
-### Payroll Review
+Payroll-period states:
 
-- Payroll-period review workspace
-- Employee review completion
-- Supervisor review notes
-- Exception acknowledgment
-- Unresolved-issue counts
-- Payroll-ready status
-- Department-level review summaries
-- Review history
+```text
+open
+under_review
+approved
+locked
+```
+
+### Payroll Review Workflow
+
+- Begin formal payroll review
+- Return a period to open
+- Approve an under-review period
+- Lock an approved period
+- Reopen approved payroll for review
+- Reopen locked payroll for review
+- Explicit approval confirmation
+- Exact `LOCK` confirmation
+- Required reopening reason
+- Minimum reopening-reason length of 10 characters
+- Maximum workflow-reason length of 1,000 characters
+- Concurrency-aware state transitions
+- Transactional workflow updates
 
 ### Payroll Approval
 
-- Payroll-period approval
+- Approval restricted to under-review periods
+- Approval blocked by unresolved exceptions
+- Approving-supervisor identification
 - Approval timestamp
-- Approving supervisor
-- Approval notes
-- Approval validation
-- Prevention of approval with unresolved blocking issues
-- Approval audit history
+- Required approval confirmation
+- Approval metadata in reports
+- Approval metadata in exports
+- Approval metadata in email reports
 
 ### Payroll Locking
 
-- Lock approved payroll periods
-- Prevent punch correction in locked periods
-- Prevent manual punch creation in locked periods
-- Prevent deletion in locked periods
-- Lock-aware report warnings
-- Lock-aware export behavior
-- Lock audit records
+- Locking restricted to approved periods
+- Exact typed `LOCK` confirmation
+- Locking-supervisor identification
+- Lock timestamp
+- Final payroll-state visibility
+- Protected punch dates
+- Lock metadata in reports and exports
 
 ### Payroll Reopening
 
-- Reopen approved payroll
+- Approved periods can be reopened
+- Locked periods can be reopened
 - Required reopening reason
-- Authorized-role restriction
-- Reopening audit history
-- Automatic removal of the locked state
-- Review-status restoration
-- Reapproval workflow
+- Reopening returns the period to `under_review`
+- Active approval metadata is cleared
+- Active lock metadata is cleared
+- Prior approval and lock events remain in immutable history
 
-### Employee and Department Detail
+Fields cleared during reopening:
 
-- Employee payroll detail pages
-- Department payroll summaries
-- Department totals
-- Employee review notes
-- Correction and exception history
-- Approval-state visibility
+```text
+approved_by_user_id
+approved_at
+locked_by_user_id
+locked_at
+```
 
-### Export Preparation
+### Immutable Workflow History
 
-- External payroll export profiles
-- Configurable column mappings
-- Configurable employee identifiers
-- Configurable earning codes
-- Export validation
-- Export preview
-- Export audit history
+- Period-creation history
+- Review-start history
+- Return-to-open history
+- Approval history
+- Lock history
+- Reopening history
+- Review-note history
+- Exception-resolution history
+- Exception-acceptance history
+- Acting-user identification
+- Previous-status records
+- New-status records
+- Preserved workflow reasons
+- Chronological workflow display
+
+### Supervisor Review Notes
+
+- Immutable review notes
+- Author identification
+- Note timestamps
+- Notes permitted while open or under review
+- Required nonblank notes
+- Maximum length of 1,000 characters
+- Matching browser and server validation
+- Transactional note and history creation
+
+### Payroll Exception Review
+
+- Exception synchronization from Payroll Workspace results
+- Stable SHA-256 exception keys
+- Open exception counts
+- Total exception counts
+- Exception refresh
+- Exception resolution
+- Exception acceptance
+- Optional resolution notes
+- Required accepted-exception explanations
+- Minimum accepted-exception explanation length of 10 characters
+- Maximum exception-note length of 1,000 characters
+- Reopening of resolved exceptions when an issue returns
+- Preservation of accepted exceptions during refresh
+- Transactional exception and history updates
+
+Detected exception categories include:
+
+```text
+missing_clock_out
+missing_clock_in
+unmatched_meal
+unmatched_break
+overlapping_punch_activity
+zero_duration_shift
+invalid_punch_sequence
+payroll_calculation_warning
+```
+
+Exception states:
+
+```text
+open
+resolved
+accepted
+```
+
+### Punch Protection
+
+- Company-timezone conversion of stored UTC timestamps
+- Protected-period lookup by company-local date
+- Punch creation blocked in approved periods
+- Punch creation blocked in locked periods
+- Punch editing blocked in approved periods
+- Punch editing blocked in locked periods
+- Punch deletion blocked in approved periods
+- Punch deletion blocked in locked periods
+- Original and proposed dates checked during editing
+- Service-layer enforcement
+- Shared payroll-period protection service
+
+### Payroll Report Integration
+
+- Exact payroll-period report association
+- Partial-overlap detection
+- Explicit no-association status
+- Period ID and period name
+- Period date range
+- Workflow status
+- Creation metadata
+- Review metadata
+- Approval metadata
+- Lock metadata
+- Open exception count
+- Total exception count
+- Approval-blocked state
+- Protected-period warnings
+- Links to payroll-period details
+
+### CSV, PDF, and Email Integration
+
+- Payroll Workspace CSV workflow metadata
+- Payroll Workspace PDF workflow metadata
+- Employee time-card PDF workflow metadata
+- Partial-overlap warnings
+- No-association notices
+- Approved-period protection notices
+- Locked-period protection notices
+- Daily payroll email workflow metadata
+- Manual email-report integration
+- Scheduled email-report integration
+- Report-generation logging metadata
+
+### Authorization and Security
+
+- Database-backed workflow authorization
+- Active-account validation
+- Administrator authorization
+- Supervisor authorization
+- Session synchronization with database records
+- Controller-level database revalidation
+- Centralized CSRF service
+- Secure session-bound CSRF tokens
+- Automatic CSRF fields in POST forms
+- Central POST-request CSRF enforcement
+- POST-only logout
+- Removal of the legacy state-changing email GET route
+
+### Database
+
+Added migration:
+
+```text
+012_create_payroll_review_tables.php
+```
+
+Added tables:
+
+```text
+payroll_periods
+payroll_period_history
+payroll_review_notes
+payroll_exception_resolutions
+```
+
+Validated database baseline:
+
+```text
+16 tables
+12 applied migrations
+SQLite journal mode: wal
+Database integrity: ok
+Foreign-key violations: 0
+```
+
+### Automated Testing
+
+Version 0.7 adds tests for:
+
+- Period creation
+- Date validation
+- Period-duration validation
+- Overlap prevention
+- Workflow transitions
+- Approval blocking
+- Lock confirmation
+- Reopening validation
+- Metadata clearing
+- Immutable history
+- Transaction rollback
+- Concurrency protection
+- Punch protection
+- Company-timezone protection
+- Exception synchronization
+- Exception resolution
+- Exception acceptance
+- Review-note validation
+- Report metadata
+- CSV metadata
+- PDF metadata
+- Email metadata
+- Database-backed authorization
+- CSRF token handling
+
+Final release test baseline:
+
+```text
+136 tests
+693 assertions
+```
+
+### Deferred Beyond Version 0.7
+
+The following items remain planned for later releases:
+
+- Advanced payroll-period filtering
+- Dedicated standalone workflow-history page
+- Dedicated standalone reopen page
+- Department-level payroll-review summaries
+- Employee-level review-completion tracking
+- Workflow-status suffixes in export filenames
+- External payroll-provider export profiles
+- Configurable payroll export mappings
+- Manual weekly payroll email delivery
+- Scheduled weekly payroll email delivery
+- Scheduled exception-report delivery
+- PDF and CSV email attachments
 
 ---
-
 ## Version 0.8 — Reporting Automation
 
 **Status: Planned**

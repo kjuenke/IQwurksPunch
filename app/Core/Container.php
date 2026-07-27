@@ -16,24 +16,37 @@ use App\Repositories\AuditRepository;
 use App\Repositories\CompanySettingsRepository;
 use App\Repositories\EmailRepository;
 use App\Repositories\EmployeeRepository;
+use App\Repositories\LaborRulesRepository;
 use App\Repositories\NotificationRecipientRepository;
+use App\Repositories\PayrollExceptionResolutionRepository;
+use App\Repositories\PayrollPeriodHistoryRepository;
+use App\Repositories\PayrollPeriodRepository;
+use App\Repositories\PayrollReviewNoteRepository;
+use App\Repositories\PunchCorrectionHistoryRepository;
 use App\Repositories\PunchRepository;
 use App\Repositories\ReportScheduleRepository;
 use App\Repositories\UserRepository;
-use App\Repositories\LaborRulesRepository;
 use App\Services\AuditService;
 use App\Services\AuthService;
 use App\Services\CompanySettingsService;
 use App\Services\DashboardService;
 use App\Services\EmployeeService;
+use App\Services\LaborRulesService;
 use App\Services\MailService;
 use App\Services\NotificationRecipientService;
+use App\Services\PayrollApprovalService;
+use App\Services\PayrollExceptionResolutionService;
+use App\Services\PayrollExceptionService;
+use App\Services\PayrollPeriodProtectionService;
+use App\Services\PayrollPeriodService;
+use App\Services\PayrollReportPeriodMetadataService;
+use App\Services\PayrollReviewNoteService;
 use App\Services\PayrollWorkspaceService;
+use App\Services\PunchCorrectionService;
 use App\Services\PunchReportService;
 use App\Services\PunchService;
 use App\Services\ReportEmailService;
 use App\Services\ReportScheduleService;
-use App\Services\LaborRulesService;
 use PDO;
 
 final class Container
@@ -51,6 +64,8 @@ final class Container
 
     private static ?PunchRepository $punchRepository = null;
 
+    private static ?PunchCorrectionHistoryRepository $punchCorrectionHistoryRepository = null;
+
     private static ?EmailRepository $emailRepository = null;
 
     private static ?CompanySettingsRepository $companySettingsRepository = null;
@@ -63,11 +78,21 @@ final class Container
 
     private static ?LaborRulesRepository $laborRulesRepository = null;
 
+    private static ?PayrollPeriodRepository $payrollPeriodRepository = null;
+
+    private static ?PayrollPeriodHistoryRepository $payrollPeriodHistoryRepository = null;
+
+    private static ?PayrollReviewNoteRepository $payrollReviewNoteRepository = null;
+
+    private static ?PayrollExceptionResolutionRepository $payrollExceptionResolutionRepository = null;
+
     private static ?EmployeeService $employeeService = null;
 
     private static ?AuditService $auditService = null;
 
     private static ?PunchService $punchService = null;
+
+    private static ?PunchCorrectionService $punchCorrectionService = null;
 
     private static ?PunchReportService $punchReportService = null;
 
@@ -88,6 +113,20 @@ final class Container
     private static ?PayrollWorkspaceService $payrollWorkspaceService = null;
 
     private static ?LaborRulesService $laborRulesService = null;
+
+    private static ?PayrollPeriodService $payrollPeriodService = null;
+
+    private static ?PayrollApprovalService $payrollApprovalService = null;
+
+    private static ?PayrollPeriodProtectionService $payrollPeriodProtectionService = null;
+
+    private static ?PayrollReviewNoteService $payrollReviewNoteService = null;
+
+    private static ?PayrollExceptionService $payrollExceptionService = null;
+
+    private static ?PayrollExceptionResolutionService $payrollExceptionResolutionService = null;
+
+    private static ?PayrollReportPeriodMetadataService $payrollReportPeriodMetadataService = null;
 
     private static ?DailyPayrollCsvExporter $dailyPayrollCsvExporter = null;
 
@@ -126,6 +165,7 @@ final class Container
                 self::$loggers[$channel]
             )
         ) {
+
             self::$loggers[$channel] =
                 LoggerFactory::create(
                     $channel
@@ -179,6 +219,21 @@ final class Container
 
 
         return self::$punchRepository;
+    }
+
+
+    public static function punchCorrectionHistoryRepository(): PunchCorrectionHistoryRepository
+    {
+        if (self::$punchCorrectionHistoryRepository === null) {
+
+            self::$punchCorrectionHistoryRepository =
+                new PunchCorrectionHistoryRepository(
+                    self::db()
+                );
+        }
+
+
+        return self::$punchCorrectionHistoryRepository;
     }
 
 
@@ -256,6 +311,7 @@ final class Container
         return self::$notificationRecipientRepository;
     }
 
+
     public static function laborRulesRepository(): LaborRulesRepository
     {
         if (self::$laborRulesRepository === null) {
@@ -266,8 +322,70 @@ final class Container
                 );
         }
 
+
         return self::$laborRulesRepository;
     }
+
+
+    public static function payrollPeriodRepository(): PayrollPeriodRepository
+    {
+        if (self::$payrollPeriodRepository === null) {
+
+            self::$payrollPeriodRepository =
+                new PayrollPeriodRepository(
+                    self::db()
+                );
+        }
+
+
+        return self::$payrollPeriodRepository;
+    }
+
+
+    public static function payrollPeriodHistoryRepository(): PayrollPeriodHistoryRepository
+    {
+        if (self::$payrollPeriodHistoryRepository === null) {
+
+            self::$payrollPeriodHistoryRepository =
+                new PayrollPeriodHistoryRepository(
+                    self::db()
+                );
+        }
+
+
+        return self::$payrollPeriodHistoryRepository;
+    }
+
+
+    public static function payrollReviewNoteRepository(): PayrollReviewNoteRepository
+    {
+        if (self::$payrollReviewNoteRepository === null) {
+
+            self::$payrollReviewNoteRepository =
+                new PayrollReviewNoteRepository(
+                    self::db()
+                );
+        }
+
+
+        return self::$payrollReviewNoteRepository;
+    }
+
+
+    public static function payrollExceptionResolutionRepository(): PayrollExceptionResolutionRepository
+    {
+        if (self::$payrollExceptionResolutionRepository === null) {
+
+            self::$payrollExceptionResolutionRepository =
+                new PayrollExceptionResolutionRepository(
+                    self::db()
+                );
+        }
+
+
+        return self::$payrollExceptionResolutionRepository;
+    }
+
 
     public static function employeeService(): EmployeeService
     {
@@ -311,6 +429,48 @@ final class Container
 
 
         return self::$punchService;
+    }
+
+
+    public static function punchCorrectionService(): PunchCorrectionService
+    {
+        if (self::$punchCorrectionService === null) {
+
+            $companySettings =
+                self::companySettingsService()
+                    ->get();
+
+
+            $companyTimezone =
+                trim(
+                    (string)(
+                        $companySettings['timezone']
+                        ??
+                        date_default_timezone_get()
+                    )
+                );
+
+
+            if ($companyTimezone === '') {
+
+                $companyTimezone =
+                    date_default_timezone_get();
+            }
+
+
+            self::$punchCorrectionService =
+                new PunchCorrectionService(
+                    self::db(),
+                    self::punchRepository(),
+                    self::punchCorrectionHistoryRepository(),
+                    self::employeeRepository(),
+                    $companyTimezone,
+                    self::payrollPeriodProtectionService()
+                );
+        }
+
+
+        return self::$punchCorrectionService;
     }
 
 
@@ -428,8 +588,130 @@ final class Container
                 );
         }
 
+
         return self::$laborRulesService;
     }
+
+
+    public static function payrollPeriodService(): PayrollPeriodService
+    {
+        if (self::$payrollPeriodService === null) {
+
+            self::$payrollPeriodService =
+                new PayrollPeriodService(
+                    self::db(),
+                    self::payrollPeriodRepository(),
+                    self::payrollPeriodHistoryRepository()
+                );
+        }
+
+
+        return self::$payrollPeriodService;
+    }
+
+
+    public static function payrollApprovalService(): PayrollApprovalService
+    {
+        if (self::$payrollApprovalService === null) {
+
+            self::$payrollApprovalService =
+                new PayrollApprovalService(
+                    self::db(),
+                    self::payrollPeriodRepository(),
+                    self::payrollPeriodHistoryRepository(),
+                    self::payrollExceptionResolutionRepository()
+                );
+        }
+
+
+        return self::$payrollApprovalService;
+    }
+
+
+    public static function payrollPeriodProtectionService(): PayrollPeriodProtectionService
+    {
+        if (self::$payrollPeriodProtectionService === null) {
+
+            self::$payrollPeriodProtectionService =
+                new PayrollPeriodProtectionService(
+                    self::payrollPeriodRepository()
+                );
+        }
+
+
+        return self::$payrollPeriodProtectionService;
+    }
+
+
+    public static function payrollReviewNoteService(): PayrollReviewNoteService
+    {
+        if (self::$payrollReviewNoteService === null) {
+
+            self::$payrollReviewNoteService =
+                new PayrollReviewNoteService(
+                    self::db(),
+                    self::payrollPeriodRepository(),
+                    self::payrollReviewNoteRepository(),
+                    self::payrollPeriodHistoryRepository()
+                );
+        }
+
+
+        return self::$payrollReviewNoteService;
+    }
+
+
+    public static function payrollExceptionService(): PayrollExceptionService
+    {
+        if (self::$payrollExceptionService === null) {
+
+            self::$payrollExceptionService =
+                new PayrollExceptionService(
+                    self::db(),
+                    self::payrollPeriodRepository(),
+                    self::payrollExceptionResolutionRepository(),
+                    self::payrollWorkspaceService()
+                );
+        }
+
+
+        return self::$payrollExceptionService;
+    }
+
+
+    public static function payrollExceptionResolutionService(): PayrollExceptionResolutionService
+    {
+        if (self::$payrollExceptionResolutionService === null) {
+
+            self::$payrollExceptionResolutionService =
+                new PayrollExceptionResolutionService(
+                    self::db(),
+                    self::payrollPeriodRepository(),
+                    self::payrollExceptionResolutionRepository(),
+                    self::payrollPeriodHistoryRepository()
+                );
+        }
+
+
+        return self::$payrollExceptionResolutionService;
+    }
+
+
+    public static function payrollReportPeriodMetadataService(): PayrollReportPeriodMetadataService
+    {
+        if (self::$payrollReportPeriodMetadataService === null) {
+
+            self::$payrollReportPeriodMetadataService =
+                new PayrollReportPeriodMetadataService(
+                    self::payrollPeriodRepository(),
+                    self::payrollExceptionResolutionRepository()
+                );
+        }
+
+
+        return self::$payrollReportPeriodMetadataService;
+    }
+
 
     public static function dashboardService(): DashboardService
     {
@@ -572,6 +854,8 @@ final class Container
 
         self::$punchRepository = null;
 
+        self::$punchCorrectionHistoryRepository = null;
+
         self::$emailRepository = null;
 
         self::$companySettingsRepository = null;
@@ -582,11 +866,23 @@ final class Container
 
         self::$notificationRecipientRepository = null;
 
+        self::$laborRulesRepository = null;
+
+        self::$payrollPeriodRepository = null;
+
+        self::$payrollPeriodHistoryRepository = null;
+
+        self::$payrollReviewNoteRepository = null;
+
+        self::$payrollExceptionResolutionRepository = null;
+
         self::$employeeService = null;
 
         self::$auditService = null;
 
         self::$punchService = null;
+
+        self::$punchCorrectionService = null;
 
         self::$punchReportService = null;
 
@@ -606,6 +902,22 @@ final class Container
 
         self::$payrollWorkspaceService = null;
 
+        self::$laborRulesService = null;
+
+        self::$payrollPeriodService = null;
+
+        self::$payrollApprovalService = null;
+
+        self::$payrollPeriodProtectionService = null;
+
+        self::$payrollReviewNoteService = null;
+
+        self::$payrollExceptionService = null;
+
+        self::$payrollExceptionResolutionService = null;
+
+        self::$payrollReportPeriodMetadataService = null;
+
         self::$dailyPayrollCsvExporter = null;
 
         self::$weeklyPayrollCsvExporter = null;
@@ -619,9 +931,5 @@ final class Container
         self::$payrollWorkspacePdfExporter = null;
 
         self::$employeeTimeCardPdfExporter = null;
-
-        self::$laborRulesRepository = null;
-
-        self::$laborRulesService = null;
     }
 }

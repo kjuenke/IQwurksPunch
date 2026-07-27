@@ -6,13 +6,14 @@ namespace App\Controllers;
 use App\Core\Container;
 use App\Services\CompanySettingsService;
 use App\Services\EmployeeService;
+use App\Services\PayrollReportPeriodMetadataService;
 use App\Services\PayrollWorkspaceService;
 use App\Services\PunchReportService;
 use DateTimeImmutable;
 use DateTimeZone;
 use Throwable;
 
-class PayrollController extends Controller
+final class PayrollController extends Controller
 {
     private PunchReportService $reports;
 
@@ -21,6 +22,8 @@ class PayrollController extends Controller
     private EmployeeService $employees;
 
     private CompanySettingsService $settings;
+
+    private PayrollReportPeriodMetadataService $periodMetadata;
 
 
     public function __construct()
@@ -39,13 +42,18 @@ class PayrollController extends Controller
 
         $this->settings =
             Container::companySettingsService();
+
+
+        $this->periodMetadata =
+            Container::payrollReportPeriodMetadataService();
     }
 
 
     public function daily(): void
     {
         $summary =
-            $this->reports->dailySummary();
+            $this->reports
+                ->dailySummary();
 
 
         $this->render(
@@ -67,7 +75,8 @@ class PayrollController extends Controller
     public function weekly(): void
     {
         $summary =
-            $this->reports->weeklySummary();
+            $this->reports
+                ->weeklySummary();
 
 
         $this->render(
@@ -89,7 +98,8 @@ class PayrollController extends Controller
     public function workspace(): void
     {
         $company =
-            $this->settings->get()
+            $this->settings
+                ->get()
             ??
             [];
 
@@ -109,6 +119,7 @@ class PayrollController extends Controller
                 true
             )
         ) {
+
             $timezoneName =
                 'America/Los_Angeles';
         }
@@ -122,25 +133,26 @@ class PayrollController extends Controller
 
         $today =
             new DateTimeImmutable(
-                'now',
+                'today',
                 $timezone
             );
 
 
-        $defaultStart =
+        $defaultStartDate =
             $today
                 ->modify(
-                    'first day of this month'
+                    '-6 days'
                 )
                 ->format(
                     'Y-m-d'
                 );
 
 
-        $defaultEnd =
-            $today->format(
-                'Y-m-d'
-            );
+        $defaultEndDate =
+            $today
+                ->format(
+                    'Y-m-d'
+                );
 
 
         $startDate =
@@ -148,7 +160,7 @@ class PayrollController extends Controller
                 (string)(
                     $_GET['start_date']
                     ??
-                    $defaultStart
+                    $defaultStartDate
                 )
             );
 
@@ -158,7 +170,7 @@ class PayrollController extends Controller
                 (string)(
                     $_GET['end_date']
                     ??
-                    $defaultEnd
+                    $defaultEndDate
                 )
             );
 
@@ -187,12 +199,22 @@ class PayrollController extends Controller
         try {
 
             $summary =
-                $this->workspace->summary(
-                    $startDate,
-                    $endDate,
-                    $employeeId,
-                    $department
-                );
+                $this->workspace
+                    ->summary(
+                        $startDate,
+                        $endDate,
+                        $employeeId,
+                        $department
+                    );
+
+
+            $summary =
+                $this->periodMetadata
+                    ->enrich(
+                        $summary,
+                        $startDate,
+                        $endDate
+                    );
 
         } catch (Throwable $exception) {
 
@@ -202,7 +224,8 @@ class PayrollController extends Controller
 
 
         $employees =
-            $this->employees->all();
+            $this->employees
+                ->all();
 
 
         $departments =
@@ -264,6 +287,7 @@ class PayrollController extends Controller
             ||
             $value === 'all'
         ) {
+
             return null;
         }
 
@@ -281,9 +305,10 @@ class PayrollController extends Controller
             );
 
 
-        return $employeeId === false
-            ? null
-            : (int)$employeeId;
+        return
+            $employeeId === false
+                ? null
+                : (int)$employeeId;
     }
 
 
@@ -296,6 +321,7 @@ class PayrollController extends Controller
                 $value
             )
         ) {
+
             return null;
         }
 
@@ -311,6 +337,7 @@ class PayrollController extends Controller
             ||
             $department === 'all'
         ) {
+
             return null;
         }
 
@@ -349,11 +376,7 @@ class PayrollController extends Controller
             }
 
 
-            $departments[
-                strtolower(
-                    $department
-                )
-            ] =
+            $departments[$department] =
                 $department;
         }
 
@@ -363,8 +386,9 @@ class PayrollController extends Controller
         );
 
 
-        return array_values(
-            $departments
-        );
+        return
+            array_values(
+                $departments
+            );
     }
 }

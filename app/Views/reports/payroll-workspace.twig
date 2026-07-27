@@ -293,6 +293,18 @@
     %}
 
 
+    {% set payrollAssociation =
+        summary.payroll_period_association
+        |default('none')
+    %}
+
+
+    {% set payrollPeriod =
+        summary.payroll_period
+        |default(null)
+    %}
+
+
     <div class="d-flex flex-wrap justify-content-between align-items-center mb-4">
 
         <div>
@@ -341,6 +353,382 @@
         </div>
 
     </div>
+
+
+    {% if
+        payrollAssociation == 'exact'
+        and
+        payrollPeriod
+    %}
+
+        {% set periodStatus =
+            payrollPeriod.status
+            |default('open')
+        %}
+
+
+        <div class="card shadow-sm mb-4 border-primary">
+
+            <div class="card-header bg-primary-subtle">
+
+                <div class="d-flex flex-column flex-lg-row justify-content-between align-items-lg-center gap-3">
+
+                    <div>
+
+                        <div class="small text-uppercase text-muted fw-semibold mb-1">
+                            Payroll-Period Association
+                        </div>
+
+                        <div class="d-flex flex-wrap align-items-center gap-2">
+
+                            <span class="fs-5 fw-semibold">
+                                {{ payrollPeriod.period_name }}
+                            </span>
+
+
+                            {% if periodStatus == 'open' %}
+
+                                <span class="badge text-bg-secondary">
+                                    Open
+                                </span>
+
+                            {% elseif periodStatus == 'under_review' %}
+
+                                <span class="badge text-bg-info">
+                                    Under Review
+                                </span>
+
+                            {% elseif periodStatus == 'approved' %}
+
+                                <span class="badge text-bg-success">
+                                    Approved
+                                </span>
+
+                            {% elseif periodStatus == 'locked' %}
+
+                                <span class="badge text-bg-dark">
+                                    Locked
+                                </span>
+
+                            {% else %}
+
+                                <span class="badge text-bg-warning">
+                                    {{ periodStatus|replace({'_': ' '})|title }}
+                                </span>
+
+                            {% endif %}
+
+                        </div>
+
+                    </div>
+
+
+                    <a
+                        href="{{ payrollPeriod.detail_url }}"
+                        class="btn btn-primary"
+                    >
+
+                        <i class="bi bi-calendar2-check me-1"></i>
+
+                        Open Payroll Period
+
+                    </a>
+
+                </div>
+
+            </div>
+
+
+            <div class="card-body">
+
+                <div class="row g-4">
+
+                    <div class="col-md-6 col-xl-3">
+
+                        <div class="small text-muted">
+                            Exact Report Range
+                        </div>
+
+                        <div class="fw-semibold">
+                            {{ payrollPeriod.start_date }}
+                        </div>
+
+                        <div class="small text-muted">
+                            through
+                        </div>
+
+                        <div class="fw-semibold">
+                            {{ payrollPeriod.end_date }}
+                        </div>
+
+                    </div>
+
+
+                    <div class="col-md-6 col-xl-3">
+
+                        <div class="small text-muted">
+                            Payroll Exceptions
+                        </div>
+
+                        <div class="d-flex align-items-baseline gap-2">
+
+                            <span
+                                class="fs-3 fw-semibold
+                                {% if payrollPeriod.open_exception_count > 0 %}
+                                    text-danger
+                                {% else %}
+                                    text-success
+                                {% endif %}
+                                "
+                            >
+                                {{ payrollPeriod.open_exception_count }}
+                            </span>
+
+                            <span class="text-muted">
+                                open
+                            </span>
+
+                        </div>
+
+                        <div class="small text-muted">
+                            {{ payrollPeriod.total_exception_count }}
+                            total recorded
+                        </div>
+
+                    </div>
+
+
+                    <div class="col-md-6 col-xl-3">
+
+                        <div class="small text-muted">
+                            Approval Readiness
+                        </div>
+
+                        {% if payrollPeriod.approval_blocked %}
+
+                            <div class="fw-semibold text-danger">
+
+                                <i class="bi bi-exclamation-triangle-fill me-1"></i>
+
+                                Approval Blocked
+
+                            </div>
+
+                            <div class="small text-muted">
+                                Resolve or accept all open exceptions.
+                            </div>
+
+                        {% else %}
+
+                            <div class="fw-semibold text-success">
+
+                                <i class="bi bi-check-circle-fill me-1"></i>
+
+                                No Exception Block
+
+                            </div>
+
+                            <div class="small text-muted">
+
+                                {% if periodStatus == 'open' %}
+
+                                    The period can enter review.
+
+                                {% elseif periodStatus == 'under_review' %}
+
+                                    The exception requirement permits approval.
+
+                                {% elseif periodStatus == 'approved' %}
+
+                                    The period has been approved.
+
+                                {% elseif periodStatus == 'locked' %}
+
+                                    The period is finalized and locked.
+
+                                {% else %}
+
+                                    No open exceptions currently block workflow.
+
+                                {% endif %}
+
+                            </div>
+
+                        {% endif %}
+
+                    </div>
+
+
+                    <div class="col-md-6 col-xl-3">
+
+                        <div class="small text-muted">
+                            Workflow Record
+                        </div>
+
+                        {% if periodStatus == 'locked' %}
+
+                            <div class="fw-semibold">
+                                Locked
+                            </div>
+
+                            <div class="small text-muted">
+
+                                {{ payrollPeriod.locked_at|default('Time unavailable') }}
+
+                                {% if payrollPeriod.locked_by_username %}
+
+                                    <br>
+
+                                    by {{ payrollPeriod.locked_by_username }}
+
+                                {% endif %}
+
+                            </div>
+
+                        {% elseif periodStatus == 'approved' %}
+
+                            <div class="fw-semibold">
+                                Approved
+                            </div>
+
+                            <div class="small text-muted">
+
+                                {{ payrollPeriod.approved_at|default('Time unavailable') }}
+
+                                {% if payrollPeriod.approved_by_username %}
+
+                                    <br>
+
+                                    by {{ payrollPeriod.approved_by_username }}
+
+                                {% endif %}
+
+                            </div>
+
+                        {% elseif periodStatus == 'under_review' %}
+
+                            <div class="fw-semibold">
+                                Review Started
+                            </div>
+
+                            <div class="small text-muted">
+
+                                {{ payrollPeriod.review_started_at|default('Time unavailable') }}
+
+                                {% if payrollPeriod.reviewed_by_username %}
+
+                                    <br>
+
+                                    by {{ payrollPeriod.reviewed_by_username }}
+
+                                {% endif %}
+
+                            </div>
+
+                        {% else %}
+
+                            <div class="fw-semibold">
+                                Created
+                            </div>
+
+                            <div class="small text-muted">
+
+                                {{ payrollPeriod.created_at|default('Time unavailable') }}
+
+                                {% if payrollPeriod.created_by_username %}
+
+                                    <br>
+
+                                    by {{ payrollPeriod.created_by_username }}
+
+                                {% endif %}
+
+                            </div>
+
+                        {% endif %}
+
+                    </div>
+
+                </div>
+
+
+                {% if periodStatus == 'approved' or periodStatus == 'locked' %}
+
+                    <div class="alert alert-warning mt-4 mb-0">
+
+                        <i class="bi bi-shield-lock-fill me-1"></i>
+
+                        Punch corrections for dates in this payroll period are protected.
+
+                        Reopen the payroll period before creating, editing, or deleting punches in this range.
+
+                    </div>
+
+                {% endif %}
+
+            </div>
+
+        </div>
+
+    {% elseif payrollAssociation == 'partial_overlap' %}
+
+        <div class="alert alert-warning shadow-sm mb-4">
+
+            <div class="d-flex align-items-start">
+
+                <i class="bi bi-calendar-range fs-4 me-3"></i>
+
+                <div>
+
+                    <div class="fw-semibold mb-1">
+                        Report Range Partially Overlaps a Payroll Period
+                    </div>
+
+                    <div>
+                        {{ summary.payroll_period_association_message }}
+                    </div>
+
+                    <div class="small mt-2">
+                        Select the payroll period’s exact start and end dates before relying on workflow status, approval, or exception metadata.
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    {% else %}
+
+        <div class="alert alert-light border shadow-sm mb-4">
+
+            <div class="d-flex align-items-start">
+
+                <i class="bi bi-calendar-x fs-4 me-3"></i>
+
+                <div>
+
+                    <div class="fw-semibold mb-1">
+                        No Payroll-Period Association
+                    </div>
+
+                    <div>
+                        {{ summary.payroll_period_association_message|default(
+                            'This report is not associated with a payroll period.'
+                        ) }}
+                    </div>
+
+                    <div class="small text-muted mt-2">
+                        The report remains available, but it does not carry payroll-review, approval, lock, or exception-resolution status.
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    {% endif %}
 
 
     <div class="row g-4 mb-4">
@@ -597,6 +985,7 @@
     {% for employee in summary.employees %}
 
         <div class="card shadow-sm mb-4">
+
 
             <div class="card-header">
 

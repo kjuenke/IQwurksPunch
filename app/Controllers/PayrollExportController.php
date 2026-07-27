@@ -12,6 +12,7 @@ use App\Exports\Pdf\PayrollRegisterPdfExporter;
 use App\Exports\Pdf\PayrollWorkspacePdfExporter;
 use App\Exports\WeeklyPayrollCsvExporter;
 use App\Services\CompanySettingsService;
+use App\Services\PayrollReportPeriodMetadataService;
 use App\Services\PayrollWorkspaceService;
 use App\Services\PunchReportService;
 use RuntimeException;
@@ -23,6 +24,8 @@ class PayrollExportController extends Controller
     private PayrollWorkspaceService $workspace;
 
     private CompanySettingsService $settings;
+
+    private PayrollReportPeriodMetadataService $periodMetadata;
 
     private DailyPayrollCsvExporter $dailyCsv;
 
@@ -51,6 +54,10 @@ class PayrollExportController extends Controller
 
         $this->settings =
             Container::companySettingsService();
+
+
+        $this->periodMetadata =
+            Container::payrollReportPeriodMetadataService();
 
 
         $this->dailyCsv =
@@ -85,7 +92,8 @@ class PayrollExportController extends Controller
     public function dailyCsv(): never
     {
         $summary =
-            $this->reports->dailySummary();
+            $this->reports
+                ->dailySummary();
 
 
         $date =
@@ -102,9 +110,10 @@ class PayrollExportController extends Controller
             $date
             .
             '.csv',
-            $this->dailyCsv->export(
-                $summary
-            ),
+            $this->dailyCsv
+                ->export(
+                    $summary
+                ),
             'text/csv; charset=UTF-8'
         );
     }
@@ -113,11 +122,13 @@ class PayrollExportController extends Controller
     public function dailyPdf(): never
     {
         $summary =
-            $this->reports->dailySummary();
+            $this->reports
+                ->dailySummary();
 
 
         $company =
-            $this->settings->get()
+            $this->settings
+                ->get()
             ??
             [];
 
@@ -136,10 +147,11 @@ class PayrollExportController extends Controller
             $date
             .
             '.pdf',
-            $this->dailyPdf->export(
-                $summary,
-                $company
-            ),
+            $this->dailyPdf
+                ->export(
+                    $summary,
+                    $company
+                ),
             'application/pdf'
         );
     }
@@ -148,7 +160,8 @@ class PayrollExportController extends Controller
     public function weeklyCsv(): never
     {
         $summary =
-            $this->reports->weeklySummary();
+            $this->reports
+                ->weeklySummary();
 
 
         $weekStart =
@@ -175,9 +188,10 @@ class PayrollExportController extends Controller
             $weekEnd
             .
             '.csv',
-            $this->weeklyCsv->export(
-                $summary
-            ),
+            $this->weeklyCsv
+                ->export(
+                    $summary
+                ),
             'text/csv; charset=UTF-8'
         );
     }
@@ -186,11 +200,13 @@ class PayrollExportController extends Controller
     public function weeklyPdf(): never
     {
         $summary =
-            $this->reports->weeklySummary();
+            $this->reports
+                ->weeklySummary();
 
 
         $company =
-            $this->settings->get()
+            $this->settings
+                ->get()
             ??
             [];
 
@@ -219,10 +235,11 @@ class PayrollExportController extends Controller
             $weekEnd
             .
             '.pdf',
-            $this->weeklyPdf->export(
-                $summary,
-                $company
-            ),
+            $this->weeklyPdf
+                ->export(
+                    $summary,
+                    $company
+                ),
             'application/pdf'
         );
     }
@@ -235,11 +252,8 @@ class PayrollExportController extends Controller
 
 
         $summary =
-            $this->workspace->summary(
-                $filters['start_date'],
-                $filters['end_date'],
-                $filters['employee_id'],
-                $filters['department']
+            $this->workspaceSummary(
+                $filters
             );
 
 
@@ -253,9 +267,10 @@ class PayrollExportController extends Controller
             $summary['end_date']
             .
             '.csv',
-            $this->workspaceCsv->export(
-                $summary
-            ),
+            $this->workspaceCsv
+                ->export(
+                    $summary
+                ),
             'text/csv; charset=UTF-8'
         );
     }
@@ -268,16 +283,14 @@ class PayrollExportController extends Controller
 
 
         $summary =
-            $this->workspace->summary(
-                $filters['start_date'],
-                $filters['end_date'],
-                $filters['employee_id'],
-                $filters['department']
+            $this->workspaceSummary(
+                $filters
             );
 
 
         $company =
-            $this->settings->get()
+            $this->settings
+                ->get()
             ??
             [];
 
@@ -292,10 +305,11 @@ class PayrollExportController extends Controller
             $summary['end_date']
             .
             '.pdf',
-            $this->workspacePdf->export(
-                $summary,
-                $company
-            ),
+            $this->workspacePdf
+                ->export(
+                    $summary,
+                    $company
+                ),
             'application/pdf'
         );
     }
@@ -316,16 +330,14 @@ class PayrollExportController extends Controller
 
 
         $summary =
-            $this->workspace->summary(
-                $filters['start_date'],
-                $filters['end_date'],
-                $filters['employee_id'],
-                $filters['department']
+            $this->workspaceSummary(
+                $filters
             );
 
 
         $company =
-            $this->settings->get()
+            $this->settings
+                ->get()
             ??
             [];
 
@@ -368,12 +380,47 @@ class PayrollExportController extends Controller
             $summary['end_date']
             .
             '.pdf',
-            $this->timeCardPdf->export(
-                $summary,
-                $company
-            ),
+            $this->timeCardPdf
+                ->export(
+                    $summary,
+                    $company
+                ),
             'application/pdf'
         );
+    }
+
+
+    /**
+     * @param array{
+     *     start_date:string,
+     *     end_date:string,
+     *     employee_id:?int,
+     *     department:?string
+     * } $filters
+     *
+     * @return array<string,mixed>
+     */
+    private function workspaceSummary(
+        array $filters
+    ): array
+    {
+        $summary =
+            $this->workspace
+                ->summary(
+                    $filters['start_date'],
+                    $filters['end_date'],
+                    $filters['employee_id'],
+                    $filters['department']
+                );
+
+
+        return
+            $this->periodMetadata
+                ->enrich(
+                    $summary,
+                    $filters['start_date'],
+                    $filters['end_date']
+                );
     }
 
 
@@ -412,6 +459,7 @@ class PayrollExportController extends Controller
             ||
             $endDate === ''
         ) {
+
             throw new RuntimeException(
                 'Start date and end date are required for Payroll Workspace exports.'
             );
@@ -461,6 +509,7 @@ class PayrollExportController extends Controller
             ||
             $value === 'all'
         ) {
+
             return null;
         }
 
@@ -478,9 +527,10 @@ class PayrollExportController extends Controller
             );
 
 
-        return $employeeId === false
-            ? null
-            : (int)$employeeId;
+        return
+            $employeeId === false
+                ? null
+                : (int)$employeeId;
     }
 
 
@@ -493,6 +543,7 @@ class PayrollExportController extends Controller
                 $value
             )
         ) {
+
             return null;
         }
 
@@ -508,6 +559,7 @@ class PayrollExportController extends Controller
             ||
             $department === 'all'
         ) {
+
             return null;
         }
 
@@ -539,9 +591,10 @@ class PayrollExportController extends Controller
             );
 
 
-        return $value === ''
-            ? 'employee'
-            : $value;
+        return
+            $value === ''
+                ? 'employee'
+                : $value;
     }
 
 

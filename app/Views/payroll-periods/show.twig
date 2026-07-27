@@ -1,0 +1,1426 @@
+{% extends 'layouts/base.twig' %}
+
+
+{% block content %}
+
+{% set status = period.status|default('open') %}
+
+
+<div class="d-flex flex-column flex-lg-row justify-content-between align-items-lg-start gap-3 mb-4">
+
+    <div>
+
+        <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
+
+            <h1 class="h3 mb-0">
+                {{ period.period_name }}
+            </h1>
+
+
+            {% if status == 'open' %}
+
+                <span class="badge text-bg-secondary">
+                    Open
+                </span>
+
+            {% elseif status == 'under_review' %}
+
+                <span class="badge text-bg-info">
+                    Under Review
+                </span>
+
+            {% elseif status == 'approved' %}
+
+                <span class="badge text-bg-success">
+                    Approved
+                </span>
+
+            {% elseif status == 'locked' %}
+
+                <span class="badge text-bg-dark">
+                    Locked
+                </span>
+
+            {% else %}
+
+                <span class="badge text-bg-warning">
+                    {{ status|replace({'_': ' '})|title }}
+                </span>
+
+            {% endif %}
+
+        </div>
+
+
+        <p class="text-muted mb-0">
+
+            {{ period.start_date }}
+
+            through
+
+            {{ period.end_date }}
+
+            · Period #{{ period.id }}
+
+        </p>
+
+    </div>
+
+
+    <div class="d-flex flex-wrap gap-2">
+
+        <a
+            href="/payroll-periods"
+            class="btn btn-outline-secondary"
+        >
+
+            <i class="bi bi-arrow-left me-1"></i>
+
+            All Payroll Periods
+
+        </a>
+
+
+        <a
+            href="/reports/payroll/workspace?start_date={{ period.start_date }}&end_date={{ period.end_date }}"
+            class="btn btn-outline-primary"
+        >
+
+            <i class="bi bi-funnel me-1"></i>
+
+            Open Payroll Workspace
+
+        </a>
+
+    </div>
+
+</div>
+
+
+{% if status == 'approved' or status == 'locked' %}
+
+    <div class="alert alert-warning">
+
+        <div class="d-flex">
+
+            <div class="me-3">
+
+                <i class="bi bi-shield-lock-fill"></i>
+
+            </div>
+
+            <div>
+
+                <strong>
+                    Payroll protection is active.
+                </strong>
+
+                Punches whose company-local dates fall within this payroll period cannot be created, edited, or deleted.
+
+                {% if status == 'approved' %}
+
+                    Reopen the period for review before making corrections.
+
+                {% else %}
+
+                    This final period must be reopened before corrections can be made.
+
+                {% endif %}
+
+            </div>
+
+        </div>
+
+    </div>
+
+{% endif %}
+
+
+<div class="row g-4 mb-4">
+
+    <div class="col-xl-8">
+
+        <div class="card shadow-sm h-100">
+
+            <div class="card-header bg-body-tertiary">
+
+                <span class="fw-semibold">
+                    Period Summary
+                </span>
+
+            </div>
+
+
+            <div class="card-body">
+
+                <div class="row g-4">
+
+                    <div class="col-md-6">
+
+                        <div class="small text-muted">
+                            Period Name
+                        </div>
+
+                        <div class="fw-semibold">
+                            {{ period.period_name }}
+                        </div>
+
+                    </div>
+
+
+                    <div class="col-md-3">
+
+                        <div class="small text-muted">
+                            Start Date
+                        </div>
+
+                        <div class="fw-semibold">
+                            {{ period.start_date }}
+                        </div>
+
+                    </div>
+
+
+                    <div class="col-md-3">
+
+                        <div class="small text-muted">
+                            End Date
+                        </div>
+
+                        <div class="fw-semibold">
+                            {{ period.end_date }}
+                        </div>
+
+                    </div>
+
+
+                    <div class="col-md-6">
+
+                        <div class="small text-muted">
+                            Created By
+                        </div>
+
+                        <div>
+
+                            {{ period.created_by_username|default('Unknown user') }}
+
+                            {% if period.created_at %}
+
+                                <span class="text-muted">
+                                    · {{ period.created_at }}
+                                </span>
+
+                            {% endif %}
+
+                        </div>
+
+                    </div>
+
+
+                    <div class="col-md-6">
+
+                        <div class="small text-muted">
+                            Last Updated
+                        </div>
+
+                        <div>
+                            {{ period.updated_at|default('—') }}
+                        </div>
+
+                    </div>
+
+
+                    <div class="col-md-4">
+
+                        <div class="small text-muted">
+                            Review Started
+                        </div>
+
+                        {% if period.review_started_at %}
+
+                            <div>
+                                {{ period.review_started_at }}
+                            </div>
+
+                            <div class="small text-muted">
+                                {{ period.reviewed_by_username|default('Unknown user') }}
+                            </div>
+
+                        {% else %}
+
+                            <div class="text-muted">
+                                Not started
+                            </div>
+
+                        {% endif %}
+
+                    </div>
+
+
+                    <div class="col-md-4">
+
+                        <div class="small text-muted">
+                            Approved
+                        </div>
+
+                        {% if period.approved_at %}
+
+                            <div>
+                                {{ period.approved_at }}
+                            </div>
+
+                            <div class="small text-muted">
+                                {{ period.approved_by_username|default('Unknown user') }}
+                            </div>
+
+                        {% else %}
+
+                            <div class="text-muted">
+                                Not approved
+                            </div>
+
+                        {% endif %}
+
+                    </div>
+
+
+                    <div class="col-md-4">
+
+                        <div class="small text-muted">
+                            Locked
+                        </div>
+
+                        {% if period.locked_at %}
+
+                            <div>
+                                {{ period.locked_at }}
+                            </div>
+
+                            <div class="small text-muted">
+                                {{ period.locked_by_username|default('Unknown user') }}
+                            </div>
+
+                        {% else %}
+
+                            <div class="text-muted">
+                                Not locked
+                            </div>
+
+                        {% endif %}
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <div class="col-xl-4">
+
+        <div class="card shadow-sm h-100">
+
+            <div class="card-header bg-body-tertiary">
+
+                <span class="fw-semibold">
+                    Exception Status
+                </span>
+
+            </div>
+
+
+            <div class="card-body d-flex flex-column justify-content-center text-center">
+
+                {% if openExceptionCount > 0 %}
+
+                    <div class="display-5 text-danger">
+                        {{ openExceptionCount }}
+                    </div>
+
+                    <div class="fw-semibold">
+                        Open Exceptions
+                    </div>
+
+                    <p class="small text-muted mb-0">
+                        Approval is blocked until all required exceptions are resolved or accepted.
+                    </p>
+
+                {% else %}
+
+                    <div class="display-5 text-success">
+
+                        <i class="bi bi-check-circle"></i>
+
+                    </div>
+
+                    <div class="fw-semibold">
+                        No Open Exceptions
+                    </div>
+
+                    <p class="small text-muted mb-0">
+                        The exception requirement does not currently block approval.
+                    </p>
+
+                {% endif %}
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<div class="card shadow-sm mb-4">
+
+    <div class="card-header bg-body-tertiary">
+
+        <span class="fw-semibold">
+            Workflow Actions
+        </span>
+
+    </div>
+
+
+    <div class="card-body">
+
+        {% if status == 'open' %}
+
+            <div class="row align-items-center g-3">
+
+                <div class="col-lg">
+
+                    <h2 class="h5">
+                        Begin Payroll Review
+                    </h2>
+
+                    <p class="text-muted mb-lg-0">
+                        Move this period into formal review. Punch corrections remain available while the period is under review.
+                    </p>
+
+                </div>
+
+
+                <div class="col-lg-auto">
+
+                    <form
+                        method="post"
+                        action="/payroll-periods/{{ period.id }}/begin-review"
+                    >
+
+                        <button
+                            type="submit"
+                            class="btn btn-primary"
+                        >
+
+                            <i class="bi bi-play-circle me-1"></i>
+
+                            Begin Review
+
+                        </button>
+
+                    </form>
+
+                </div>
+
+            </div>
+
+        {% elseif status == 'under_review' %}
+
+            <div class="row g-4">
+
+                <div class="col-lg-7">
+
+                    <h2 class="h5">
+                        Approve Payroll Period
+                    </h2>
+
+                    <p class="text-muted">
+                        Confirm that payroll has been reviewed and is ready for approval.
+                    </p>
+
+
+                    {% if openExceptionCount > 0 %}
+
+                        <div class="alert alert-danger">
+
+                            <i class="bi bi-exclamation-triangle-fill me-1"></i>
+
+                            Approval is blocked by
+
+                            {{ openExceptionCount }}
+
+                            open
+
+                            {% if openExceptionCount == 1 %}
+                                exception.
+                            {% else %}
+                                exceptions.
+                            {% endif %}
+
+                        </div>
+
+                    {% endif %}
+
+
+                    <form
+                        method="post"
+                        action="/payroll-periods/{{ period.id }}/approve"
+                    >
+
+                        <div class="form-check mb-3">
+
+                            <input
+                                class="form-check-input"
+                                type="checkbox"
+                                value="approve"
+                                id="confirmed"
+                                name="confirmed"
+                                required
+                            >
+
+                            <label
+                                class="form-check-label"
+                                for="confirmed"
+                            >
+                                I confirm that this payroll period has been reviewed and is ready for approval.
+                            </label>
+
+                        </div>
+
+
+                        <button
+                            type="submit"
+                            class="btn btn-success"
+                            {% if openExceptionCount > 0 %}
+                                disabled
+                            {% endif %}
+                        >
+
+                            <i class="bi bi-check-circle me-1"></i>
+
+                            Approve Payroll
+
+                        </button>
+
+                    </form>
+
+                </div>
+
+
+                <div class="col-lg-5">
+
+                    <div class="border rounded p-3 h-100">
+
+                        <h2 class="h5">
+                            Return to Open
+                        </h2>
+
+                        <p class="small text-muted">
+                            Stop formal review and return the period to its open state. A reason is optional.
+                        </p>
+
+
+                        <form
+                            method="post"
+                            action="/payroll-periods/{{ period.id }}/return-open"
+                        >
+
+                            <div class="mb-3">
+
+                                <label
+                                    for="return_reason"
+                                    class="form-label"
+                                >
+                                    Reason
+                                </label>
+
+                                <textarea
+                                    class="form-control"
+                                    id="return_reason"
+                                    name="reason"
+                                    rows="3"
+                                    maxlength="1000"
+                                ></textarea>
+
+                            </div>
+
+
+                            <button
+                                type="submit"
+                                class="btn btn-outline-secondary"
+                            >
+
+                                <i class="bi bi-arrow-counterclockwise me-1"></i>
+
+                                Return to Open
+
+                            </button>
+
+                        </form>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        {% elseif status == 'approved' %}
+
+            <div class="row g-4">
+
+                <div class="col-lg-6">
+
+                    <div class="border rounded p-3 h-100">
+
+                        <h2 class="h5">
+                            Lock Payroll Period
+                        </h2>
+
+                        <p class="text-muted">
+                            Locking finalizes this payroll period and preserves it as the final payroll record.
+                        </p>
+
+
+                        <div class="alert alert-warning small">
+
+                            Enter
+
+                            <strong>LOCK</strong>
+
+                            exactly to confirm finalization.
+
+                        </div>
+
+
+                        <form
+                            method="post"
+                            action="/payroll-periods/{{ period.id }}/lock"
+                        >
+
+                            <div class="mb-3">
+
+                                <label
+                                    for="lock_confirmation"
+                                    class="form-label"
+                                >
+                                    Lock Confirmation
+                                </label>
+
+                                <input
+                                    type="text"
+                                    class="form-control"
+                                    id="lock_confirmation"
+                                    name="confirmation"
+                                    autocomplete="off"
+                                    required
+                                >
+
+                            </div>
+
+
+                            <button
+                                type="submit"
+                                class="btn btn-dark"
+                            >
+
+                                <i class="bi bi-lock-fill me-1"></i>
+
+                                Lock Payroll Period
+
+                            </button>
+
+                        </form>
+
+                    </div>
+
+                </div>
+
+
+                <div class="col-lg-6">
+
+                    <div class="border border-warning rounded p-3 h-100">
+
+                        <h2 class="h5">
+                            Reopen for Review
+                        </h2>
+
+                        <p class="text-muted">
+                            Reopening clears the active approval fields and permits corrections. The previous approval remains in workflow history.
+                        </p>
+
+
+                        <form
+                            method="post"
+                            action="/payroll-periods/{{ period.id }}/reopen"
+                        >
+
+                            <div class="mb-3">
+
+                                <label
+                                    for="reopen_reason"
+                                    class="form-label"
+                                >
+                                    Required Reason
+                                </label>
+
+                                <textarea
+                                    class="form-control"
+                                    id="reopen_reason"
+                                    name="reason"
+                                    rows="4"
+                                    minlength="10"
+                                    maxlength="1000"
+                                    required
+                                ></textarea>
+
+                                <div class="form-text">
+                                    Enter at least 10 characters.
+                                </div>
+
+                            </div>
+
+
+                            <button
+                                type="submit"
+                                class="btn btn-outline-warning"
+                            >
+
+                                <i class="bi bi-unlock me-1"></i>
+
+                                Reopen for Review
+
+                            </button>
+
+                        </form>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        {% elseif status == 'locked' %}
+
+            <div class="row align-items-start g-4">
+
+                <div class="col-lg-6">
+
+                    <h2 class="h5">
+                        Final Payroll Period
+                    </h2>
+
+                    <p class="text-muted">
+                        This period is locked. Payroll data and punch corrections for its date range are protected.
+                    </p>
+
+                    <div class="alert alert-dark mb-0">
+
+                        <i class="bi bi-lock-fill me-1"></i>
+
+                        Reopening should occur only when a documented payroll correction is required.
+
+                    </div>
+
+                </div>
+
+
+                <div class="col-lg-6">
+
+                    <form
+                        method="post"
+                        action="/payroll-periods/{{ period.id }}/reopen"
+                    >
+
+                        <div class="mb-3">
+
+                            <label
+                                for="locked_reopen_reason"
+                                class="form-label"
+                            >
+                                Required Reopening Reason
+                            </label>
+
+                            <textarea
+                                class="form-control"
+                                id="locked_reopen_reason"
+                                name="reason"
+                                rows="4"
+                                minlength="10"
+                                maxlength="1000"
+                                required
+                            ></textarea>
+
+                            <div class="form-text">
+                                Enter at least 10 characters. This reason will be preserved in immutable history.
+                            </div>
+
+                        </div>
+
+
+                        <button
+                            type="submit"
+                            class="btn btn-warning"
+                        >
+
+                            <i class="bi bi-unlock-fill me-1"></i>
+
+                            Reopen Locked Payroll
+
+                        </button>
+
+                    </form>
+
+                </div>
+
+            </div>
+
+        {% else %}
+
+            <div class="alert alert-warning mb-0">
+                No workflow actions are available for the current status.
+            </div>
+
+        {% endif %}
+
+    </div>
+
+</div>
+
+
+<div class="card shadow-sm mb-4">
+
+    <div class="card-header bg-body-tertiary">
+
+        <div class="d-flex flex-column flex-sm-row justify-content-between align-items-sm-center gap-2">
+
+            <div class="d-flex align-items-center gap-2">
+
+                <span class="fw-semibold">
+                    Payroll Exceptions
+                </span>
+
+                <span class="badge text-bg-secondary">
+                    {{ exceptions|length }}
+                </span>
+
+            </div>
+
+
+            {% if status == 'open' or status == 'under_review' %}
+
+                <form
+                    method="post"
+                    action="/payroll-periods/{{ period.id }}/exceptions/refresh"
+                >
+
+                    <button
+                        type="submit"
+                        class="btn btn-sm btn-outline-primary"
+                    >
+
+                        <i class="bi bi-arrow-repeat me-1"></i>
+
+                        Refresh Exceptions
+
+                    </button>
+
+                </form>
+
+            {% endif %}
+
+        </div>
+
+    </div>
+
+
+    <div class="card-body p-0">
+
+        {% if exceptions is empty %}
+
+            <div class="text-center text-muted py-4 px-3">
+
+                <i class="bi bi-check-circle me-1"></i>
+
+                No payroll exceptions have been recorded for this period.
+
+            </div>
+
+        {% else %}
+
+            <div class="table-responsive">
+
+                <table class="table table-hover align-middle mb-0">
+
+                    <thead class="table-light">
+
+                        <tr>
+
+                            <th>
+                                Date
+                            </th>
+
+                            <th>
+                                Employee
+                            </th>
+
+                            <th>
+                                Type
+                            </th>
+
+                            <th>
+                                Description
+                            </th>
+
+                            <th>
+                                Status
+                            </th>
+
+                            <th>
+                                Resolution
+                            </th>
+
+                            <th>
+                                Actions
+                            </th>
+
+                        </tr>
+
+                    </thead>
+
+
+                    <tbody>
+
+                        {% for exception in exceptions %}
+
+                            <tr>
+
+                                <td class="text-nowrap">
+                                    {{ exception.exception_date|default('—') }}
+                                </td>
+
+                                <td>
+
+                                    {% if exception.employee_id %}
+
+                                        <div class="fw-semibold">
+
+                                            {{ exception.first_name|default('') }}
+
+                                            {{ exception.last_name|default('') }}
+
+                                        </div>
+
+                                        <div class="small text-muted">
+                                            {{ exception.employee_number|default('') }}
+                                        </div>
+
+                                    {% else %}
+
+                                        <span class="text-muted">
+                                            General
+                                        </span>
+
+                                    {% endif %}
+
+                                </td>
+
+                                <td>
+
+                                    <div class="fw-semibold">
+                                        {{ exception.exception_type|replace({'_': ' '})|title }}
+                                    </div>
+
+                                    <div class="small text-muted text-break">
+                                        {{ exception.exception_key }}
+                                    </div>
+
+                                </td>
+
+                                <td>
+                                    {{ exception.description }}
+                                </td>
+
+                                <td>
+
+                                    {% if exception.resolution_status == 'open' %}
+
+                                        <span class="badge text-bg-danger">
+                                            Open
+                                        </span>
+
+                                    {% elseif exception.resolution_status == 'resolved' %}
+
+                                        <span class="badge text-bg-success">
+                                            Resolved
+                                        </span>
+
+                                    {% elseif exception.resolution_status == 'accepted' %}
+
+                                        <span class="badge text-bg-primary">
+                                            Accepted
+                                        </span>
+
+                                    {% else %}
+
+                                        <span class="badge text-bg-secondary">
+                                            {{ exception.resolution_status|replace({'_': ' '})|title }}
+                                        </span>
+
+                                    {% endif %}
+
+                                </td>
+
+                                <td>
+
+                                    {% if exception.resolution_note %}
+
+                                        <div>
+                                            {{ exception.resolution_note }}
+                                        </div>
+
+                                    {% else %}
+
+                                        <span class="text-muted">
+                                            —
+                                        </span>
+
+                                    {% endif %}
+
+
+                                    {% if exception.resolved_by_username|default('') %}
+
+                                        <div class="small text-muted mt-1">
+
+                                            {{ exception.resolved_by_username }}
+
+                                            {% if exception.resolved_at %}
+                                                · {{ exception.resolved_at }}
+                                            {% endif %}
+
+                                        </div>
+
+                                    {% endif %}
+
+                                </td>
+
+                                <td style="min-width: 270px;">
+
+                                    {% if
+                                        exception.resolution_status == 'open'
+                                        and
+                                        (
+                                            status == 'open'
+                                            or
+                                            status == 'under_review'
+                                        )
+                                    %}
+
+                                        <details class="mb-2">
+
+                                            <summary class="btn btn-sm btn-outline-success">
+                                                Resolve
+                                            </summary>
+
+
+                                            <form
+                                                method="post"
+                                                action="/payroll-periods/{{ period.id }}/exceptions/resolve"
+                                                class="border rounded p-3 mt-2 bg-body-tertiary"
+                                            >
+
+                                                <input
+                                                    type="hidden"
+                                                    name="exception_id"
+                                                    value="{{ exception.id }}"
+                                                >
+
+
+                                                <div class="mb-2">
+
+                                                    <label
+                                                        for="resolve_note_{{ exception.id }}"
+                                                        class="form-label small fw-semibold"
+                                                    >
+                                                        Resolution Note
+                                                    </label>
+
+                                                    <textarea
+                                                        class="form-control form-control-sm"
+                                                        id="resolve_note_{{ exception.id }}"
+                                                        name="resolution_note"
+                                                        rows="3"
+                                                        maxlength="1000"
+                                                        placeholder="Optional correction details"
+                                                    ></textarea>
+
+                                                </div>
+
+
+                                                <button
+                                                    type="submit"
+                                                    class="btn btn-sm btn-success"
+                                                >
+
+                                                    <i class="bi bi-check-circle me-1"></i>
+
+                                                    Mark Resolved
+
+                                                </button>
+
+                                            </form>
+
+                                        </details>
+
+
+                                        <details>
+
+                                            <summary class="btn btn-sm btn-outline-primary">
+                                                Accept
+                                            </summary>
+
+
+                                            <form
+                                                method="post"
+                                                action="/payroll-periods/{{ period.id }}/exceptions/accept"
+                                                class="border rounded p-3 mt-2 bg-body-tertiary"
+                                            >
+
+                                                <input
+                                                    type="hidden"
+                                                    name="exception_id"
+                                                    value="{{ exception.id }}"
+                                                >
+
+
+                                                <div class="mb-2">
+
+                                                    <label
+                                                        for="accept_note_{{ exception.id }}"
+                                                        class="form-label small fw-semibold"
+                                                    >
+                                                        Required Explanation
+                                                    </label>
+
+                                                    <textarea
+                                                        class="form-control form-control-sm"
+                                                        id="accept_note_{{ exception.id }}"
+                                                        name="resolution_note"
+                                                        rows="3"
+                                                        minlength="10"
+                                                        maxlength="1000"
+                                                        required
+                                                    ></textarea>
+
+                                                    <div class="form-text">
+                                                        Enter at least 10 characters.
+                                                    </div>
+
+                                                </div>
+
+
+                                                <button
+                                                    type="submit"
+                                                    class="btn btn-sm btn-primary"
+                                                >
+
+                                                    <i class="bi bi-file-earmark-check me-1"></i>
+
+                                                    Accept Exception
+
+                                                </button>
+
+                                            </form>
+
+                                        </details>
+
+                                    {% else %}
+
+                                        <span class="text-muted small">
+                                            No action available
+                                        </span>
+
+                                    {% endif %}
+
+                                </td>
+
+                            </tr>
+
+                        {% endfor %}
+
+                    </tbody>
+
+                </table>
+
+            </div>
+
+        {% endif %}
+
+    </div>
+
+</div>
+
+
+<div class="row g-4">
+
+    <div class="col-lg-5">
+
+        <div class="card shadow-sm h-100">
+
+            <div class="card-header bg-body-tertiary">
+
+                <div class="d-flex justify-content-between align-items-center">
+
+                    <span class="fw-semibold">
+                        Review Notes
+                    </span>
+
+                    <span class="badge text-bg-secondary">
+                        {{ notes|length }}
+                    </span>
+
+                </div>
+
+            </div>
+
+
+            <div class="card-body">
+
+                {% if status == 'open' or status == 'under_review' %}
+
+                    <form
+                        method="post"
+                        action="/payroll-periods/{{ period.id }}/notes"
+                        class="mb-4"
+                    >
+
+                        <div class="mb-3">
+
+                            <label
+                                for="review_note"
+                                class="form-label fw-semibold"
+                            >
+                                Add Review Note
+                            </label>
+
+                            <textarea
+                                class="form-control"
+                                id="review_note"
+                                name="note"
+                                rows="4"
+                                maxlength="1000"
+                                aria-describedby="review_note_help"
+                                required
+                            ></textarea>
+
+                            <div
+                                id="review_note_help"
+                                class="form-text"
+                            >
+                                Review notes are immutable, become part of the payroll-period record, and are limited to 1,000 characters.
+                            </div>
+
+                        </div>
+
+
+                        <button
+                            type="submit"
+                            class="btn btn-primary"
+                        >
+
+                            <i class="bi bi-journal-plus me-1"></i>
+
+                            Add Review Note
+
+                        </button>
+
+                    </form>
+
+
+                    {% if notes is not empty %}
+
+                        <hr>
+
+                    {% endif %}
+
+                {% else %}
+
+                    <div class="alert alert-light border small">
+
+                        <i class="bi bi-lock me-1"></i>
+
+                        New review notes may be added only while the payroll period is open or under review.
+
+                    </div>
+
+                {% endif %}
+
+
+                {% if notes is empty %}
+
+                    <p class="text-muted mb-0">
+                        No review notes have been added.
+                    </p>
+
+                {% else %}
+
+                    <div class="vstack gap-3">
+
+                        {% for note in notes %}
+
+                            <div class="border rounded p-3">
+
+                                <div class="mb-2">
+                                    {{ note.note }}
+                                </div>
+
+                                <div class="small text-muted">
+
+                                    {{ note.created_by_username|default('Unknown user') }}
+
+                                    {% if note.created_at %}
+                                        · {{ note.created_at }}
+                                    {% endif %}
+
+                                </div>
+
+                            </div>
+
+                        {% endfor %}
+
+                    </div>
+
+                {% endif %}
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <div class="col-lg-7">
+
+        <div class="card shadow-sm h-100">
+
+            <div class="card-header bg-body-tertiary">
+
+                <div class="d-flex justify-content-between align-items-center">
+
+                    <span class="fw-semibold">
+                        Workflow History
+                    </span>
+
+                    <span class="badge text-bg-secondary">
+                        {{ history|length }}
+                    </span>
+
+                </div>
+
+            </div>
+
+
+            <div class="card-body p-0">
+
+                {% if history is empty %}
+
+                    <div class="text-muted text-center py-4 px-3">
+                        No workflow history is available.
+                    </div>
+
+                {% else %}
+
+                    <div class="table-responsive">
+
+                        <table class="table table-sm align-middle mb-0">
+
+                            <thead class="table-light">
+
+                                <tr>
+
+                                    <th>
+                                        Time
+                                    </th>
+
+                                    <th>
+                                        Action
+                                    </th>
+
+                                    <th>
+                                        Status Change
+                                    </th>
+
+                                    <th>
+                                        User
+                                    </th>
+
+                                    <th>
+                                        Reason
+                                    </th>
+
+                                </tr>
+
+                            </thead>
+
+
+                            <tbody>
+
+                                {% for entry in history %}
+
+                                    <tr>
+
+                                        <td class="text-nowrap">
+                                            {{ entry.created_at }}
+                                        </td>
+
+                                        <td>
+                                            {{ entry.action|replace({'_': ' '})|title }}
+                                        </td>
+
+                                        <td class="text-nowrap">
+
+                                            {% if entry.previous_status %}
+
+                                                {{ entry.previous_status|replace({'_': ' '})|title }}
+
+                                                <i class="bi bi-arrow-right mx-1"></i>
+
+                                            {% endif %}
+
+                                            {{ entry.new_status|replace({'_': ' '})|title }}
+
+                                        </td>
+
+                                        <td>
+                                            {{ entry.user_username|default('Unknown user') }}
+                                        </td>
+
+                                        <td>
+                                            {{ entry.reason|default('—') }}
+                                        </td>
+
+                                    </tr>
+
+                                {% endfor %}
+
+                            </tbody>
+
+                        </table>
+
+                    </div>
+
+                {% endif %}
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+{% endblock %}

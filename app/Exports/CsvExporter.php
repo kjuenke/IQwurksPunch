@@ -43,7 +43,10 @@ abstract class CsvExporter
             $written =
                 fputcsv(
                     $stream,
-                    $row
+                    $row,
+                    ',',
+                    '"',
+                    ''
                 );
 
 

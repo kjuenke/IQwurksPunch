@@ -1,0 +1,427 @@
+{% extends 'layouts/base.twig' %}
+
+
+{% block content %}
+
+<div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
+
+    <div>
+
+        <h1 class="h3 mb-1">
+            Payroll Periods
+        </h1>
+
+        <p class="text-muted mb-0">
+            Create, review, approve, and lock payroll periods.
+        </p>
+
+    </div>
+
+
+    <div>
+
+        <a
+            href="/payroll-periods/create"
+            class="btn btn-primary"
+        >
+
+            <i class="bi bi-plus-circle me-1"></i>
+
+            Create Payroll Period
+
+        </a>
+
+    </div>
+
+</div>
+
+
+<div class="card shadow-sm">
+
+    <div class="card-header bg-body-tertiary">
+
+        <div class="d-flex justify-content-between align-items-center">
+
+            <span class="fw-semibold">
+                Payroll Period History
+            </span>
+
+            <span class="badge text-bg-secondary">
+
+                {{ payrollPeriods|length }}
+
+                {% if payrollPeriods|length == 1 %}
+                    period
+                {% else %}
+                    periods
+                {% endif %}
+
+            </span>
+
+        </div>
+
+    </div>
+
+
+    <div class="card-body p-0">
+
+        {% if payrollPeriods is empty %}
+
+            <div class="text-center py-5 px-3">
+
+                <div class="display-6 text-muted mb-3">
+
+                    <i class="bi bi-calendar2-range"></i>
+
+                </div>
+
+                <h2 class="h5">
+                    No payroll periods have been created
+                </h2>
+
+                <p class="text-muted">
+                    Create the first payroll period to begin the review and approval workflow.
+                </p>
+
+                <a
+                    href="/payroll-periods/create"
+                    class="btn btn-primary"
+                >
+
+                    <i class="bi bi-plus-circle me-1"></i>
+
+                    Create Payroll Period
+
+                </a>
+
+            </div>
+
+        {% else %}
+
+            <div class="px-3 py-2 border-bottom bg-light small text-muted">
+
+                <i class="bi bi-cursor me-1"></i>
+
+                Select any payroll-period row to open its review page.
+
+            </div>
+
+
+            <div class="table-responsive">
+
+                <table class="table table-hover align-middle mb-0">
+
+                    <thead class="table-light">
+
+                        <tr>
+
+                            <th scope="col">
+                                Period
+                            </th>
+
+                            <th scope="col">
+                                Dates
+                            </th>
+
+                            <th scope="col">
+                                Status
+                            </th>
+
+                            <th scope="col">
+                                Review
+                            </th>
+
+                            <th scope="col">
+                                Approval
+                            </th>
+
+                            <th scope="col">
+                                Lock
+                            </th>
+
+                            <th
+                                scope="col"
+                                class="text-end"
+                            >
+                                Action
+                            </th>
+
+                        </tr>
+
+                    </thead>
+
+
+                    <tbody>
+
+                        {% for payrollPeriod in payrollPeriods %}
+
+                            {% set status = payrollPeriod.status|default('open') %}
+
+                            <tr
+                                role="link"
+                                tabindex="0"
+                                style="cursor: pointer;"
+                                title="Open {{ payrollPeriod.period_name }}"
+                                onclick="window.location.href='/payroll-periods/{{ payrollPeriod.id }}';"
+                                onkeydown="
+                                    if (
+                                        event.key === 'Enter'
+                                        ||
+                                        event.key === ' '
+                                    ) {
+                                        event.preventDefault();
+                                        window.location.href='/payroll-periods/{{ payrollPeriod.id }}';
+                                    }
+                                "
+                            >
+
+                                <td>
+
+                                    <div class="fw-semibold">
+
+                                        <a
+                                            href="/payroll-periods/{{ payrollPeriod.id }}"
+                                            class="text-decoration-none"
+                                        >
+                                            {{ payrollPeriod.period_name }}
+                                        </a>
+
+                                    </div>
+
+                                    <div class="small text-muted">
+                                        Period #{{ payrollPeriod.id }}
+                                    </div>
+
+                                </td>
+
+
+                                <td class="text-nowrap">
+
+                                    <div>
+                                        {{ payrollPeriod.start_date }}
+                                    </div>
+
+                                    <div class="small text-muted">
+                                        through {{ payrollPeriod.end_date }}
+                                    </div>
+
+                                </td>
+
+
+                                <td>
+
+                                    {% if status == 'open' %}
+
+                                        <span class="badge text-bg-secondary">
+                                            Open
+                                        </span>
+
+                                    {% elseif status == 'under_review' %}
+
+                                        <span class="badge text-bg-info">
+                                            Under Review
+                                        </span>
+
+                                    {% elseif status == 'approved' %}
+
+                                        <span class="badge text-bg-success">
+                                            Approved
+                                        </span>
+
+                                    {% elseif status == 'locked' %}
+
+                                        <span class="badge text-bg-dark">
+                                            Locked
+                                        </span>
+
+                                    {% else %}
+
+                                        <span class="badge text-bg-warning">
+                                            {{ status|replace({'_': ' '})|title }}
+                                        </span>
+
+                                    {% endif %}
+
+                                </td>
+
+
+                                <td>
+
+                                    {% if payrollPeriod.review_started_at %}
+
+                                        <div class="small">
+                                            {{ payrollPeriod.review_started_at }}
+                                        </div>
+
+                                        {% if payrollPeriod.reviewed_by_username|default('') %}
+
+                                            <div class="small text-muted">
+                                                {{ payrollPeriod.reviewed_by_username }}
+                                            </div>
+
+                                        {% endif %}
+
+                                    {% else %}
+
+                                        <span class="text-muted">
+                                            —
+                                        </span>
+
+                                    {% endif %}
+
+                                </td>
+
+
+                                <td>
+
+                                    {% if payrollPeriod.approved_at %}
+
+                                        <div class="small">
+                                            {{ payrollPeriod.approved_at }}
+                                        </div>
+
+                                        {% if payrollPeriod.approved_by_username|default('') %}
+
+                                            <div class="small text-muted">
+                                                {{ payrollPeriod.approved_by_username }}
+                                            </div>
+
+                                        {% endif %}
+
+                                    {% else %}
+
+                                        <span class="text-muted">
+                                            —
+                                        </span>
+
+                                    {% endif %}
+
+                                </td>
+
+
+                                <td>
+
+                                    {% if payrollPeriod.locked_at %}
+
+                                        <div class="small">
+                                            {{ payrollPeriod.locked_at }}
+                                        </div>
+
+                                        {% if payrollPeriod.locked_by_username|default('') %}
+
+                                            <div class="small text-muted">
+                                                {{ payrollPeriod.locked_by_username }}
+                                            </div>
+
+                                        {% endif %}
+
+                                    {% else %}
+
+                                        <span class="text-muted">
+                                            —
+                                        </span>
+
+                                    {% endif %}
+
+                                </td>
+
+
+                                <td class="text-end">
+
+                                    <a
+                                        href="/payroll-periods/{{ payrollPeriod.id }}"
+                                        class="
+                                            btn
+                                            btn-sm
+
+                                            {% if status == 'open' %}
+                                                btn-outline-primary
+                                            {% elseif status == 'under_review' %}
+                                                btn-primary
+                                            {% elseif status == 'approved' %}
+                                                btn-success
+                                            {% elseif status == 'locked' %}
+                                                btn-dark
+                                            {% else %}
+                                                btn-outline-secondary
+                                            {% endif %}
+                                        "
+                                    >
+
+                                        {% if status == 'open' %}
+
+                                            <i class="bi bi-folder2-open me-1"></i>
+
+                                            Open Period
+
+                                        {% elseif status == 'under_review' %}
+
+                                            <i class="bi bi-clipboard-check me-1"></i>
+
+                                            Continue Review
+
+                                        {% elseif status == 'approved' %}
+
+                                            <i class="bi bi-check-circle me-1"></i>
+
+                                            View Approval
+
+                                        {% elseif status == 'locked' %}
+
+                                            <i class="bi bi-lock-fill me-1"></i>
+
+                                            View Final
+
+                                        {% else %}
+
+                                            <i class="bi bi-arrow-right-circle me-1"></i>
+
+                                            View Period
+
+                                        {% endif %}
+
+                                    </a>
+
+                                </td>
+
+                            </tr>
+
+                        {% endfor %}
+
+                    </tbody>
+
+                </table>
+
+            </div>
+
+        {% endif %}
+
+    </div>
+
+</div>
+
+
+<div class="alert alert-info mt-4 mb-0">
+
+    <div class="d-flex">
+
+        <div class="me-3">
+
+            <i class="bi bi-info-circle-fill"></i>
+
+        </div>
+
+        <div>
+
+            <strong>Payroll protection:</strong>
+
+            Punch corrections are blocked when a payroll period is approved or locked.
+            Reopen the period before correcting protected punches.
+
+        </div>
+
+    </div>
+
+</div>
+
+{% endblock %}

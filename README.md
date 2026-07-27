@@ -13,10 +13,12 @@ IQwurksPunch is built with PHP, Twig, SQLite, Bootstrap, and a custom MVC framew
 ## Current Version
 
 ```text
-0.6.0
+0.7.0
 ```
 
-Version 0.6 adds production deployment, database backup and recovery, diagnostics, punch correction, authentication hardening, SQLite WAL mode, local frontend assets, a dedicated physical kiosk, and configurable kiosk inactivity protection.
+Version 0.7 adds structured payroll review and approval, payroll-period locking and reopening, immutable workflow history, payroll-exception resolution, protected approved payroll records, report workflow metadata, database-backed authorization hardening, and centralized CSRF protection.
+
+Version 0.7.0 has completed production validation, release acceptance, and final release preparation.
 
 ---
 
@@ -79,6 +81,99 @@ Punch corrections include:
 - Correction timestamps
 - Application audit records
 - Immutable correction-history records
+- Protection against corrections in approved and locked payroll periods
+- Company-timezone-aware protected-date validation
+
+### Payroll Review and Approval
+
+Version 0.7 introduces an explicit payroll-period workflow.
+
+Payroll-period states are:
+
+```text
+open
+under_review
+approved
+locked
+```
+
+Authorized administrators and supervisors can:
+
+- Create payroll periods
+- Prevent overlapping payroll ranges
+- Begin formal payroll review
+- Return a period to open
+- Add immutable review notes
+- Refresh payroll exceptions
+- Resolve payroll exceptions
+- Accept reviewed exceptions with an explanation
+- Approve payroll after all blocking exceptions are cleared
+- Lock approved payroll using exact `LOCK` confirmation
+- Reopen approved or locked payroll with a required reason
+- Review immutable workflow history
+
+Payroll review includes:
+
+- Company-local inclusive period dates
+- Maximum period length of 31 calendar days
+- Transactional state transitions
+- Concurrency-aware status updates
+- Database-validated acting users
+- Approval and lock timestamps
+- Approving and locking supervisor identification
+- Open and total exception counts
+- Approval blocking while unresolved exceptions remain
+- Immutable transition history
+- Immutable review notes limited to 1,000 characters
+
+Reopening returns the payroll period to:
+
+```text
+under_review
+```
+
+and clears the active approval and lock fields while preserving all prior events in immutable workflow history.
+
+### Payroll Exception Review
+
+Payroll exceptions can be synchronized from an exact-range Payroll Workspace report.
+
+Detected exception categories include:
+
+```text
+missing_clock_out
+missing_clock_in
+unmatched_meal
+unmatched_break
+overlapping_punch_activity
+zero_duration_shift
+invalid_punch_sequence
+payroll_calculation_warning
+```
+
+Exception states are:
+
+```text
+open
+resolved
+accepted
+```
+
+Resolved exceptions reopen automatically if the underlying issue returns. Accepted exceptions remain accepted during later refreshes.
+
+### Protected Payroll Records
+
+Punch correction is blocked when the effective company-local punch date falls inside an approved or locked payroll period.
+
+Protection applies to:
+
+- Manual punch creation
+- Punch editing
+- Punch deletion
+- The original punch date during editing
+- The proposed punch date during editing
+
+Punch timestamps remain stored in UTC. Protection checks convert those timestamps into the configured company timezone before comparing the company-local calendar date with the payroll-period range.
 
 ### Payroll Calculations
 
@@ -148,6 +243,13 @@ Company Settings controls:
 - Payroll warnings
 - Review status
 - Employee time cards
+- Exact payroll-period association
+- Partial-overlap warnings
+- Payroll-period workflow status
+- Approval and lock metadata
+- Open and total exception counts
+- Protected-period warnings
+- Links to associated payroll-period details
 
 ### CSV Exports
 
@@ -156,6 +258,11 @@ Company Settings controls:
 - Payroll Workspace CSV
 - Consistent payroll categories
 - Report-level totals
+- Payroll-period association metadata
+- Workflow status
+- Exception counts
+- Approval and lock metadata
+- Partial-overlap notices
 
 ### PDF Documents
 
@@ -169,6 +276,12 @@ Company Settings controls:
 - Payroll warnings
 - Review status
 - Employee and supervisor signature lines
+- Payroll-period association metadata
+- Workflow status
+- Approval and lock metadata
+- Exception counts
+- Partial-overlap warnings
+- Approved and locked punch-protection notices
 
 ### Email Reporting
 
@@ -181,6 +294,12 @@ Company Settings controls:
 - Company-aware report subjects
 - Payroll totals and review status
 - Scheduler duplicate-send protection
+- Payroll-period association information
+- Payroll workflow status
+- Approval and lock metadata
+- Open and total exception counts
+- Partial-overlap and no-association notices
+- Protected-period notices
 
 ### Operations Dashboard
 
@@ -431,7 +550,7 @@ The current console does not implement a universal per-command `--help` option.
 
 ## Production Deployment
 
-The validated Version 0.6 deployment uses:
+The validated Version 0.7 production deployment uses:
 
 - Ubuntu Linux
 - Nginx
@@ -621,8 +740,17 @@ A newly rotated empty mail log may temporarily produce a System Doctor warning u
 
 ## Security
 
-Version 0.6 security protections include:
+Version 0.7 security protections include:
 
+- Centralized CSRF protection for every POST request
+- Cryptographically secure session-bound CSRF tokens
+- Constant-time CSRF token comparison
+- Automatic CSRF fields in rendered POST forms
+- POST-only logout
+- Removal of the obsolete state-changing email GET route
+- Database-backed workflow authorization
+- Active-account revalidation for payroll workflow actions
+- Administrator and supervisor role enforcement
 - Supervisor authentication guard
 - Database revalidation of authenticated users
 - Active-account verification
@@ -710,14 +838,33 @@ releases/
 Run:
 
 ```bash
-php vendor/bin/phpunit
+php vendor/bin/phpunit --display-deprecations
 ```
 
-Expected Version 0.6 result:
+Expected Version 0.7 result:
 
 ```text
-OK (36 tests, 188 assertions)
+OK (136 tests, 693 assertions)
 ```
+
+Version 0.7 test coverage includes:
+
+- Payroll-period creation and validation
+- Period-overlap prevention
+- Workflow transitions
+- Approval blocking
+- Payroll locking and reopening
+- Immutable workflow history
+- Transaction rollback
+- Concurrency protection
+- Payroll-exception synchronization
+- Exception resolution and acceptance
+- Payroll-period punch protection
+- Company-timezone protected-date handling
+- Review-note validation
+- CSV, PDF, and email workflow metadata
+- Database-backed authorization
+- CSRF token handling
 
 Every modified PHP file should also pass:
 
@@ -769,26 +916,52 @@ tests/
 
 ## Project Status
 
-Version 0.6 completes the Backup, Recovery, and Diagnostics milestone.
+Version 0.7 is the current stable release.
 
-It also delivers major portions of:
+It completes the core Payroll Review and Approval milestone, including:
 
-- Payroll Administration
-- Production Deployment
-- Installation Readiness
-- Kiosk Reliability
-- Security Hardening
-
-Development toward Version 0.7 is expected to focus on:
-
+- Payroll-period creation
+- Overlap prevention
+- Formal review workflow
+- Payroll-exception synchronization
+- Exception resolution and acceptance
+- Approval blocking
 - Payroll approval
-- Payroll-period locking
-- Reopening approved payroll
-- Missing-punch review workflows
-- Supervisor review notes
-- Department payroll summaries
-- Expanded reporting automation
-- Installation and upgrade documentation
+- Payroll locking
+- Payroll reopening
+- Immutable workflow history
+- Immutable supervisor review notes
+- Approved-period punch protection
+- Locked-period punch protection
+- Payroll workflow metadata in web, CSV, PDF, and email reports
+- Database-backed workflow authorization
+- Centralized CSRF protection
+
+The validated Version 0.7 baseline is:
+
+```text
+Application version: 0.7.0
+Tests: 136
+Assertions: 693
+Database tables: 16
+Applied migrations: 12
+SQLite journal mode: wal
+Database integrity: ok
+Foreign-key violations: 0
+```
+
+Items deferred beyond Version 0.7 include:
+
+- Advanced payroll-period filtering
+- Department-level review summaries
+- Employee-level review-completion tracking
+- Workflow-aware export filename suffixes
+- External payroll-provider export profiles
+- Manual and scheduled weekly payroll email delivery
+- Scheduled exception-report delivery
+- PDF and CSV email attachments
+- Guided installation and upgrade automation
+- Release packaging
 
 ---
 
