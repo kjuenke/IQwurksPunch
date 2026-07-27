@@ -54,15 +54,15 @@
                 </p>
 
 
-                {% if recipientCount > 0 %}
+                {% if dailyRecipientCount > 0 %}
 
                     <div class="alert alert-info">
 
                         <i class="bi bi-people"></i>
 
-                        {{ recipientCount }}
-                        active
-                        {% if recipientCount == 1 %}
+                        {{ dailyRecipientCount }}
+                        active daily-payroll
+                        {% if dailyRecipientCount == 1 %}
                             recipient
                         {% else %}
                             recipients
@@ -93,38 +93,32 @@
                 <form
                     method="post"
                     action="/reports/email/send-daily"
-                    onsubmit="sendReport();"
+                    onsubmit="sendDailyReport();"
                 >
+
+                    <input
+                        type="hidden"
+                        name="report_type"
+                        value="daily"
+                    >
 
 
                     <button
-                        id="sendReportButton"
+                        id="sendDailyReportButton"
                         class="btn btn-primary"
                         type="submit"
-                        {% if recipientCount == 0 %}
+                        {% if dailyRecipientCount == 0 %}
                         disabled
                         {% endif %}
                     >
 
                         <i class="bi bi-envelope"></i>
 
-                        <span id="sendReportText">
+                        <span id="sendDailyReportText">
                             Send Daily Payroll Report
                         </span>
 
                     </button>
-
-
-                    <a
-                        href="/reports/email-history"
-                        class="btn btn-outline-secondary ms-2"
-                    >
-
-                        <i class="bi bi-clock-history"></i>
-
-                        View Email History
-
-                    </a>
 
 
                 </form>
@@ -145,16 +139,159 @@
 
 
                 <h5 class="card-title">
-                    Automatic Delivery
+                    Weekly Payroll Report
                 </h5>
 
 
                 <p class="text-muted">
 
-                    Automatically send the daily payroll report at the
-                    configured company-local time.
+                    Generate a weekly payroll summary and send it to every
+                    active recipient subscribed to weekly payroll.
 
                 </p>
+
+
+                {% if weeklyRecipientCount > 0 %}
+
+                    <div class="alert alert-info">
+
+                        <i class="bi bi-people"></i>
+
+                        {{ weeklyRecipientCount }}
+                        active weekly-payroll
+                        {% if weeklyRecipientCount == 1 %}
+                            recipient
+                        {% else %}
+                            recipients
+                        {% endif %}
+
+                    </div>
+
+                {% else %}
+
+                    <div class="alert alert-warning">
+
+                        <i class="bi bi-exclamation-triangle"></i>
+
+                        No active weekly-payroll recipients are configured.
+
+                        <a
+                            href="/admin/notifications"
+                            class="alert-link"
+                        >
+                            Configure recipients
+                        </a>
+
+                    </div>
+
+                {% endif %}
+
+
+                <form
+                    method="post"
+                    action="/reports/email/send-daily"
+                    onsubmit="sendWeeklyReport();"
+                >
+
+                    <input
+                        type="hidden"
+                        name="report_type"
+                        value="weekly"
+                    >
+
+
+                    <div class="mb-3">
+
+                        <label
+                            class="form-label"
+                            for="weekly_reference_date"
+                        >
+                            Week Reference Date
+                        </label>
+
+                        <input
+                            type="date"
+                            class="form-control"
+                            id="weekly_reference_date"
+                            name="reference_date"
+                        >
+
+                        <div class="form-text">
+
+                            Select any date within the desired payroll week.
+                            Leave blank to use the current company-local date.
+
+                        </div>
+
+                    </div>
+
+
+                    <button
+                        id="sendWeeklyReportButton"
+                        class="btn btn-primary"
+                        type="submit"
+                        {% if weeklyRecipientCount == 0 %}
+                        disabled
+                        {% endif %}
+                    >
+
+                        <i class="bi bi-envelope"></i>
+
+                        <span id="sendWeeklyReportText">
+                            Send Weekly Payroll Report
+                        </span>
+
+                    </button>
+
+
+                </form>
+
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <div class="col-12">
+
+        <div class="card shadow-sm">
+
+            <div class="card-body">
+
+
+                <div class="d-flex flex-wrap justify-content-between align-items-start">
+
+                    <div>
+
+                        <h5 class="card-title">
+                            Automatic Daily Delivery
+                        </h5>
+
+
+                        <p class="text-muted">
+
+                            Automatically send the daily payroll report at the
+                            configured company-local time.
+
+                        </p>
+
+                    </div>
+
+
+                    <a
+                        href="/reports/email-history"
+                        class="btn btn-outline-secondary"
+                    >
+
+                        <i class="bi bi-clock-history"></i>
+
+                        View Email History
+
+                    </a>
+
+                </div>
 
 
                 <form
@@ -181,7 +318,7 @@
                             class="form-check-label"
                             for="enabled"
                         >
-                            Enable automatic report delivery
+                            Enable automatic daily report delivery
                         </label>
 
                     </div>
@@ -249,7 +386,7 @@
                     {% else %}
 
                         <div class="alert alert-secondary">
-                            No automatic report has been sent yet.
+                            No automatic daily report has been sent yet.
                         </div>
 
                     {% endif %}
@@ -285,25 +422,34 @@
 
 <script>
 
-function sendReport()
+function beginButtonAction(
+    buttonId,
+    textId,
+    progressText
+)
 {
     const button =
         document.getElementById(
-            'sendReportButton'
+            buttonId
         );
 
 
     const text =
         document.getElementById(
-            'sendReportText'
+            textId
         );
+
+
+    if (!button || !text) {
+        return;
+    }
 
 
     button.disabled = true;
 
 
-    text.innerHTML =
-        'Sending Report...';
+    text.textContent =
+        progressText;
 
 
     button.insertAdjacentHTML(
@@ -313,30 +459,32 @@ function sendReport()
 }
 
 
+function sendDailyReport()
+{
+    beginButtonAction(
+        'sendDailyReportButton',
+        'sendDailyReportText',
+        'Sending Daily Report...'
+    );
+}
+
+
+function sendWeeklyReport()
+{
+    beginButtonAction(
+        'sendWeeklyReportButton',
+        'sendWeeklyReportText',
+        'Sending Weekly Report...'
+    );
+}
+
+
 function saveSchedule()
 {
-    const button =
-        document.getElementById(
-            'saveScheduleButton'
-        );
-
-
-    const text =
-        document.getElementById(
-            'saveScheduleText'
-        );
-
-
-    button.disabled = true;
-
-
-    text.innerHTML =
-        'Saving Schedule...';
-
-
-    button.insertAdjacentHTML(
-        'afterbegin',
-        '<span class="spinner-border spinner-border-sm me-2"></span>'
+    beginButtonAction(
+        'saveScheduleButton',
+        'saveScheduleText',
+        'Saving Schedule...'
     );
 }
 

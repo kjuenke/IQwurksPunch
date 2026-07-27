@@ -2,6 +2,7 @@
 declare(strict_types=1);
 
 use App\Services\ReportEmailService;
+use App\Services\WeeklyPayrollEmailService;
 use PHPUnit\Framework\TestCase;
 
 final class ReportEmailServiceTest extends TestCase
@@ -9,7 +10,7 @@ final class ReportEmailServiceTest extends TestCase
     public function testExactPayrollPeriodMetadataIsIncludedInEmailBody(): void
     {
         $body =
-            $this->payrollPeriodBody(
+            $this->dailyPayrollPeriodBody(
                 [
                     'association_status' =>
                         'exact',
@@ -158,7 +159,7 @@ final class ReportEmailServiceTest extends TestCase
     public function testPartialOverlapMetadataIsIncludedWithoutWorkflowClaims(): void
     {
         $body =
-            $this->payrollPeriodBody(
+            $this->dailyPayrollPeriodBody(
                 [
                     'association_status' =>
                         'partial_overlap',
@@ -206,7 +207,7 @@ final class ReportEmailServiceTest extends TestCase
     public function testNoAssociationMetadataIsIncludedWithoutWorkflowClaims(): void
     {
         $body =
-            $this->payrollPeriodBody(
+            $this->dailyPayrollPeriodBody(
                 [
                     'association_status' =>
                         'none',
@@ -251,10 +252,181 @@ final class ReportEmailServiceTest extends TestCase
     }
 
 
+    public function testWeeklyReferenceDateAcceptsValidIsoDate(): void
+    {
+        $date =
+            $this->weeklyReferenceDate(
+                '2026-07-23'
+            );
+
+
+        self::assertSame(
+            '2026-07-23',
+            $date
+        );
+    }
+
+
+    public function testWeeklyReferenceDateRejectsImpossibleDate(): void
+    {
+        $this->expectException(
+            InvalidArgumentException::class
+        );
+
+
+        $this->weeklyReferenceDate(
+            '2026-02-30'
+        );
+    }
+
+
+    public function testWeeklyExactPayrollPeriodMetadataIsIncludedInEmailBody(): void
+    {
+        $body =
+            $this->weeklyPayrollPeriodBody(
+                [
+                    'association_status' =>
+                        'exact',
+
+                    'association_message' =>
+                        'This weekly report exactly matches a payroll period.',
+
+                    'payroll_period' => [
+                        'id' =>
+                            77,
+
+                        'period_name' =>
+                            'Weekly Payroll',
+
+                        'start_date' =>
+                            '2026-07-20',
+
+                        'end_date' =>
+                            '2026-07-26',
+
+                        'status' =>
+                            'approved',
+
+                        'created_at' =>
+                            '2026-07-20 07:00:00',
+
+                        'created_by_username' =>
+                            'period-creator',
+
+                        'review_started_at' =>
+                            '2026-07-27 08:00:00',
+
+                        'reviewed_by_username' =>
+                            'review-supervisor',
+
+                        'approved_at' =>
+                            '2026-07-27 09:00:00',
+
+                        'approved_by_username' =>
+                            'approval-admin',
+
+                        'locked_at' =>
+                            null,
+
+                        'locked_by_username' =>
+                            null,
+
+                        'open_exception_count' =>
+                            0,
+
+                        'total_exception_count' =>
+                            2,
+
+                        'approval_blocked' =>
+                            false
+                    ]
+                ]
+            );
+
+
+        self::assertStringContainsString(
+            'Payroll-Period Association',
+            $body
+        );
+
+
+        self::assertStringContainsString(
+            'Association: Exact Match',
+            $body
+        );
+
+
+        self::assertStringContainsString(
+            'Payroll Period ID: 77',
+            $body
+        );
+
+
+        self::assertStringContainsString(
+            'Payroll Period Range: 2026-07-20 through 2026-07-26',
+            $body
+        );
+
+
+        self::assertStringContainsString(
+            'Workflow Status: Approved',
+            $body
+        );
+
+
+        self::assertStringContainsString(
+            'Open Payroll Exceptions: 0',
+            $body
+        );
+
+
+        self::assertStringContainsString(
+            'Punch Protection:',
+            $body
+        );
+    }
+
+
+    public function testWeeklyPartialOverlapDoesNotClaimWorkflowState(): void
+    {
+        $body =
+            $this->weeklyPayrollPeriodBody(
+                [
+                    'association_status' =>
+                        'partial_overlap',
+
+                    'association_message' =>
+                        'This weekly report overlaps a longer payroll period.',
+
+                    'payroll_period' =>
+                        null
+                ]
+            );
+
+
+        self::assertStringContainsString(
+            'Association: Partial Overlap',
+            $body
+        );
+
+
+        self::assertStringContainsString(
+            'This weekly report does not inherit payroll review, approval, lock, or exception-resolution status',
+            $body
+        );
+
+
+        self::assertStringNotContainsString(
+            'Workflow Status:',
+            $body
+        );
+    }
+
+
     /**
      * @param array<string,mixed> $metadata
      */
-    private function payrollPeriodBody(
+    private function dailyPayrollPeriodBody(
         array $metadata
     ): string
     {
@@ -280,6 +452,72 @@ final class ReportEmailServiceTest extends TestCase
             (string)$method->invoke(
                 $service,
                 $metadata
+            );
+    }
+
+
+    /**
+     * @param array<string,mixed> $metadata
+     */
+    private function weeklyPayrollPeriodBody(
+        array $metadata
+    ): string
+    {
+        $reflection =
+            new ReflectionClass(
+                WeeklyPayrollEmailService::class
+            );
+
+
+        $service =
+            $reflection
+                ->newInstanceWithoutConstructor();
+
+
+        $method =
+            $reflection
+                ->getMethod(
+                    'payrollPeriodBody'
+                );
+
+
+        return
+            (string)$method->invoke(
+                $service,
+                $metadata
+            );
+    }
+
+
+    private function weeklyReferenceDate(
+        ?string $date
+    ): string
+    {
+        $reflection =
+            new ReflectionClass(
+                WeeklyPayrollEmailService::class
+            );
+
+
+        $service =
+            $reflection
+                ->newInstanceWithoutConstructor();
+
+
+        $method =
+            $reflection
+                ->getMethod(
+                    'validReferenceDate'
+                );
+
+
+        return
+            (string)$method->invoke(
+                $service,
+                $date,
+                new DateTimeZone(
+                    'America/Los_Angeles'
+                )
             );
     }
 }

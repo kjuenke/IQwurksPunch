@@ -8,11 +8,14 @@ use App\Core\Flash;
 use App\Services\NotificationRecipientService;
 use App\Services\ReportEmailService;
 use App\Services\ReportScheduleService;
+use App\Services\WeeklyPayrollEmailService;
 use Throwable;
 
 class ReportEmailController extends Controller
 {
     private ReportEmailService $reports;
+
+    private WeeklyPayrollEmailService $weeklyReports;
 
     private ReportScheduleService $schedule;
 
@@ -23,6 +26,10 @@ class ReportEmailController extends Controller
     {
         $this->reports =
             Container::reportEmailService();
+
+
+        $this->weeklyReports =
+            new WeeklyPayrollEmailService();
 
 
         $this->schedule =
@@ -36,6 +43,18 @@ class ReportEmailController extends Controller
 
     public function index(): void
     {
+        $dailyRecipientCount =
+            $this->recipients->countActiveFor(
+                'daily_payroll'
+            );
+
+
+        $weeklyRecipientCount =
+            $this->recipients->countActiveFor(
+                'weekly_payroll'
+            );
+
+
         $this->render(
             'reports/email.twig',
             [
@@ -48,10 +67,18 @@ class ReportEmailController extends Controller
                 'schedule' =>
                     $this->schedule->get(),
 
+                /*
+                 * Retained temporarily for compatibility with the current
+                 * daily-report view.
+                 */
                 'recipientCount' =>
-                    $this->recipients->countActiveFor(
-                        'daily_payroll'
-                    )
+                    $dailyRecipientCount,
+
+                'dailyRecipientCount' =>
+                    $dailyRecipientCount,
+
+                'weeklyRecipientCount' =>
+                    $weeklyRecipientCount
             ]
         );
     }
@@ -59,6 +86,36 @@ class ReportEmailController extends Controller
 
     public function sendDaily(): void
     {
+        $reportType =
+            trim(
+                (string)(
+                    $_POST['report_type']
+                    ??
+                    'daily'
+                )
+            );
+
+
+        if ($reportType === 'weekly') {
+
+            $this->sendWeekly();
+
+
+            return;
+        }
+
+
+        if ($reportType !== 'daily') {
+
+            Flash::error(
+                'Unsupported payroll report type.'
+            );
+
+
+            $this->redirect();
+        }
+
+
         try {
 
             $sent =
@@ -117,6 +174,56 @@ class ReportEmailController extends Controller
 
             Flash::error(
                 $message
+            );
+        }
+
+
+        $this->redirect();
+    }
+
+
+    private function sendWeekly(): never
+    {
+        $referenceDate =
+            trim(
+                (string)(
+                    $_POST['reference_date']
+                    ??
+                    ''
+                )
+            );
+
+
+        try {
+
+            $sent =
+                $this->weeklyReports
+                    ->sendWeeklyPayrollReport(
+                        $referenceDate === ''
+                            ? null
+                            : $referenceDate
+                    );
+
+
+            if ($sent) {
+
+                Flash::success(
+                    'Weekly payroll report sent successfully.'
+                );
+
+            } else {
+
+                Flash::error(
+                    'Weekly payroll report failed to send.'
+                );
+            }
+
+        } catch (Throwable $exception) {
+
+            Flash::error(
+                'Weekly report email failed: '
+                .
+                $exception->getMessage()
             );
         }
 
