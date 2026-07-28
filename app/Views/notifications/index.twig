@@ -33,7 +33,7 @@
 
 <div class="row g-3 mb-4">
 
-    <div class="col-md-4">
+    <div class="col-md-6 col-xl-3">
 
         <div class="card shadow-sm h-100">
 
@@ -58,7 +58,7 @@
     </div>
 
 
-    <div class="col-md-4">
+    <div class="col-md-6 col-xl-3">
 
         <div class="card shadow-sm h-100">
 
@@ -83,7 +83,7 @@
     </div>
 
 
-    <div class="col-md-4">
+    <div class="col-md-6 col-xl-3">
 
         <div class="card shadow-sm h-100">
 
@@ -95,6 +95,31 @@
 
                 <div class="display-6">
                     {{ exceptionRecipientCount }}
+                </div>
+
+                <div class="small text-muted">
+                    active recipients
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <div class="col-md-6 col-xl-3">
+
+        <div class="card shadow-sm h-100">
+
+            <div class="card-body">
+
+                <div class="text-muted">
+                    Payroll Approvals
+                </div>
+
+                <div class="display-6">
+                    {{ approvalRecipientCount }}
                 </div>
 
                 <div class="small text-muted">
@@ -180,7 +205,7 @@
             <div class="row">
 
 
-                <div class="col-md-3 mb-3">
+                <div class="col-md-6 col-xl mb-3">
 
                     <div class="form-check">
 
@@ -204,7 +229,7 @@
                 </div>
 
 
-                <div class="col-md-3 mb-3">
+                <div class="col-md-6 col-xl mb-3">
 
                     <div class="form-check">
 
@@ -228,7 +253,7 @@
                 </div>
 
 
-                <div class="col-md-3 mb-3">
+                <div class="col-md-6 col-xl mb-3">
 
                     <div class="form-check">
 
@@ -252,7 +277,31 @@
                 </div>
 
 
-                <div class="col-md-3 mb-3">
+                <div class="col-md-6 col-xl mb-3">
+
+                    <div class="form-check">
+
+                        <input
+                            class="form-check-input"
+                            type="checkbox"
+                            id="new_approval_notifications"
+                            name="approval_notifications"
+                            checked
+                        >
+
+                        <label
+                            class="form-check-label"
+                            for="new_approval_notifications"
+                        >
+                            Payroll approvals
+                        </label>
+
+                    </div>
+
+                </div>
+
+
+                <div class="col-md-6 col-xl mb-3">
 
                     <div class="form-check">
 
@@ -403,7 +452,7 @@
                     <div class="row">
 
 
-                        <div class="col-md-3 mb-3">
+                        <div class="col-md-6 col-xl mb-3">
 
                             <div class="form-check">
 
@@ -429,7 +478,7 @@
                         </div>
 
 
-                        <div class="col-md-3 mb-3">
+                        <div class="col-md-6 col-xl mb-3">
 
                             <div class="form-check">
 
@@ -455,7 +504,7 @@
                         </div>
 
 
-                        <div class="col-md-3 mb-3">
+                        <div class="col-md-6 col-xl mb-3">
 
                             <div class="form-check">
 
@@ -481,7 +530,33 @@
                         </div>
 
 
-                        <div class="col-md-3 mb-3">
+                        <div class="col-md-6 col-xl mb-3">
+
+                            <div class="form-check">
+
+                                <input
+                                    class="form-check-input"
+                                    type="checkbox"
+                                    id="approval_notifications_{{ recipient.id }}"
+                                    name="approval_notifications"
+                                    {% if recipient.approval_notifications %}
+                                    checked
+                                    {% endif %}
+                                >
+
+                                <label
+                                    class="form-check-label"
+                                    for="approval_notifications_{{ recipient.id }}"
+                                >
+                                    Payroll approvals
+                                </label>
+
+                            </div>
+
+                        </div>
+
+
+                        <div class="col-md-6 col-xl mb-3">
 
                             <div class="form-check">
 

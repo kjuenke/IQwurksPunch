@@ -131,6 +131,7 @@ class NotificationRecipientRepository
                     daily_payroll,
                     weekly_payroll,
                     exception_reports,
+                    approval_notifications,
                     active
                 )
 
@@ -141,6 +142,7 @@ class NotificationRecipientRepository
                     :daily_payroll,
                     :weekly_payroll,
                     :exception_reports,
+                    :approval_notifications,
                     :active
                 )
                 "
@@ -163,6 +165,9 @@ class NotificationRecipientRepository
 
                 'exception_reports' =>
                     $data['exception_reports'],
+
+                'approval_notifications' =>
+                    $data['approval_notifications'],
 
                 'active' =>
                     $data['active']
@@ -191,6 +196,7 @@ class NotificationRecipientRepository
                     daily_payroll = :daily_payroll,
                     weekly_payroll = :weekly_payroll,
                     exception_reports = :exception_reports,
+                    approval_notifications = :approval_notifications,
                     active = :active,
                     updated_at = CURRENT_TIMESTAMP
 
@@ -215,6 +221,9 @@ class NotificationRecipientRepository
 
                 'exception_reports' =>
                     $data['exception_reports'],
+
+                'approval_notifications' =>
+                    $data['approval_notifications'],
 
                 'active' =>
                     $data['active'],
@@ -292,7 +301,8 @@ class NotificationRecipientRepository
         $allowedColumns = [
             'daily_payroll',
             'weekly_payroll',
-            'exception_reports'
+            'exception_reports',
+            'approval_notifications'
         ];
 
 

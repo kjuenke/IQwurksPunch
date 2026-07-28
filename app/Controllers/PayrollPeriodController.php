@@ -8,6 +8,7 @@ use App\Core\Flash;
 use App\Repositories\PayrollExceptionResolutionRepository;
 use App\Repositories\PayrollPeriodHistoryRepository;
 use App\Repositories\PayrollReviewNoteRepository;
+use App\Services\ApprovalNotificationEmailService;
 use App\Services\AuditService;
 use App\Services\AuthGuardService;
 use App\Services\CompanySettingsService;
@@ -25,6 +26,8 @@ final class PayrollPeriodController extends Controller
     private PayrollPeriodService $payrollPeriods;
 
     private PayrollApprovalService $approval;
+
+    private ApprovalNotificationEmailService $approvalNotifications;
 
     private PayrollReviewNoteService $reviewNoteService;
 
@@ -53,6 +56,10 @@ final class PayrollPeriodController extends Controller
 
         $this->approval =
             Container::payrollApprovalService();
+
+
+        $this->approvalNotifications =
+            new ApprovalNotificationEmailService();
 
 
         $this->reviewNoteService =
@@ -406,6 +413,30 @@ final class PayrollPeriodController extends Controller
             Flash::success(
                 'Payroll period approved successfully.'
             );
+
+
+            try {
+
+                $notificationSent =
+                    $this->approvalNotifications
+                        ->sendApprovedPeriod(
+                            $period
+                        );
+
+
+                if (!$notificationSent) {
+
+                    Flash::warning(
+                        'The payroll period was approved, but the approval notification email could not be sent. Review the mail and report logs for details.'
+                    );
+                }
+
+            } catch (Throwable) {
+
+                Flash::warning(
+                    'The payroll period was approved, but the approval notification email could not be sent. Review the mail and report logs for details.'
+                );
+            }
 
         } catch (Throwable $exception) {
 

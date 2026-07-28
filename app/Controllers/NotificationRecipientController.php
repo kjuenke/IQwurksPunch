@@ -46,6 +46,11 @@ class NotificationRecipientController extends Controller
                 'exceptionRecipientCount' =>
                     $this->recipients->countActiveFor(
                         'exception_reports'
+                    ),
+
+                'approvalRecipientCount' =>
+                    $this->recipients->countActiveFor(
+                        'approval_notifications'
                     )
             ]
         );
