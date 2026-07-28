@@ -6,16 +6,19 @@ namespace App\Console\Commands;
 use App\Console\CommandInterface;
 use App\Core\Container;
 use App\Logging\LoggerInterface;
-use App\Repositories\ReportScheduleRepository;
+use App\Repositories\ReportDeliveryScheduleRepository;
+use App\Services\ReportDeliveryScheduleService;
 use App\Services\ReportEmailService;
-use App\Services\ReportScheduleService;
+use App\Services\WeeklyPayrollEmailService;
 use Throwable;
 
 class ScheduleRunCommand implements CommandInterface
 {
-    private ReportScheduleService $schedule;
+    private ReportDeliveryScheduleService $schedule;
 
-    private ReportEmailService $reports;
+    private ReportEmailService $dailyReports;
+
+    private WeeklyPayrollEmailService $weeklyReports;
 
     private LoggerInterface $logger;
 
@@ -23,19 +26,23 @@ class ScheduleRunCommand implements CommandInterface
     public function __construct()
     {
         $repository =
-            new ReportScheduleRepository(
+            new ReportDeliveryScheduleRepository(
                 Container::db()
             );
 
 
         $this->schedule =
-            new ReportScheduleService(
+            new ReportDeliveryScheduleService(
                 $repository
             );
 
 
-        $this->reports =
+        $this->dailyReports =
             new ReportEmailService();
+
+
+        $this->weeklyReports =
+            new WeeklyPayrollEmailService();
 
 
         $this->logger =
@@ -53,7 +60,7 @@ class ScheduleRunCommand implements CommandInterface
 
     public function description(): string
     {
-        return 'Send the scheduled payroll report when it is due.';
+        return 'Send each scheduled payroll report that is due.';
     }
 
 
@@ -85,36 +92,327 @@ class ScheduleRunCommand implements CommandInterface
                 'memory_bytes' =>
                     memory_get_usage(
                         true
-                    ),
+                    )
             ]
         );
 
 
         try {
 
-            $schedule =
-                $this->schedule->get();
+            $reportTypes = [
+                ReportDeliveryScheduleService::DAILY_PAYROLL =>
+                    'Daily payroll',
+
+                ReportDeliveryScheduleService::WEEKLY_PAYROLL =>
+                    'Weekly payroll'
+            ];
 
 
-            if (!$schedule) {
+            $enabledCount = 0;
 
-                $this->logger->error(
-                    'Report schedule settings were not found.'
+            $dueCount = 0;
+
+            $sentCount = 0;
+
+            $failureCount = 0;
+
+
+            foreach (
+                $reportTypes
+                as
+                $reportType => $reportLabel
+            ) {
+                $schedule =
+                    $this->schedule->get(
+                        $reportType
+                    );
+
+
+                if (!$schedule) {
+
+                    $failureCount++;
+
+
+                    $this->logger->error(
+                        'Report delivery schedule was not found.',
+                        [
+                            'report_type' =>
+                                $reportType
+                        ]
+                    );
+
+
+                    fwrite(
+                        STDERR,
+                        $reportLabel
+                        .
+                        ' schedule was not found.'
+                        .
+                        PHP_EOL
+                    );
+
+
+                    continue;
+                }
+
+
+                if (!(bool)$schedule['enabled']) {
+
+                    $this->logger->debug(
+                        'Scheduled report is disabled.',
+                        [
+                            'report_type' =>
+                                $reportType
+                        ]
+                    );
+
+
+                    continue;
+                }
+
+
+                $enabledCount++;
+
+
+                $this->logger->debug(
+                    'Evaluating scheduled report delivery.',
+                    [
+                        'report_type' =>
+                            $reportType,
+
+                        'send_time' =>
+                            $schedule['send_time']
+                            ??
+                            null,
+
+                        'send_day_of_week' =>
+                            $schedule['send_day_of_week']
+                            ??
+                            null,
+
+                        'last_sent_at' =>
+                            $schedule['last_sent_at']
+                            ??
+                            null
+                    ]
                 );
 
 
-                fwrite(
-                    STDERR,
-                    'Report schedule settings were not found.'
+                if (
+                    !$this->schedule->isDue(
+                        $reportType
+                    )
+                ) {
+                    $this->logger->debug(
+                        'Scheduled report is not due.',
+                        [
+                            'report_type' =>
+                                $reportType
+                        ]
+                    );
+
+
+                    continue;
+                }
+
+
+                $dueCount++;
+
+
+                $this->logger->info(
+                    'Scheduled report is due.',
+                    [
+                        'report_type' =>
+                            $reportType
+                    ]
+                );
+
+
+                echo
+                    $reportLabel
                     .
-                    PHP_EOL
-                );
+                    ' report is due. Sending...'
+                    .
+                    PHP_EOL;
+
+
+                try {
+
+                    $sent =
+                        $this->sendReport(
+                            $reportType
+                        );
+
+
+                    if (!$sent) {
+
+                        $failureCount++;
+
+
+                        $error =
+                            $reportLabel
+                            .
+                            ' report delivery returned a failure result.';
+
+
+                        $this->schedule->markFailed(
+                            $reportType,
+                            $error
+                        );
+
+
+                        $this->logger->error(
+                            'Scheduled report failed to send.',
+                            [
+                                'report_type' =>
+                                    $reportType
+                            ]
+                        );
+
+
+                        fwrite(
+                            STDERR,
+                            $error
+                            .
+                            PHP_EOL
+                        );
+
+
+                        continue;
+                    }
+
+
+                    if (
+                        !$this->schedule->markSent(
+                            $reportType
+                        )
+                    ) {
+                        $failureCount++;
+
+
+                        $error =
+                            $reportLabel
+                            .
+                            ' report was sent, but its schedule could not be marked as sent.';
+
+
+                        $this->schedule->markFailed(
+                            $reportType,
+                            $error
+                        );
+
+
+                        $this->logger->error(
+                            'Report was sent, but its schedule could not be marked as sent.',
+                            [
+                                'report_type' =>
+                                    $reportType
+                            ]
+                        );
+
+
+                        fwrite(
+                            STDERR,
+                            $error
+                            .
+                            PHP_EOL
+                        );
+
+
+                        continue;
+                    }
+
+
+                    $sentCount++;
+
+
+                    $this->logger->info(
+                        'Scheduled report completed successfully.',
+                        [
+                            'report_type' =>
+                                $reportType
+                        ]
+                    );
+
+
+                    echo
+                        $reportLabel
+                        .
+                        ' report sent successfully.'
+                        .
+                        PHP_EOL;
+
+                } catch (Throwable $exception) {
+
+                    $failureCount++;
+
+
+                    $this->schedule->markFailed(
+                        $reportType,
+                        $exception->getMessage()
+                    );
+
+
+                    $this->logger->error(
+                        'Scheduled report processing failed.',
+                        [
+                            'report_type' =>
+                                $reportType,
+
+                            'exception_class' =>
+                                $exception::class,
+
+                            'exception_message' =>
+                                $exception->getMessage(),
+
+                            'exception_file' =>
+                                $exception->getFile(),
+
+                            'exception_line' =>
+                                $exception->getLine()
+                        ]
+                    );
+
+
+                    fwrite(
+                        STDERR,
+                        $reportLabel
+                        .
+                        ' report failed: '
+                        .
+                        $exception->getMessage()
+                        .
+                        PHP_EOL
+                    );
+                }
+            }
+
+
+            if ($failureCount > 0) {
+
+                $result =
+                    $sentCount > 0
+                        ? 'partial_failure'
+                        : 'failed';
 
 
                 $this->logCompletion(
                     $startedAt,
                     1,
-                    'missing_schedule'
+                    $result,
+                    [
+                        'enabled_count' =>
+                            $enabledCount,
+
+                        'due_count' =>
+                            $dueCount,
+
+                        'sent_count' =>
+                            $sentCount,
+
+                        'failure_count' =>
+                            $failureCount
+                    ]
                 );
 
 
@@ -122,23 +420,36 @@ class ScheduleRunCommand implements CommandInterface
             }
 
 
-            if (!(bool)$schedule['enabled']) {
-
-                $this->logger->info(
-                    'Automatic report delivery is disabled.'
-                );
-
+            if ($enabledCount === 0) {
 
                 echo
-                    'Automatic report delivery is disabled.'
+                    'Automatic payroll report delivery is disabled.'
                     .
                     PHP_EOL;
+
+
+                $this->logger->info(
+                    'Automatic payroll report delivery is disabled.'
+                );
 
 
                 $this->logCompletion(
                     $startedAt,
                     0,
-                    'disabled'
+                    'disabled',
+                    [
+                        'enabled_count' =>
+                            0,
+
+                        'due_count' =>
+                            0,
+
+                        'sent_count' =>
+                            0,
+
+                        'failure_count' =>
+                            0
+                    ]
                 );
 
 
@@ -146,28 +457,36 @@ class ScheduleRunCommand implements CommandInterface
             }
 
 
-            $this->logger->debug(
-                'Evaluating scheduled report delivery.'
-            );
+            if ($dueCount === 0) {
 
+                echo
+                    'No scheduled report is due.'
+                    .
+                    PHP_EOL;
 
-            if (!$this->schedule->isDue()) {
 
                 $this->logger->debug(
                     'No scheduled report is due.'
                 );
 
 
-                echo
-                    'No scheduled report is due.'
-                    .
-                    PHP_EOL;
-
-
                 $this->logCompletion(
                     $startedAt,
                     0,
-                    'not_due'
+                    'not_due',
+                    [
+                        'enabled_count' =>
+                            $enabledCount,
+
+                        'due_count' =>
+                            0,
+
+                        'sent_count' =>
+                            0,
+
+                        'failure_count' =>
+                            0
+                    ]
                 );
 
 
@@ -175,86 +494,8 @@ class ScheduleRunCommand implements CommandInterface
             }
 
 
-            $this->logger->info(
-                'Scheduled report is due.'
-            );
-
-
             echo
-                'Scheduled report is due. Sending...'
-                .
-                PHP_EOL;
-
-
-            $sent =
-                $this->reports
-                    ->sendDailyPayrollReport();
-
-
-            if (!$sent) {
-
-                $this->logger->error(
-                    'Scheduled payroll report failed to send.'
-                );
-
-
-                fwrite(
-                    STDERR,
-                    'Scheduled report failed to send.'
-                    .
-                    PHP_EOL
-                );
-
-
-                $this->logCompletion(
-                    $startedAt,
-                    1,
-                    'send_failed'
-                );
-
-
-                return 1;
-            }
-
-
-            $this->logger->info(
-                'Scheduled payroll report was sent.'
-            );
-
-
-            if (!$this->schedule->markSent()) {
-
-                $this->logger->error(
-                    'Report was sent, but last_sent_at could not be updated.'
-                );
-
-
-                fwrite(
-                    STDERR,
-                    'Report was sent, but last_sent_at could not be updated.'
-                    .
-                    PHP_EOL
-                );
-
-
-                $this->logCompletion(
-                    $startedAt,
-                    1,
-                    'mark_sent_failed'
-                );
-
-
-                return 1;
-            }
-
-
-            $this->logger->info(
-                'Scheduled payroll report completed successfully.'
-            );
-
-
-            echo
-                'Scheduled payroll report sent successfully.'
+                'All due scheduled reports completed successfully.'
                 .
                 PHP_EOL;
 
@@ -262,7 +503,20 @@ class ScheduleRunCommand implements CommandInterface
             $this->logCompletion(
                 $startedAt,
                 0,
-                'sent'
+                'sent',
+                [
+                    'enabled_count' =>
+                        $enabledCount,
+
+                    'due_count' =>
+                        $dueCount,
+
+                    'sent_count' =>
+                        $sentCount,
+
+                    'failure_count' =>
+                        0
+                ]
             );
 
 
@@ -286,7 +540,7 @@ class ScheduleRunCommand implements CommandInterface
                         $exception->getLine(),
 
                     'exception_trace' =>
-                        $exception->getTraceAsString(),
+                        $exception->getTraceAsString()
                 ]
             );
 
@@ -311,10 +565,51 @@ class ScheduleRunCommand implements CommandInterface
     }
 
 
+    private function sendReport(
+        string $reportType
+    ): bool
+    {
+        if (
+            $reportType
+            ===
+            ReportDeliveryScheduleService::DAILY_PAYROLL
+        ) {
+            return
+                $this->dailyReports
+                    ->sendDailyPayrollReport();
+        }
+
+
+        if (
+            $reportType
+            ===
+            ReportDeliveryScheduleService::WEEKLY_PAYROLL
+        ) {
+            $referenceDate =
+                $this->schedule
+                    ->previousWeekReferenceDate();
+
+
+            return
+                $this->weeklyReports
+                    ->sendWeeklyPayrollReport(
+                        $referenceDate
+                    );
+        }
+
+
+        return false;
+    }
+
+
+    /**
+     * @param array<string,mixed> $context
+     */
     private function logCompletion(
         float $startedAt,
         int $exitCode,
-        string $result
+        string $result,
+        array $context = []
     ): void
     {
         $durationMilliseconds =
@@ -353,6 +648,8 @@ class ScheduleRunCommand implements CommandInterface
                     memory_get_peak_usage(
                         true
                     ),
+
+                ...$context
             ]
         );
     }

@@ -54,7 +54,7 @@ $databaseIndependentCommands = [
     'maintenance:on',
     'maintenance:off',
     'maintenance:status',
-    'scheduler:check',
+    'scheduler:check'
 ];
 
 
@@ -111,6 +111,98 @@ if (
             'America/Los_Angeles'
         );
     }
+}
+
+
+/*
+|--------------------------------------------------------------------------
+| Internal scheduler execution lock
+|--------------------------------------------------------------------------
+|
+| Cron has an external flock, but a manually started schedule:run command
+| does not pass through that external lock. This second lock ensures that
+| cron and manual scheduler executions cannot overlap.
+|
+*/
+
+$schedulerLockHandle =
+    null;
+
+
+if ($requestedCommand === 'schedule:run') {
+
+    $schedulerLockFile =
+        '/tmp/iqwurks-schedule-run.internal.lock';
+
+
+    $schedulerLockHandle =
+        @fopen(
+            $schedulerLockFile,
+            'c+'
+        );
+
+
+    if ($schedulerLockHandle === false) {
+
+        fwrite(
+            STDERR,
+            'Unable to open the internal scheduler lock file: '
+            .
+            $schedulerLockFile
+            .
+            PHP_EOL
+        );
+
+
+        exit(1);
+    }
+
+
+    if (
+        !flock(
+            $schedulerLockHandle,
+            LOCK_EX
+            |
+            LOCK_NB
+        )
+    ) {
+        fclose(
+            $schedulerLockHandle
+        );
+
+
+        echo
+            'Scheduler is already running. Skipping this execution.'
+            .
+            PHP_EOL;
+
+
+        exit(0);
+    }
+
+
+    ftruncate(
+        $schedulerLockHandle,
+        0
+    );
+
+
+    rewind(
+        $schedulerLockHandle
+    );
+
+
+    fwrite(
+        $schedulerLockHandle,
+        (string)getmypid()
+        .
+        PHP_EOL
+    );
+
+
+    fflush(
+        $schedulerLockHandle
+    );
 }
 
 
@@ -244,15 +336,36 @@ $console->register(
 $console->register(
     new LazyCommand(
         'schedule:run',
-        'Send the scheduled payroll report when it is due.',
+        'Send each scheduled payroll report that is due.',
         static fn (): CommandInterface =>
             new ScheduleRunCommand()
     )
 );
 
 
-exit(
+$exitCode =
     $console->run(
         $argv
+    );
+
+
+if (
+    is_resource(
+        $schedulerLockHandle
     )
+) {
+    flock(
+        $schedulerLockHandle,
+        LOCK_UN
+    );
+
+
+    fclose(
+        $schedulerLockHandle
+    );
+}
+
+
+exit(
+    $exitCode
 );

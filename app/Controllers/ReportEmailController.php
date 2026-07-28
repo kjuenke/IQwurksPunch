@@ -5,9 +5,10 @@ namespace App\Controllers;
 
 use App\Core\Container;
 use App\Core\Flash;
+use App\Repositories\ReportDeliveryScheduleRepository;
 use App\Services\NotificationRecipientService;
+use App\Services\ReportDeliveryScheduleService;
 use App\Services\ReportEmailService;
-use App\Services\ReportScheduleService;
 use App\Services\WeeklyPayrollEmailService;
 use Throwable;
 
@@ -17,7 +18,7 @@ class ReportEmailController extends Controller
 
     private WeeklyPayrollEmailService $weeklyReports;
 
-    private ReportScheduleService $schedule;
+    private ReportDeliveryScheduleService $schedules;
 
     private NotificationRecipientService $recipients;
 
@@ -32,8 +33,12 @@ class ReportEmailController extends Controller
             new WeeklyPayrollEmailService();
 
 
-        $this->schedule =
-            Container::reportScheduleService();
+        $this->schedules =
+            new ReportDeliveryScheduleService(
+                new ReportDeliveryScheduleRepository(
+                    Container::db()
+                )
+            );
 
 
         $this->recipients =
@@ -55,6 +60,22 @@ class ReportEmailController extends Controller
             );
 
 
+        $dailySchedule =
+            $this->schedules->get(
+                ReportDeliveryScheduleService::DAILY_PAYROLL
+            )
+            ??
+            [];
+
+
+        $weeklySchedule =
+            $this->schedules->get(
+                ReportDeliveryScheduleService::WEEKLY_PAYROLL
+            )
+            ??
+            [];
+
+
         $this->render(
             'reports/email.twig',
             [
@@ -64,13 +85,21 @@ class ReportEmailController extends Controller
                 'activeMenu' =>
                     'reports',
 
-                'schedule' =>
-                    $this->schedule->get(),
-
                 /*
-                 * Retained temporarily for compatibility with the current
-                 * daily-report view.
+                 * Retained until the view is updated in the next step.
                  */
+                'schedule' =>
+                    $dailySchedule,
+
+                'dailySchedule' =>
+                    $dailySchedule,
+
+                'weeklySchedule' =>
+                    $weeklySchedule,
+
+                'weeklyDayOptions' =>
+                    $this->schedules->dayOptions(),
+
                 'recipientCount' =>
                     $dailyRecipientCount,
 
@@ -99,9 +128,6 @@ class ReportEmailController extends Controller
         if ($reportType === 'weekly') {
 
             $this->sendWeekly();
-
-
-            return;
         }
 
 
@@ -152,28 +178,86 @@ class ReportEmailController extends Controller
 
     public function updateSchedule(): void
     {
-        $result =
-            $this->schedule->update(
-                $_POST
+        $reportType =
+            trim(
+                (string)(
+                    $_POST['report_type']
+                    ??
+                    ReportDeliveryScheduleService::DAILY_PAYROLL
+                )
             );
 
 
-        if ($result['success']) {
+        try {
 
-            Flash::success(
-                'Automatic report schedule saved successfully.'
-            );
+            if (
+                $reportType
+                ===
+                ReportDeliveryScheduleService::DAILY_PAYROLL
+            ) {
+                $result =
+                    $this->schedules->updateDaily(
+                        $_POST
+                    );
 
-        } else {
 
-            $message =
-                $result['errors']['send_time']
-                ??
-                'Unable to save the report schedule.';
+                $successMessage =
+                    'Automatic daily payroll schedule saved successfully.';
 
+            } elseif (
+                $reportType
+                ===
+                ReportDeliveryScheduleService::WEEKLY_PAYROLL
+            ) {
+                $result =
+                    $this->schedules->updateWeekly(
+                        $_POST
+                    );
+
+
+                $successMessage =
+                    'Automatic weekly payroll schedule saved successfully.';
+
+            } else {
+
+                Flash::error(
+                    'Unsupported report schedule type.'
+                );
+
+
+                $this->redirect();
+            }
+
+
+            if ($result['success']) {
+
+                Flash::success(
+                    $successMessage
+                );
+
+            } else {
+
+                $message =
+                    $result['errors']['send_time']
+                    ??
+                    $result['errors']['send_day_of_week']
+                    ??
+                    $result['errors']['schedule']
+                    ??
+                    'Unable to save the report schedule.';
+
+
+                Flash::error(
+                    $message
+                );
+            }
+
+        } catch (Throwable $exception) {
 
             Flash::error(
-                $message
+                'Unable to save the report schedule: '
+                .
+                $exception->getMessage()
             );
         }
 

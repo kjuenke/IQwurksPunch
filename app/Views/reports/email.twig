@@ -17,16 +17,32 @@
     </div>
 
 
-    <a
-        href="/admin/notifications"
-        class="btn btn-outline-primary"
-    >
+    <div class="d-flex gap-2">
 
-        <i class="bi bi-people"></i>
+        <a
+            href="/reports/email-history"
+            class="btn btn-outline-secondary"
+        >
 
-        Manage Recipients
+            <i class="bi bi-clock-history"></i>
 
-    </a>
+            Email History
+
+        </a>
+
+
+        <a
+            href="/admin/notifications"
+            class="btn btn-outline-primary"
+        >
+
+            <i class="bi bi-people"></i>
+
+            Manage Recipients
+
+        </a>
+
+    </div>
 
 </div>
 
@@ -119,7 +135,6 @@
                         </span>
 
                     </button>
-
 
                 </form>
 
@@ -243,7 +258,6 @@
 
                     </button>
 
-
                 </form>
 
 
@@ -254,51 +268,37 @@
     </div>
 
 
-    <div class="col-12">
+    <div class="col-lg-6">
 
-        <div class="card shadow-sm">
+        <div class="card shadow-sm h-100">
 
             <div class="card-body">
 
 
-                <div class="d-flex flex-wrap justify-content-between align-items-start">
-
-                    <div>
-
-                        <h5 class="card-title">
-                            Automatic Daily Delivery
-                        </h5>
+                <h5 class="card-title">
+                    Automatic Daily Delivery
+                </h5>
 
 
-                        <p class="text-muted">
+                <p class="text-muted">
 
-                            Automatically send the daily payroll report at the
-                            configured company-local time.
+                    Automatically send the daily payroll report at the
+                    configured company-local time.
 
-                        </p>
-
-                    </div>
-
-
-                    <a
-                        href="/reports/email-history"
-                        class="btn btn-outline-secondary"
-                    >
-
-                        <i class="bi bi-clock-history"></i>
-
-                        View Email History
-
-                    </a>
-
-                </div>
+                </p>
 
 
                 <form
                     method="post"
                     action="/reports/email/schedule"
-                    onsubmit="saveSchedule();"
+                    onsubmit="saveDailySchedule();"
                 >
+
+                    <input
+                        type="hidden"
+                        name="report_type"
+                        value="daily_payroll"
+                    >
 
 
                     <div class="form-check form-switch mb-3">
@@ -307,18 +307,18 @@
                             class="form-check-input"
                             type="checkbox"
                             role="switch"
-                            id="enabled"
+                            id="daily_enabled"
                             name="enabled"
-                            {% if schedule.enabled %}
+                            {% if dailySchedule.enabled %}
                             checked
                             {% endif %}
                         >
 
                         <label
                             class="form-check-label"
-                            for="enabled"
+                            for="daily_enabled"
                         >
-                            Enable automatic daily report delivery
+                            Enable automatic daily delivery
                         </label>
 
                     </div>
@@ -328,7 +328,7 @@
 
                         <label
                             class="form-label"
-                            for="send_time"
+                            for="daily_send_time"
                         >
                             Send Time
                         </label>
@@ -336,9 +336,9 @@
                         <input
                             type="time"
                             class="form-control"
-                            id="send_time"
+                            id="daily_send_time"
                             name="send_time"
-                            value="{{ schedule.send_time|default('18:00') }}"
+                            value="{{ dailySchedule.send_time|default('18:00') }}"
                             required
                         >
 
@@ -354,16 +354,16 @@
                         <input
                             class="form-check-input"
                             type="checkbox"
-                            id="weekdays_only"
+                            id="daily_weekdays_only"
                             name="weekdays_only"
-                            {% if schedule.weekdays_only %}
+                            {% if dailySchedule.weekdays_only %}
                             checked
                             {% endif %}
                         >
 
                         <label
                             class="form-check-label"
-                            for="weekdays_only"
+                            for="daily_weekdays_only"
                         >
                             Send Monday through Friday only
                         </label>
@@ -371,15 +371,15 @@
                     </div>
 
 
-                    {% if schedule.last_sent_at %}
+                    {% if dailySchedule.last_sent_at %}
 
                         <div class="alert alert-secondary">
 
                             <strong>
-                                Last automatic send:
+                                Last successful daily send:
                             </strong>
 
-                            {{ schedule.last_sent_at|company_date }}
+                            {{ dailySchedule.last_sent_at|company_date }}
 
                         </div>
 
@@ -392,20 +392,233 @@
                     {% endif %}
 
 
+                    {% if dailySchedule.last_result == 'failed' %}
+
+                        <div class="alert alert-danger">
+
+                            <strong>
+                                Last result:
+                            </strong>
+
+                            Failed
+
+                            {% if dailySchedule.last_error %}
+
+                                <div class="mt-2">
+                                    {{ dailySchedule.last_error }}
+                                </div>
+
+                            {% endif %}
+
+                        </div>
+
+                    {% endif %}
+
+
                     <button
-                        id="saveScheduleButton"
+                        id="saveDailyScheduleButton"
                         class="btn btn-success"
                         type="submit"
                     >
 
                         <i class="bi bi-save"></i>
 
-                        <span id="saveScheduleText">
-                            Save Schedule
+                        <span id="saveDailyScheduleText">
+                            Save Daily Schedule
                         </span>
 
                     </button>
 
+                </form>
+
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <div class="col-lg-6">
+
+        <div class="card shadow-sm h-100">
+
+            <div class="card-body">
+
+
+                <h5 class="card-title">
+                    Automatic Weekly Delivery
+                </h5>
+
+
+                <p class="text-muted">
+
+                    Automatically send the previous completed payroll week
+                    on the selected company-local day and time.
+
+                </p>
+
+
+                <form
+                    method="post"
+                    action="/reports/email/schedule"
+                    onsubmit="saveWeeklySchedule();"
+                >
+
+                    <input
+                        type="hidden"
+                        name="report_type"
+                        value="weekly_payroll"
+                    >
+
+
+                    <div class="form-check form-switch mb-3">
+
+                        <input
+                            class="form-check-input"
+                            type="checkbox"
+                            role="switch"
+                            id="weekly_enabled"
+                            name="enabled"
+                            {% if weeklySchedule.enabled %}
+                            checked
+                            {% endif %}
+                        >
+
+                        <label
+                            class="form-check-label"
+                            for="weekly_enabled"
+                        >
+                            Enable automatic weekly delivery
+                        </label>
+
+                    </div>
+
+
+                    <div class="mb-3">
+
+                        <label
+                            class="form-label"
+                            for="weekly_send_day_of_week"
+                        >
+                            Delivery Day
+                        </label>
+
+                        <select
+                            class="form-select"
+                            id="weekly_send_day_of_week"
+                            name="send_day_of_week"
+                            required
+                        >
+
+                            {% set selectedWeeklyDay =
+                                weeklySchedule.send_day_of_week|default(1)
+                            %}
+
+                            {% for dayNumber, dayName in weeklyDayOptions %}
+
+                                <option
+                                    value="{{ dayNumber }}"
+                                    {% if selectedWeeklyDay == dayNumber %}
+                                    selected
+                                    {% endif %}
+                                >
+                                    {{ dayName }}
+                                </option>
+
+                            {% endfor %}
+
+                        </select>
+
+                    </div>
+
+
+                    <div class="mb-3">
+
+                        <label
+                            class="form-label"
+                            for="weekly_send_time"
+                        >
+                            Send Time
+                        </label>
+
+                        <input
+                            type="time"
+                            class="form-control"
+                            id="weekly_send_time"
+                            name="send_time"
+                            value="{{ weeklySchedule.send_time|default('08:00') }}"
+                            required
+                        >
+
+                        <div class="form-text">
+
+                            Uses the timezone configured in Company Settings.
+                            The previous completed company workweek will be
+                            included.
+
+                        </div>
+
+                    </div>
+
+
+                    {% if weeklySchedule.last_sent_at %}
+
+                        <div class="alert alert-secondary">
+
+                            <strong>
+                                Last successful weekly send:
+                            </strong>
+
+                            {{ weeklySchedule.last_sent_at|company_date }}
+
+                        </div>
+
+                    {% else %}
+
+                        <div class="alert alert-secondary">
+                            No automatic weekly report has been sent yet.
+                        </div>
+
+                    {% endif %}
+
+
+                    {% if weeklySchedule.last_result == 'failed' %}
+
+                        <div class="alert alert-danger">
+
+                            <strong>
+                                Last result:
+                            </strong>
+
+                            Failed
+
+                            {% if weeklySchedule.last_error %}
+
+                                <div class="mt-2">
+                                    {{ weeklySchedule.last_error }}
+                                </div>
+
+                            {% endif %}
+
+                        </div>
+
+                    {% endif %}
+
+
+                    <button
+                        id="saveWeeklyScheduleButton"
+                        class="btn btn-success"
+                        type="submit"
+                    >
+
+                        <i class="bi bi-save"></i>
+
+                        <span id="saveWeeklyScheduleText">
+                            Save Weekly Schedule
+                        </span>
+
+                    </button>
 
                 </form>
 
@@ -479,12 +692,22 @@ function sendWeeklyReport()
 }
 
 
-function saveSchedule()
+function saveDailySchedule()
 {
     beginButtonAction(
-        'saveScheduleButton',
-        'saveScheduleText',
-        'Saving Schedule...'
+        'saveDailyScheduleButton',
+        'saveDailyScheduleText',
+        'Saving Daily Schedule...'
+    );
+}
+
+
+function saveWeeklySchedule()
+{
+    beginButtonAction(
+        'saveWeeklyScheduleButton',
+        'saveWeeklyScheduleText',
+        'Saving Weekly Schedule...'
     );
 }
 
