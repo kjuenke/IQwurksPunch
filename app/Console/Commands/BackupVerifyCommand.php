@@ -7,6 +7,7 @@ use App\Console\CommandInterface;
 use App\Core\Container;
 use App\Services\DatabaseBackupCatalogService;
 use App\Services\DatabaseBackupVerificationService;
+use App\Services\OperationalFailureNotificationService;
 use InvalidArgumentException;
 use Throwable;
 
@@ -97,6 +98,8 @@ final class BackupVerifyCommand implements CommandInterface
             $validCount = 0;
 
             $invalidCount = 0;
+
+            $failures = [];
 
 
             foreach ($filenames as $filename) {
@@ -189,6 +192,34 @@ final class BackupVerifyCommand implements CommandInterface
                         $invalidCount++;
 
 
+                        $failures[] = [
+                            'filename' =>
+                                $result['filename']
+                                ??
+                                $filename,
+
+                            'integrity_valid' =>
+                                $result['integrity_valid']
+                                ??
+                                false,
+
+                            'integrity_messages' =>
+                                $result['integrity_messages']
+                                ??
+                                [],
+
+                            'foreign_key_violation_count' =>
+                                $result['foreign_key_violation_count']
+                                ??
+                                null,
+
+                            'duration_milliseconds' =>
+                                $result['duration_milliseconds']
+                                ??
+                                null
+                        ];
+
+
                         foreach (
                             $result['integrity_messages']
                             as $message
@@ -207,6 +238,24 @@ final class BackupVerifyCommand implements CommandInterface
                 } catch (Throwable $exception) {
 
                     $invalidCount++;
+
+
+                    $failures[] = [
+                        'filename' =>
+                            $filename,
+
+                        'exception_class' =>
+                            $exception::class,
+
+                        'exception_message' =>
+                            $exception->getMessage(),
+
+                        'exception_file' =>
+                            $exception->getFile(),
+
+                        'exception_line' =>
+                            $exception->getLine()
+                    ];
 
 
                     fwrite(
@@ -251,6 +300,36 @@ final class BackupVerifyCommand implements CommandInterface
 
             if ($invalidCount > 0) {
 
+                $this->notifyOperationalFailure(
+                    'Backup Verification',
+                    'One or more database backups failed verification or could not be read.',
+                    [
+                        'command' =>
+                            $this->name(),
+
+                        'selected_count' =>
+                            count(
+                                $filenames
+                            ),
+
+                        'valid_count' =>
+                            $validCount,
+
+                        'invalid_count' =>
+                            $invalidCount,
+
+                        'selected_backups' =>
+                            $filenames,
+
+                        'failures' =>
+                            $failures,
+
+                        'exit_code' =>
+                            1
+                    ]
+                );
+
+
                 return 1;
             }
 
@@ -262,6 +341,25 @@ final class BackupVerifyCommand implements CommandInterface
 
 
             return 0;
+
+        } catch (InvalidArgumentException $exception) {
+
+            /*
+             * Invalid command usage and an empty backup catalog are reported
+             * to the operator, but they do not represent an automatic system
+             * failure that should generate an email notification.
+             */
+            fwrite(
+                STDERR,
+                'Backup verification failed: '
+                .
+                $exception->getMessage()
+                .
+                PHP_EOL
+            );
+
+
+            return 1;
 
         } catch (Throwable $exception) {
 
@@ -275,7 +373,85 @@ final class BackupVerifyCommand implements CommandInterface
             );
 
 
+            $this->notifyOperationalFailure(
+                'Backup Verification',
+                'The database backup verification command failed unexpectedly.',
+                [
+                    'command' =>
+                        $this->name(),
+
+                    'arguments' =>
+                        $arguments,
+
+                    'exception_class' =>
+                        $exception::class,
+
+                    'exception_message' =>
+                        $exception->getMessage(),
+
+                    'exception_file' =>
+                        $exception->getFile(),
+
+                    'exception_line' =>
+                        $exception->getLine(),
+
+                    'exit_code' =>
+                        1
+                ]
+            );
+
+
             return 1;
+        }
+    }
+
+
+    /**
+     * Operational notification failures must never replace the original
+     * backup-verification failure or alter its exit code.
+     *
+     * @param array<string,mixed> $details
+     */
+    private function notifyOperationalFailure(
+        string $source,
+        string $summary,
+        array $details
+    ): void
+    {
+        try {
+
+            $notifications =
+                new OperationalFailureNotificationService();
+
+
+            $sent =
+                $notifications->sendFailure(
+                    $source,
+                    $summary,
+                    $details
+                );
+
+
+            if (!$sent) {
+
+                fwrite(
+                    STDERR,
+                    'Warning: the operational failure notification could not be delivered.'
+                    .
+                    PHP_EOL
+                );
+            }
+
+        } catch (Throwable $notificationException) {
+
+            fwrite(
+                STDERR,
+                'Warning: the operational failure notification could not be delivered: '
+                .
+                $notificationException->getMessage()
+                .
+                PHP_EOL
+            );
         }
     }
 

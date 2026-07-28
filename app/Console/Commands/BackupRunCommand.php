@@ -9,6 +9,7 @@ use App\Logging\LoggerInterface;
 use App\Services\DatabaseBackupCatalogService;
 use App\Services\DatabaseBackupRetentionService;
 use App\Services\DatabaseBackupService;
+use App\Services\OperationalFailureNotificationService;
 use RuntimeException;
 use Throwable;
 
@@ -324,6 +325,58 @@ final class BackupRunCommand implements CommandInterface
                 );
 
 
+                $this->notifyOperationalFailure(
+                    'Automatic Database Backup',
+                    'A verified database backup was created, but retention cleanup failed.',
+                    [
+                        'command' =>
+                            $this->name(),
+
+                        'backup_filename' =>
+                            $backup['filename']
+                            ??
+                            null,
+
+                        'backup_path' =>
+                            $backup['path']
+                            ??
+                            null,
+
+                        'backup_size_bytes' =>
+                            $backup['size_bytes']
+                            ??
+                            null,
+
+                        'backup_integrity' =>
+                            $backup['integrity']
+                            ??
+                            null,
+
+                        'retention_count' =>
+                            $this->retentionCount,
+
+                        'deleted_count' =>
+                            $retention['deleted_count']
+                            ??
+                            null,
+
+                        'failed_count' =>
+                            $retention['failed_count']
+                            ??
+                            null,
+
+                        'retention_result' =>
+                            $retention,
+
+                        'duration_milliseconds' =>
+                            $durationMilliseconds,
+
+                        'exit_code' =>
+                            1
+                    ]
+                );
+
+
                 return 1;
             }
 
@@ -430,6 +483,43 @@ final class BackupRunCommand implements CommandInterface
             );
 
 
+            $this->notifyOperationalFailure(
+                'Automatic Database Backup',
+                'Automatic database backup maintenance failed unexpectedly.',
+                [
+                    'command' =>
+                        $this->name(),
+
+                    'process_id' =>
+                        getmypid(),
+
+                    'lock_file' =>
+                        $this->lockFile,
+
+                    'retention_count' =>
+                        $this->retentionCount,
+
+                    'exception_class' =>
+                        $exception::class,
+
+                    'exception_message' =>
+                        $exception->getMessage(),
+
+                    'exception_file' =>
+                        $exception->getFile(),
+
+                    'exception_line' =>
+                        $exception->getLine(),
+
+                    'duration_milliseconds' =>
+                        $durationMilliseconds,
+
+                    'exit_code' =>
+                        1
+                ]
+            );
+
+
             return 1;
 
         } finally {
@@ -449,6 +539,56 @@ final class BackupRunCommand implements CommandInterface
                     $lockHandle
                 );
             }
+        }
+    }
+
+
+    /**
+     * Operational notification failures must never replace the original
+     * backup failure or alter its exit code.
+     *
+     * @param array<string,mixed> $details
+     */
+    private function notifyOperationalFailure(
+        string $source,
+        string $summary,
+        array $details
+    ): void
+    {
+        try {
+
+            $notifications =
+                new OperationalFailureNotificationService();
+
+
+            $sent =
+                $notifications->sendFailure(
+                    $source,
+                    $summary,
+                    $details
+                );
+
+
+            if (!$sent) {
+
+                fwrite(
+                    STDERR,
+                    'Warning: the operational failure notification could not be delivered.'
+                    .
+                    PHP_EOL
+                );
+            }
+
+        } catch (Throwable $notificationException) {
+
+            fwrite(
+                STDERR,
+                'Warning: the operational failure notification could not be delivered: '
+                .
+                $notificationException->getMessage()
+                .
+                PHP_EOL
+            );
         }
     }
 

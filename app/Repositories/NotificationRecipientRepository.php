@@ -132,6 +132,7 @@ class NotificationRecipientRepository
                     weekly_payroll,
                     exception_reports,
                     approval_notifications,
+                    operational_failures,
                     active
                 )
 
@@ -143,6 +144,7 @@ class NotificationRecipientRepository
                     :weekly_payroll,
                     :exception_reports,
                     :approval_notifications,
+                    :operational_failures,
                     :active
                 )
                 "
@@ -168,6 +170,9 @@ class NotificationRecipientRepository
 
                 'approval_notifications' =>
                     $data['approval_notifications'],
+
+                'operational_failures' =>
+                    $data['operational_failures'],
 
                 'active' =>
                     $data['active']
@@ -197,6 +202,7 @@ class NotificationRecipientRepository
                     weekly_payroll = :weekly_payroll,
                     exception_reports = :exception_reports,
                     approval_notifications = :approval_notifications,
+                    operational_failures = :operational_failures,
                     active = :active,
                     updated_at = CURRENT_TIMESTAMP
 
@@ -224,6 +230,9 @@ class NotificationRecipientRepository
 
                 'approval_notifications' =>
                     $data['approval_notifications'],
+
+                'operational_failures' =>
+                    $data['operational_failures'],
 
                 'active' =>
                     $data['active'],
@@ -302,7 +311,8 @@ class NotificationRecipientRepository
             'daily_payroll',
             'weekly_payroll',
             'exception_reports',
-            'approval_notifications'
+            'approval_notifications',
+            'operational_failures'
         ];
 
 

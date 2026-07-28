@@ -6,6 +6,7 @@ namespace App\Console\Commands;
 use App\Console\CommandInterface;
 use App\Core\Container;
 use App\Services\DatabaseHealthService;
+use App\Services\OperationalFailureNotificationService;
 use Throwable;
 
 final class DatabaseCheckCommand implements CommandInterface
@@ -371,6 +372,69 @@ final class DatabaseCheckCommand implements CommandInterface
 
             if (!$result['healthy']) {
 
+                $this->notifyOperationalFailure(
+                    'Database Health Check',
+                    'The active SQLite database failed one or more health checks.',
+                    [
+                        'command' =>
+                            $this->name(),
+
+                        'database_path' =>
+                            $result['database_path']
+                            ??
+                            null,
+
+                        'database_readable' =>
+                            $result['database_readable']
+                            ??
+                            null,
+
+                        'database_writable' =>
+                            $result['database_writable']
+                            ??
+                            null,
+
+                        'directory_writable' =>
+                            $result['directory_writable']
+                            ??
+                            null,
+
+                        'integrity_valid' =>
+                            $result['integrity_valid']
+                            ??
+                            null,
+
+                        'foreign_key_violation_count' =>
+                            $result['foreign_key_violation_count']
+                            ??
+                            null,
+
+                        'missing_core_tables' =>
+                            $result['missing_core_tables']
+                            ??
+                            [],
+
+                        'errors' =>
+                            $result['errors']
+                            ??
+                            [],
+
+                        'warnings' =>
+                            $result['warnings']
+                            ??
+                            [],
+
+                        'duration_milliseconds' =>
+                            $result['duration_milliseconds']
+                            ??
+                            null,
+
+                        'exit_code' =>
+                            1
+                    ]
+                );
+
+
                 return 1;
             }
 
@@ -397,7 +461,82 @@ final class DatabaseCheckCommand implements CommandInterface
             );
 
 
+            $this->notifyOperationalFailure(
+                'Database Health Check',
+                'The database health check failed unexpectedly.',
+                [
+                    'command' =>
+                        $this->name(),
+
+                    'exception_class' =>
+                        $exception::class,
+
+                    'exception_message' =>
+                        $exception->getMessage(),
+
+                    'exception_file' =>
+                        $exception->getFile(),
+
+                    'exception_line' =>
+                        $exception->getLine(),
+
+                    'exit_code' =>
+                        1
+                ]
+            );
+
+
             return 1;
+        }
+    }
+
+
+    /**
+     * Operational notification failures must never replace the original
+     * database-check failure or alter its exit code.
+     *
+     * @param array<string,mixed> $details
+     */
+    private function notifyOperationalFailure(
+        string $source,
+        string $summary,
+        array $details
+    ): void
+    {
+        try {
+
+            $notifications =
+                new OperationalFailureNotificationService();
+
+
+            $sent =
+                $notifications->sendFailure(
+                    $source,
+                    $summary,
+                    $details
+                );
+
+
+            if (!$sent) {
+
+                fwrite(
+                    STDERR,
+                    'Warning: the operational failure notification could not be delivered.'
+                    .
+                    PHP_EOL
+                );
+            }
+
+        } catch (Throwable $notificationException) {
+
+            fwrite(
+                STDERR,
+                'Warning: the operational failure notification could not be delivered: '
+                .
+                $notificationException->getMessage()
+                .
+                PHP_EOL
+            );
         }
     }
 

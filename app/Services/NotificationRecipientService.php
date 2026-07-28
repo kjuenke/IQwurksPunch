@@ -433,6 +433,14 @@ class NotificationRecipientService
                 : 0;
 
 
+        $operationalFailures =
+            isset(
+                $data['operational_failures']
+            )
+                ? 1
+                : 0;
+
+
         $active =
             isset(
                 $data['active']
@@ -449,6 +457,8 @@ class NotificationRecipientService
             $exceptionReports === 0
             &&
             $approvalNotifications === 0
+            &&
+            $operationalFailures === 0
         ) {
 
             $errors['subscriptions'] =
@@ -493,6 +503,9 @@ class NotificationRecipientService
 
                 'approval_notifications' =>
                     $approvalNotifications,
+
+                'operational_failures' =>
+                    $operationalFailures,
 
                 'active' =>
                     $active
