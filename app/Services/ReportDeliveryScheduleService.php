@@ -48,6 +48,11 @@ final class ReportDeliveryScheduleService
         string $reportType
     ): ?array
     {
+        $this->assertSupportedType(
+            $reportType
+        );
+
+
         return $this->schedules->findByType(
             $reportType
         );
@@ -94,6 +99,23 @@ final class ReportDeliveryScheduleService
      *     errors:array<string,string>
      * }
      */
+    public function updateException(
+        array $data
+    ): array
+    {
+        return $this->update(
+            self::EXCEPTION_REPORT,
+            $data
+        );
+    }
+
+
+    /**
+     * @return array{
+     *     success:bool,
+     *     errors:array<string,string>
+     * }
+     */
     public function update(
         string $reportType,
         array $data
@@ -107,6 +129,14 @@ final class ReportDeliveryScheduleService
         $errors = [];
 
 
+        $enabled =
+            $this->checkboxValue(
+                $data['enabled']
+                ??
+                null
+            );
+
+
         $sendTime =
             trim(
                 (string)(
@@ -117,66 +147,66 @@ final class ReportDeliveryScheduleService
             );
 
 
-        if (
-            !preg_match(
-                '/^(?:[01]\d|2[0-3]):[0-5]\d$/',
-                $sendTime
-            )
-        ) {
+        if (!$this->validTime($sendTime)) {
             $errors['send_time'] =
-                'Send time must use the HH:MM format.';
+                'Enter a valid delivery time.';
         }
 
 
-        $enabled =
-            isset(
-                $data['enabled']
-            );
-
-
         $weekdaysOnly =
-            $reportType === self::DAILY_PAYROLL
-            &&
-            isset(
-                $data['weekdays_only']
-            );
+            false;
 
 
         $sendDayOfWeek =
             null;
 
 
-        if ($reportType === self::WEEKLY_PAYROLL) {
+        if (
+            $reportType
+            ===
+            self::WEEKLY_PAYROLL
+        ) {
+            $sendDayOfWeek =
+                filter_var(
+                    $data['send_day_of_week']
+                    ??
+                    null,
+                    FILTER_VALIDATE_INT,
+                    [
+                        'options' => [
+                            'min_range' =>
+                                1,
 
-            $rawDay =
-                trim(
-                    (string)(
-                        $data['send_day_of_week']
-                        ??
-                        ''
-                    )
+                            'max_range' =>
+                                7
+                        ]
+                    ]
                 );
 
 
-            if (
-                !preg_match(
-                    '/^[1-7]$/',
-                    $rawDay
-                )
-            ) {
+            if ($sendDayOfWeek === false) {
                 $errors['send_day_of_week'] =
                     'Select a valid weekly delivery day.';
-
-            } else {
-
-                $sendDayOfWeek =
-                    (int)$rawDay;
             }
+
+
+            $sendDayOfWeek =
+                $sendDayOfWeek === false
+                    ? null
+                    : (int)$sendDayOfWeek;
+
+        } else {
+
+            $weekdaysOnly =
+                $this->checkboxValue(
+                    $data['weekdays_only']
+                    ??
+                    null
+                );
         }
 
 
-        if (!empty($errors)) {
-
+        if ($errors !== []) {
             return [
                 'success' =>
                     false,
@@ -231,7 +261,11 @@ final class ReportDeliveryScheduleService
         if (
             !$schedule
             ||
-            !(bool)$schedule['enabled']
+            !(bool)(
+                $schedule['enabled']
+                ??
+                false
+            )
         ) {
             return false;
         }
@@ -271,8 +305,11 @@ final class ReportDeliveryScheduleService
         }
 
 
-        if ($reportType === self::WEEKLY_PAYROLL) {
-
+        if (
+            $reportType
+            ===
+            self::WEEKLY_PAYROLL
+        ) {
             $scheduledDay =
                 (int)(
                     $schedule['send_day_of_week']
@@ -295,7 +332,22 @@ final class ReportDeliveryScheduleService
         }
 
 
-        $scheduledTime =
+        $sendTime =
+            trim(
+                (string)(
+                    $schedule['send_time']
+                    ??
+                    ''
+                )
+            );
+
+
+        if (!$this->validTime($sendTime)) {
+            return false;
+        }
+
+
+        $scheduledAt =
             DateTimeImmutable::createFromFormat(
                 '!Y-m-d H:i',
                 $now->format(
@@ -304,22 +356,21 @@ final class ReportDeliveryScheduleService
                 .
                 ' '
                 .
-                (string)$schedule['send_time'],
+                $sendTime,
                 $timezone
             );
 
 
-        if (!$scheduledTime) {
+        if (
+            !$scheduledAt
+            ||
+            $now < $scheduledAt
+        ) {
             return false;
         }
 
 
-        if ($now < $scheduledTime) {
-            return false;
-        }
-
-
-        $lastSentAt =
+        $lastSentValue =
             trim(
                 (string)(
                     $schedule['last_sent_at']
@@ -329,18 +380,24 @@ final class ReportDeliveryScheduleService
             );
 
 
-        if ($lastSentAt === '') {
+        if ($lastSentValue === '') {
             return true;
         }
 
 
         $lastSent =
-            new DateTimeImmutable(
-                $lastSentAt,
+            DateTimeImmutable::createFromFormat(
+                '!Y-m-d H:i:s',
+                $lastSentValue,
                 new DateTimeZone(
                     'UTC'
                 )
             );
+
+
+        if (!$lastSent) {
+            return true;
+        }
 
 
         $lastSent =
@@ -405,9 +462,10 @@ final class ReportDeliveryScheduleService
 
 
     /**
-     * Return a date within the previous completed seven-day period.
+     * Return a date inside the previous completed seven-day period.
      *
-     * PunchReportService uses this date to determine the company workweek.
+     * PunchReportService uses the reference date to determine the company
+     * workweek and its beginning and ending dates.
      */
     public function previousWeekReferenceDate(
         ?DateTimeImmutable $now = null
@@ -469,6 +527,39 @@ final class ReportDeliveryScheduleService
             7 =>
                 'Sunday'
         ];
+    }
+
+
+    private function validTime(
+        string $value
+    ): bool
+    {
+        return
+            preg_match(
+                '/^(?:[01]\d|2[0-3]):[0-5]\d$/',
+                $value
+            )
+            ===
+            1;
+    }
+
+
+    private function checkboxValue(
+        mixed $value
+    ): bool
+    {
+        return in_array(
+            $value,
+            [
+                1,
+                '1',
+                true,
+                'true',
+                'on',
+                'yes'
+            ],
+            true
+        );
     }
 
 

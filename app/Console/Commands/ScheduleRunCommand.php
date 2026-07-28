@@ -7,6 +7,7 @@ use App\Console\CommandInterface;
 use App\Core\Container;
 use App\Logging\LoggerInterface;
 use App\Repositories\ReportDeliveryScheduleRepository;
+use App\Services\ExceptionReportEmailService;
 use App\Services\ReportDeliveryScheduleService;
 use App\Services\ReportEmailService;
 use App\Services\WeeklyPayrollEmailService;
@@ -19,6 +20,8 @@ class ScheduleRunCommand implements CommandInterface
     private ReportEmailService $dailyReports;
 
     private WeeklyPayrollEmailService $weeklyReports;
+
+    private ExceptionReportEmailService $exceptionReports;
 
     private LoggerInterface $logger;
 
@@ -43,6 +46,10 @@ class ScheduleRunCommand implements CommandInterface
 
         $this->weeklyReports =
             new WeeklyPayrollEmailService();
+
+
+        $this->exceptionReports =
+            new ExceptionReportEmailService();
 
 
         $this->logger =
@@ -104,7 +111,10 @@ class ScheduleRunCommand implements CommandInterface
                     'Daily payroll',
 
                 ReportDeliveryScheduleService::WEEKLY_PAYROLL =>
-                    'Weekly payroll'
+                    'Weekly payroll',
+
+                ReportDeliveryScheduleService::EXCEPTION_REPORT =>
+                    'Payroll exception'
             ];
 
 
@@ -185,6 +195,11 @@ class ScheduleRunCommand implements CommandInterface
                             ??
                             null,
 
+                        'weekdays_only' =>
+                            $schedule['weekdays_only']
+                            ??
+                            null,
+
                         'send_day_of_week' =>
                             $schedule['send_day_of_week']
                             ??
@@ -229,9 +244,10 @@ class ScheduleRunCommand implements CommandInterface
 
 
                 echo
-                    $reportLabel
-                    .
-                    ' report is due. Sending...'
+                    $this->dueMessage(
+                        $reportType,
+                        $reportLabel
+                    )
                     .
                     PHP_EOL;
 
@@ -293,7 +309,7 @@ class ScheduleRunCommand implements CommandInterface
                         $error =
                             $reportLabel
                             .
-                            ' report was sent, but its schedule could not be marked as sent.';
+                            ' report completed, but its schedule could not be marked as sent.';
 
 
                         $this->schedule->markFailed(
@@ -303,7 +319,7 @@ class ScheduleRunCommand implements CommandInterface
 
 
                         $this->logger->error(
-                            'Report was sent, but its schedule could not be marked as sent.',
+                            'Report completed, but its schedule could not be marked as sent.',
                             [
                                 'report_type' =>
                                     $reportType
@@ -336,9 +352,10 @@ class ScheduleRunCommand implements CommandInterface
 
 
                     echo
-                        $reportLabel
-                        .
-                        ' report sent successfully.'
+                        $this->successMessage(
+                            $reportType,
+                            $reportLabel
+                        )
                         .
                         PHP_EOL;
 
@@ -598,7 +615,66 @@ class ScheduleRunCommand implements CommandInterface
         }
 
 
+        if (
+            $reportType
+            ===
+            ReportDeliveryScheduleService::EXCEPTION_REPORT
+        ) {
+            return
+                $this->exceptionReports
+                    ->sendOpenExceptionReport();
+        }
+
+
         return false;
+    }
+
+
+    private function dueMessage(
+        string $reportType,
+        string $reportLabel
+    ): string
+    {
+        if (
+            $reportType
+            ===
+            ReportDeliveryScheduleService::EXCEPTION_REPORT
+        ) {
+            return
+                $reportLabel
+                .
+                ' report is due. Checking for open exceptions...';
+        }
+
+
+        return
+            $reportLabel
+            .
+            ' report is due. Sending...';
+    }
+
+
+    private function successMessage(
+        string $reportType,
+        string $reportLabel
+    ): string
+    {
+        if (
+            $reportType
+            ===
+            ReportDeliveryScheduleService::EXCEPTION_REPORT
+        ) {
+            return
+                $reportLabel
+                .
+                ' report check completed successfully.';
+        }
+
+
+        return
+            $reportLabel
+            .
+            ' report sent successfully.';
     }
 
 
@@ -627,30 +703,47 @@ class ScheduleRunCommand implements CommandInterface
             );
 
 
-        $this->logger->info(
-            'Scheduler command completed.',
-            [
-                'result' =>
-                    $result,
+        $completionContext =
+            array_merge(
+                [
+                    'result' =>
+                        $result,
 
-                'exit_code' =>
-                    $exitCode,
+                    'exit_code' =>
+                        $exitCode,
 
-                'duration_milliseconds' =>
-                    $durationMilliseconds,
+                    'duration_milliseconds' =>
+                        $durationMilliseconds,
 
-                'memory_bytes' =>
-                    memory_get_usage(
-                        true
-                    ),
+                    'memory_bytes' =>
+                        memory_get_usage(
+                            true
+                        ),
 
-                'peak_memory_bytes' =>
-                    memory_get_peak_usage(
-                        true
-                    ),
+                    'peak_memory_bytes' =>
+                        memory_get_peak_usage(
+                            true
+                        )
+                ],
+                $context
+            );
 
-                ...$context
-            ]
+
+        if ($exitCode === 0) {
+
+            $this->logger->info(
+                'Scheduler command completed.',
+                $completionContext
+            );
+
+
+            return;
+        }
+
+
+        $this->logger->error(
+            'Scheduler command completed with an error.',
+            $completionContext
         );
     }
 }

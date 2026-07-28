@@ -60,6 +60,12 @@ class ReportEmailController extends Controller
             );
 
 
+        $exceptionRecipientCount =
+            $this->recipients->countActiveFor(
+                'exception_reports'
+            );
+
+
         $dailySchedule =
             $this->schedules->get(
                 ReportDeliveryScheduleService::DAILY_PAYROLL
@@ -76,6 +82,14 @@ class ReportEmailController extends Controller
             [];
 
 
+        $exceptionSchedule =
+            $this->schedules->get(
+                ReportDeliveryScheduleService::EXCEPTION_REPORT
+            )
+            ??
+            [];
+
+
         $this->render(
             'reports/email.twig',
             [
@@ -86,7 +100,8 @@ class ReportEmailController extends Controller
                     'reports',
 
                 /*
-                 * Retained until the view is updated in the next step.
+                 * Retained for compatibility with any older view code still
+                 * referring to the original single daily schedule variable.
                  */
                 'schedule' =>
                     $dailySchedule,
@@ -97,9 +112,16 @@ class ReportEmailController extends Controller
                 'weeklySchedule' =>
                     $weeklySchedule,
 
+                'exceptionSchedule' =>
+                    $exceptionSchedule,
+
                 'weeklyDayOptions' =>
                     $this->schedules->dayOptions(),
 
+                /*
+                 * Retained for compatibility with the original daily
+                 * recipient-count variable.
+                 */
                 'recipientCount' =>
                     $dailyRecipientCount,
 
@@ -107,7 +129,10 @@ class ReportEmailController extends Controller
                     $dailyRecipientCount,
 
                 'weeklyRecipientCount' =>
-                    $weeklyRecipientCount
+                    $weeklyRecipientCount,
+
+                'exceptionRecipientCount' =>
+                    $exceptionRecipientCount
             ]
         );
     }
@@ -217,6 +242,20 @@ class ReportEmailController extends Controller
 
                 $successMessage =
                     'Automatic weekly payroll schedule saved successfully.';
+
+            } elseif (
+                $reportType
+                ===
+                ReportDeliveryScheduleService::EXCEPTION_REPORT
+            ) {
+                $result =
+                    $this->schedules->updateException(
+                        $_POST
+                    );
+
+
+                $successMessage =
+                    'Automatic payroll exception schedule saved successfully.';
 
             } else {
 
