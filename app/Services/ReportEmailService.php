@@ -657,7 +657,7 @@ class ReportEmailService
             );
 
 
-            $attachment =
+            $csvAttachment =
                 $this->attachments
                     ->dailyCsv(
                         $summary,
@@ -665,8 +665,23 @@ class ReportEmailService
                     );
 
 
+            $pdfAttachment =
+                $this->attachments
+                    ->dailyPdf(
+                        $summary,
+                        $company,
+                        $reportDate
+                    );
+
+
+            $emailAttachments = [
+                $csvAttachment,
+                $pdfAttachment
+            ];
+
+
             $this->logger->info(
-                'Daily payroll CSV attachment generated.',
+                'Daily payroll email attachments generated.',
                 [
                     'report_type' =>
                         'daily_payroll',
@@ -674,15 +689,33 @@ class ReportEmailService
                     'report_date' =>
                         $reportDate,
 
-                    'attachment_filename' =>
-                        $attachment['filename'],
+                    'attachment_count' =>
+                        count(
+                            $emailAttachments
+                        ),
 
-                    'attachment_content_type' =>
-                        $attachment['content_type'],
+                    'attachment_names' => [
+                        $csvAttachment['filename'],
+                        $pdfAttachment['filename']
+                    ],
+
+                    'csv_size_bytes' =>
+                        strlen(
+                            $csvAttachment['contents']
+                        ),
+
+                    'pdf_size_bytes' =>
+                        strlen(
+                            $pdfAttachment['contents']
+                        ),
 
                     'attachment_size_bytes' =>
                         strlen(
-                            $attachment['contents']
+                            $csvAttachment['contents']
+                        )
+                        +
+                        strlen(
+                            $pdfAttachment['contents']
                         )
                 ]
             );
@@ -696,9 +729,7 @@ class ReportEmailService
                         ' Daily Payroll Report',
                         $body,
                         'daily_payroll',
-                        [
-                            $attachment
-                        ]
+                        $emailAttachments
                     );
 
 
@@ -721,8 +752,15 @@ class ReportEmailService
                         'payroll_period_association' =>
                             $association,
 
-                        'attachment_filename' =>
-                            $attachment['filename']
+                        'attachment_count' =>
+                            count(
+                                $emailAttachments
+                            ),
+
+                        'attachment_names' => [
+                            $csvAttachment['filename'],
+                            $pdfAttachment['filename']
+                        ]
                     ]
                 );
 
@@ -748,12 +786,23 @@ class ReportEmailService
                     'payroll_period_association' =>
                         $association,
 
-                    'attachment_filename' =>
-                        $attachment['filename'],
+                    'attachment_count' =>
+                        count(
+                            $emailAttachments
+                        ),
+
+                    'attachment_names' => [
+                        $csvAttachment['filename'],
+                        $pdfAttachment['filename']
+                    ],
 
                     'attachment_size_bytes' =>
                         strlen(
-                            $attachment['contents']
+                            $csvAttachment['contents']
+                        )
+                        +
+                        strlen(
+                            $pdfAttachment['contents']
                         )
                 ]
             );
