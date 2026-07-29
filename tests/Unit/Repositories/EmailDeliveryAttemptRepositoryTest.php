@@ -213,7 +213,7 @@ final class EmailDeliveryAttemptRepositoryTest extends TestCase
         $attemptId =
             $this->repository
                 ->createPending(
-                    'exception_report',
+                    'exception_reports',
                     'retry',
                     'Payroll Exception Report',
                     'payroll@example.com',
@@ -328,6 +328,204 @@ final class EmailDeliveryAttemptRepositoryTest extends TestCase
     }
 
 
+    public function testRetryableFailuresReturnsEligibleFailure(): void
+    {
+        $attemptId =
+            $this->failedAttempt(
+                'daily_payroll',
+                1,
+                3,
+                false
+            );
+
+
+        $failures =
+            $this->repository
+                ->retryableFailures();
+
+
+        self::assertCount(
+            1,
+            $failures
+        );
+
+
+        self::assertSame(
+            $attemptId,
+            (int)$failures[0]['id']
+        );
+    }
+
+
+    public function testRetryableFailuresExcludesPermanentAndExhaustedFailures(): void
+    {
+        $this->failedAttempt(
+            'daily_payroll',
+            1,
+            3,
+            true
+        );
+
+
+        $this->failedAttempt(
+            'weekly_payroll',
+            3,
+            3,
+            false
+        );
+
+
+        self::assertSame(
+            [],
+            $this->repository
+                ->retryableFailures()
+        );
+    }
+
+
+    public function testRetryableFailuresExcludesFailureWithExistingChildRetry(): void
+    {
+        $originalId =
+            $this->failedAttempt(
+                'daily_payroll',
+                1,
+                3,
+                false
+            );
+
+
+        $retryId =
+            $this->repository
+                ->createPending(
+                    'daily_payroll',
+                    'retry',
+                    'Daily Payroll Retry',
+                    'payroll@example.com',
+                    [],
+                    0,
+                    null,
+                    1,
+                    2,
+                    3,
+                    $originalId
+                );
+
+
+        self::assertGreaterThan(
+            $originalId,
+            $retryId
+        );
+
+
+        self::assertSame(
+            [],
+            $this->repository
+                ->retryableFailures()
+        );
+    }
+
+
+    public function testRetryableFailuresReturnsFailedChildInsteadOfParent(): void
+    {
+        $originalId =
+            $this->failedAttempt(
+                'daily_payroll',
+                1,
+                3,
+                false
+            );
+
+
+        $retryId =
+            $this->repository
+                ->createPending(
+                    'daily_payroll',
+                    'retry',
+                    'Daily Payroll Retry',
+                    'payroll@example.com',
+                    [],
+                    0,
+                    null,
+                    1,
+                    2,
+                    3,
+                    $originalId
+                );
+
+
+        self::assertTrue(
+            $this->repository
+                ->markFailed(
+                    $retryId,
+                    'Retry failed.',
+                    false
+                )
+        );
+
+
+        $failures =
+            $this->repository
+                ->retryableFailures();
+
+
+        self::assertCount(
+            1,
+            $failures
+        );
+
+
+        self::assertSame(
+            $retryId,
+            (int)$failures[0]['id']
+        );
+
+
+        self::assertSame(
+            2,
+            (int)$failures[0]['attempt_number']
+        );
+    }
+
+
+    public function testRetryableFailuresHonorsLimit(): void
+    {
+        $firstId =
+            $this->failedAttempt(
+                'daily_payroll',
+                1,
+                3,
+                false
+            );
+
+
+        $this->failedAttempt(
+            'weekly_payroll',
+            1,
+            3,
+            false
+        );
+
+
+        $failures =
+            $this->repository
+                ->retryableFailures(
+                    1
+                );
+
+
+        self::assertCount(
+            1,
+            $failures
+        );
+
+
+        self::assertSame(
+            $firstId,
+            (int)$failures[0]['id']
+        );
+    }
+
+
     public function testCreatePendingRejectsUnsupportedSource(): void
     {
         $this->expectException(
@@ -342,6 +540,43 @@ final class EmailDeliveryAttemptRepositoryTest extends TestCase
                 'Daily Payroll Report',
                 'payroll@example.com'
             );
+    }
+
+
+    private function failedAttempt(
+        string $notificationType,
+        int $attemptNumber,
+        int $maxAttempts,
+        bool $permanentFailure
+    ): int
+    {
+        $attemptId =
+            $this->repository
+                ->createPending(
+                    $notificationType,
+                    'scheduled',
+                    'Failed Delivery',
+                    'payroll@example.com',
+                    [],
+                    0,
+                    null,
+                    1,
+                    $attemptNumber,
+                    $maxAttempts
+                );
+
+
+        self::assertTrue(
+            $this->repository
+                ->markFailed(
+                    $attemptId,
+                    'SMTP delivery failed.',
+                    $permanentFailure
+                )
+        );
+
+
+        return $attemptId;
     }
 
 

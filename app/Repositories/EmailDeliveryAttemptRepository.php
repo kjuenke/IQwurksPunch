@@ -447,6 +447,85 @@ final class EmailDeliveryAttemptRepository
 
 
     /**
+     * Return failed attempts that are eligible for another delivery attempt.
+     *
+     * Only the newest failed attempt in a retry chain is returned. A failed
+     * attempt is excluded as soon as any child retry exists, regardless of
+     * whether that child is pending, sent, or failed. This prevents the same
+     * failure from being retried more than once.
+     *
+     * @return array<int,array<string,mixed>>
+     */
+    public function retryableFailures(
+        int $limit = 25
+    ): array
+    {
+        if ($limit < 1) {
+            throw new InvalidArgumentException(
+                'Retryable-failure limit must be at least 1.'
+            );
+        }
+
+
+        $limit =
+            min(
+                $limit,
+                250
+            );
+
+
+        $statement =
+            $this->db->prepare(
+                "
+                SELECT
+                    failed.*
+
+                FROM email_delivery_attempts AS failed
+
+                WHERE failed.status = 'failed'
+
+                  AND failed.permanent_failure = 0
+
+                  AND failed.attempt_number
+                      <
+                      failed.max_attempts
+
+                  AND NOT EXISTS
+                  (
+                      SELECT 1
+
+                      FROM email_delivery_attempts AS retry
+
+                      WHERE retry.retry_of_id = failed.id
+                  )
+
+                ORDER BY
+                    failed.completed_at ASC,
+                    failed.id ASC
+
+                LIMIT :limit
+                "
+            );
+
+
+        $statement->bindValue(
+            'limit',
+            $limit,
+            PDO::PARAM_INT
+        );
+
+
+        $statement->execute();
+
+
+        return
+            $statement->fetchAll(
+                PDO::FETCH_ASSOC
+            );
+    }
+
+
+    /**
      * @return array<int,array<string,mixed>>
      */
     public function recent(
