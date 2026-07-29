@@ -5,6 +5,7 @@ namespace App\Services;
 
 use App\Core\Container;
 use App\Logging\LoggerInterface;
+use App\Repositories\EmailDeliveryAttemptRepository;
 use App\Repositories\EmailRepository;
 use InvalidArgumentException;
 use Symfony\Component\Mailer\Mailer;
@@ -18,6 +19,8 @@ class MailService
     private array $config;
 
     private EmailRepository $emails;
+
+    private EmailDeliveryAttemptRepository $deliveryAttempts;
 
     private NotificationRecipientService $recipients;
 
@@ -34,6 +37,12 @@ class MailService
 
         $this->emails =
             Container::emailRepository();
+
+
+        $this->deliveryAttempts =
+            new EmailDeliveryAttemptRepository(
+                Container::db()
+            );
 
 
         $this->recipients =
@@ -58,7 +67,12 @@ class MailService
         string $subject,
         string $body,
         string $notificationType = 'daily_payroll',
-        array $attachments = []
+        array $attachments = [],
+        string $source = 'manual',
+        ?int $scheduleId = null,
+        int $attemptNumber = 1,
+        int $maxAttempts = 1,
+        ?int $retryOfId = null
     ): bool
     {
         $recipients =
@@ -79,6 +93,9 @@ class MailService
             );
 
 
+        $attemptId = null;
+
+
         $this->logger->info(
             'Email delivery started.',
             [
@@ -87,6 +104,21 @@ class MailService
 
                 'notification_type' =>
                     $notificationType,
+
+                'source' =>
+                    $source,
+
+                'schedule_id' =>
+                    $scheduleId,
+
+                'attempt_number' =>
+                    $attemptNumber,
+
+                'max_attempts' =>
+                    $maxAttempts,
+
+                'retry_of_id' =>
+                    $retryOfId,
 
                 'recipient_count' =>
                     $recipientCount,
@@ -107,40 +139,75 @@ class MailService
         );
 
 
-        if ($recipientCount === 0) {
-
-            $this->logger->error(
-                'Email delivery cannot continue because no active recipients are subscribed.',
-                [
-                    'subject' =>
-                        $subject,
-
-                    'notification_type' =>
-                        $notificationType,
-
-                    'attachment_count' =>
-                        $attachmentCount
-                ]
-            );
-
-
-            $this->recordHistory(
-                $subject,
-                [],
-                'failed'
-            );
-
-
-            return false;
-        }
-
-
         try {
 
             $attachments =
                 $this->normalizeAttachments(
                     $attachments
                 );
+
+
+            $attemptId =
+                $this->beginDeliveryAttempt(
+                    $notificationType,
+                    $source,
+                    $subject,
+                    $recipients,
+                    $attachments,
+                    $scheduleId,
+                    $attemptNumber,
+                    $maxAttempts,
+                    $retryOfId
+                );
+
+
+            if ($recipientCount === 0) {
+
+                $errorMessage =
+                    'No active recipients are subscribed to this notification type.';
+
+
+                $this->logger->error(
+                    'Email delivery cannot continue because no active recipients are subscribed.',
+                    [
+                        'subject' =>
+                            $subject,
+
+                        'notification_type' =>
+                            $notificationType,
+
+                        'source' =>
+                            $source,
+
+                        'delivery_attempt_id' =>
+                            $attemptId,
+
+                        'attachment_count' =>
+                            count(
+                                $attachments
+                            )
+                    ]
+                );
+
+
+                $emailLogId =
+                    $this->recordHistory(
+                        $subject,
+                        [],
+                        'failed'
+                    );
+
+
+                $this->markDeliveryAttemptFailed(
+                    $attemptId,
+                    $errorMessage,
+                    $attemptNumber >= $maxAttempts,
+                    $emailLogId
+                );
+
+
+                return false;
+            }
 
 
             $dsn =
@@ -221,10 +288,17 @@ class MailService
             );
 
 
-            $this->recordHistory(
-                $subject,
-                $recipients,
-                'sent'
+            $emailLogId =
+                $this->recordHistory(
+                    $subject,
+                    $recipients,
+                    'sent'
+                );
+
+
+            $this->markDeliveryAttemptSent(
+                $attemptId,
+                $emailLogId
             );
 
 
@@ -236,6 +310,21 @@ class MailService
 
                     'notification_type' =>
                         $notificationType,
+
+                    'source' =>
+                        $source,
+
+                    'schedule_id' =>
+                        $scheduleId,
+
+                    'delivery_attempt_id' =>
+                        $attemptId,
+
+                    'attempt_number' =>
+                        $attemptNumber,
+
+                    'max_attempts' =>
+                        $maxAttempts,
 
                     'recipient_count' =>
                         $recipientCount,
@@ -262,10 +351,19 @@ class MailService
 
         } catch (Throwable $exception) {
 
-            $this->recordHistory(
-                $subject,
-                $recipients,
-                'failed'
+            $emailLogId =
+                $this->recordHistory(
+                    $subject,
+                    $recipients,
+                    'failed'
+                );
+
+
+            $this->markDeliveryAttemptFailed(
+                $attemptId,
+                $exception->getMessage(),
+                $attemptNumber >= $maxAttempts,
+                $emailLogId
             );
 
 
@@ -277,6 +375,24 @@ class MailService
 
                     'notification_type' =>
                         $notificationType,
+
+                    'source' =>
+                        $source,
+
+                    'schedule_id' =>
+                        $scheduleId,
+
+                    'delivery_attempt_id' =>
+                        $attemptId,
+
+                    'attempt_number' =>
+                        $attemptNumber,
+
+                    'max_attempts' =>
+                        $maxAttempts,
+
+                    'retry_of_id' =>
+                        $retryOfId,
 
                     'recipient_count' =>
                         $recipientCount,
@@ -512,6 +628,211 @@ class MailService
     }
 
 
+    /**
+     * @param array<int,string> $recipients
+     * @param array<int,array{
+     *     filename:string,
+     *     content_type:string,
+     *     contents:string
+     * }> $attachments
+     */
+    private function beginDeliveryAttempt(
+        string $notificationType,
+        string $source,
+        string $subject,
+        array $recipients,
+        array $attachments,
+        ?int $scheduleId,
+        int $attemptNumber,
+        int $maxAttempts,
+        ?int $retryOfId
+    ): ?int
+    {
+        try {
+
+            return
+                $this->deliveryAttempts
+                    ->createPending(
+                        $notificationType,
+                        $source,
+                        $subject,
+                        empty(
+                            $recipients
+                        )
+                            ? '(none)'
+                            : implode(
+                                ', ',
+                                $recipients
+                            ),
+                        $this->attachmentNames(
+                            $attachments
+                        ),
+                        $this->attachmentSizeBytes(
+                            $attachments
+                        ),
+                        null,
+                        $scheduleId,
+                        $attemptNumber,
+                        $maxAttempts,
+                        $retryOfId
+                    );
+
+        } catch (Throwable $exception) {
+
+            $this->logger->warning(
+                'Email delivery attempt history could not be started.',
+                [
+                    'subject' =>
+                        $subject,
+
+                    'notification_type' =>
+                        $notificationType,
+
+                    'source' =>
+                        $source,
+
+                    'schedule_id' =>
+                        $scheduleId,
+
+                    'attempt_number' =>
+                        $attemptNumber,
+
+                    'max_attempts' =>
+                        $maxAttempts,
+
+                    'retry_of_id' =>
+                        $retryOfId,
+
+                    'exception_class' =>
+                        $exception::class,
+
+                    'exception_message' =>
+                        $exception->getMessage()
+                ]
+            );
+
+
+            return null;
+        }
+    }
+
+
+    private function markDeliveryAttemptSent(
+        ?int $attemptId,
+        ?int $emailLogId
+    ): void
+    {
+        if ($attemptId === null) {
+            return;
+        }
+
+
+        try {
+
+            if (
+                !$this->deliveryAttempts
+                    ->markSent(
+                        $attemptId,
+                        $emailLogId
+                    )
+            ) {
+                $this->logger->warning(
+                    'Email delivery attempt could not be marked as sent.',
+                    [
+                        'delivery_attempt_id' =>
+                            $attemptId,
+
+                        'email_log_id' =>
+                            $emailLogId
+                    ]
+                );
+            }
+
+        } catch (Throwable $exception) {
+
+            $this->logger->warning(
+                'Email delivery attempt raised an exception while being marked as sent.',
+                [
+                    'delivery_attempt_id' =>
+                        $attemptId,
+
+                    'email_log_id' =>
+                        $emailLogId,
+
+                    'exception_class' =>
+                        $exception::class,
+
+                    'exception_message' =>
+                        $exception->getMessage()
+                ]
+            );
+        }
+    }
+
+
+    private function markDeliveryAttemptFailed(
+        ?int $attemptId,
+        string $errorMessage,
+        bool $permanentFailure,
+        ?int $emailLogId
+    ): void
+    {
+        if ($attemptId === null) {
+            return;
+        }
+
+
+        try {
+
+            if (
+                !$this->deliveryAttempts
+                    ->markFailed(
+                        $attemptId,
+                        $errorMessage,
+                        $permanentFailure,
+                        $emailLogId
+                    )
+            ) {
+                $this->logger->warning(
+                    'Email delivery attempt could not be marked as failed.',
+                    [
+                        'delivery_attempt_id' =>
+                            $attemptId,
+
+                        'email_log_id' =>
+                            $emailLogId,
+
+                        'permanent_failure' =>
+                            $permanentFailure
+                    ]
+                );
+            }
+
+        } catch (Throwable $exception) {
+
+            $this->logger->warning(
+                'Email delivery attempt raised an exception while being marked as failed.',
+                [
+                    'delivery_attempt_id' =>
+                        $attemptId,
+
+                    'email_log_id' =>
+                        $emailLogId,
+
+                    'permanent_failure' =>
+                        $permanentFailure,
+
+                    'exception_class' =>
+                        $exception::class,
+
+                    'exception_message' =>
+                        $exception->getMessage()
+                ]
+            );
+        }
+    }
+
+
     private function fromAddress(): Address|string
     {
         $fromEmail =
@@ -547,26 +868,30 @@ class MailService
     }
 
 
+    /**
+     * @param array<int,string> $recipients
+     */
     private function recordHistory(
         string $subject,
         array $recipients,
         string $status
-    ): void
+    ): ?int
     {
         try {
 
-            $recorded =
-                $this->emails->create(
-                    $subject,
-                    implode(
-                        ', ',
-                        $recipients
-                    ),
-                    $status
-                );
+            $emailLogId =
+                $this->emails
+                    ->createAndReturnId(
+                        $subject,
+                        implode(
+                            ', ',
+                            $recipients
+                        ),
+                        $status
+                    );
 
 
-            if (!$recorded) {
+            if ($emailLogId === null) {
 
                 $this->logger->warning(
                     'Email delivery history could not be recorded.',
@@ -584,6 +909,9 @@ class MailService
                     ]
                 );
             }
+
+
+            return $emailLogId;
 
         } catch (Throwable $exception) {
 
@@ -608,6 +936,9 @@ class MailService
                         $exception->getMessage()
                 ]
             );
+
+
+            return null;
         }
     }
 }
