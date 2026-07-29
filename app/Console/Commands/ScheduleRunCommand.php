@@ -166,13 +166,57 @@ class ScheduleRunCommand implements CommandInterface
                 }
 
 
+                $scheduleId =
+                    (int)(
+                        $schedule['id']
+                        ??
+                        0
+                    );
+
+
+                if ($scheduleId < 1) {
+
+                    $failureCount++;
+
+
+                    $this->logger->error(
+                        'Report delivery schedule has an invalid ID.',
+                        [
+                            'report_type' =>
+                                $reportType,
+
+                            'schedule_id' =>
+                                $schedule['id']
+                                ??
+                                null
+                        ]
+                    );
+
+
+                    fwrite(
+                        STDERR,
+                        $reportLabel
+                        .
+                        ' schedule has an invalid ID.'
+                        .
+                        PHP_EOL
+                    );
+
+
+                    continue;
+                }
+
+
                 if (!(bool)$schedule['enabled']) {
 
                     $this->logger->debug(
                         'Scheduled report is disabled.',
                         [
                             'report_type' =>
-                                $reportType
+                                $reportType,
+
+                            'schedule_id' =>
+                                $scheduleId
                         ]
                     );
 
@@ -189,6 +233,9 @@ class ScheduleRunCommand implements CommandInterface
                     [
                         'report_type' =>
                             $reportType,
+
+                        'schedule_id' =>
+                            $scheduleId,
 
                         'send_time' =>
                             $schedule['send_time']
@@ -222,7 +269,10 @@ class ScheduleRunCommand implements CommandInterface
                         'Scheduled report is not due.',
                         [
                             'report_type' =>
-                                $reportType
+                                $reportType,
+
+                            'schedule_id' =>
+                                $scheduleId
                         ]
                     );
 
@@ -238,7 +288,10 @@ class ScheduleRunCommand implements CommandInterface
                     'Scheduled report is due.',
                     [
                         'report_type' =>
-                            $reportType
+                            $reportType,
+
+                        'schedule_id' =>
+                            $scheduleId
                     ]
                 );
 
@@ -256,7 +309,8 @@ class ScheduleRunCommand implements CommandInterface
 
                     $sent =
                         $this->sendReport(
-                            $reportType
+                            $reportType,
+                            $scheduleId
                         );
 
 
@@ -281,7 +335,10 @@ class ScheduleRunCommand implements CommandInterface
                             'Scheduled report failed to send.',
                             [
                                 'report_type' =>
-                                    $reportType
+                                    $reportType,
+
+                                'schedule_id' =>
+                                    $scheduleId
                             ]
                         );
 
@@ -322,7 +379,10 @@ class ScheduleRunCommand implements CommandInterface
                             'Report completed, but its schedule could not be marked as sent.',
                             [
                                 'report_type' =>
-                                    $reportType
+                                    $reportType,
+
+                                'schedule_id' =>
+                                    $scheduleId
                             ]
                         );
 
@@ -346,7 +406,10 @@ class ScheduleRunCommand implements CommandInterface
                         'Scheduled report completed successfully.',
                         [
                             'report_type' =>
-                                $reportType
+                                $reportType,
+
+                            'schedule_id' =>
+                                $scheduleId
                         ]
                     );
 
@@ -375,6 +438,9 @@ class ScheduleRunCommand implements CommandInterface
                         [
                             'report_type' =>
                                 $reportType,
+
+                            'schedule_id' =>
+                                $scheduleId,
 
                             'exception_class' =>
                                 $exception::class,
@@ -583,7 +649,8 @@ class ScheduleRunCommand implements CommandInterface
 
 
     private function sendReport(
-        string $reportType
+        string $reportType,
+        int $scheduleId
     ): bool
     {
         if (
@@ -593,7 +660,13 @@ class ScheduleRunCommand implements CommandInterface
         ) {
             return
                 $this->dailyReports
-                    ->sendDailyPayrollReport();
+                    ->sendDailyPayrollReport(
+                        'scheduled',
+                        $scheduleId,
+                        1,
+                        1,
+                        null
+                    );
         }
 
 
@@ -610,7 +683,12 @@ class ScheduleRunCommand implements CommandInterface
             return
                 $this->weeklyReports
                     ->sendWeeklyPayrollReport(
-                        $referenceDate
+                        $referenceDate,
+                        'scheduled',
+                        $scheduleId,
+                        1,
+                        1,
+                        null
                     );
         }
 
@@ -622,7 +700,13 @@ class ScheduleRunCommand implements CommandInterface
         ) {
             return
                 $this->exceptionReports
-                    ->sendOpenExceptionReport();
+                    ->sendOpenExceptionReport(
+                        'scheduled',
+                        $scheduleId,
+                        1,
+                        1,
+                        null
+                    );
         }
 
 

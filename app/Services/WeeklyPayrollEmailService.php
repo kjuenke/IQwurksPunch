@@ -56,7 +56,12 @@ final class WeeklyPayrollEmailService
 
 
     public function sendWeeklyPayrollReport(
-        ?string $referenceDate = null
+        ?string $referenceDate = null,
+        string $source = 'manual',
+        ?int $scheduleId = null,
+        int $attemptNumber = 1,
+        int $maxAttempts = 1,
+        ?int $retryOfId = null
     ): bool
     {
         $company =
@@ -106,7 +111,22 @@ final class WeeklyPayrollEmailService
                     'weekly_payroll',
 
                 'reference_date' =>
-                    $referenceDate
+                    $referenceDate,
+
+                'delivery_source' =>
+                    $source,
+
+                'schedule_id' =>
+                    $scheduleId,
+
+                'attempt_number' =>
+                    $attemptNumber,
+
+                'max_attempts' =>
+                    $maxAttempts,
+
+                'retry_of_id' =>
+                    $retryOfId
             ]
         );
 
@@ -699,7 +719,13 @@ final class WeeklyPayrollEmailService
                     'open_payroll_exception_count' =>
                         $payrollPeriod['open_exception_count']
                         ??
-                        null
+                        null,
+
+                    'delivery_source' =>
+                        $source,
+
+                    'schedule_id' =>
+                        $scheduleId
                 ]
             );
 
@@ -771,7 +797,13 @@ final class WeeklyPayrollEmailService
                         +
                         strlen(
                             $pdfAttachment['contents']
-                        )
+                        ),
+
+                    'delivery_source' =>
+                        $source,
+
+                    'schedule_id' =>
+                        $scheduleId
                 ]
             );
 
@@ -794,7 +826,12 @@ final class WeeklyPayrollEmailService
                         $subject,
                         $body,
                         'weekly_payroll',
-                        $emailAttachments
+                        $emailAttachments,
+                        $source,
+                        $scheduleId,
+                        $attemptNumber,
+                        $maxAttempts,
+                        $retryOfId
                     );
 
 
@@ -831,7 +868,22 @@ final class WeeklyPayrollEmailService
                         'attachment_names' => [
                             $csvAttachment['filename'],
                             $pdfAttachment['filename']
-                        ]
+                        ],
+
+                        'delivery_source' =>
+                            $source,
+
+                        'schedule_id' =>
+                            $scheduleId,
+
+                        'attempt_number' =>
+                            $attemptNumber,
+
+                        'max_attempts' =>
+                            $maxAttempts,
+
+                        'retry_of_id' =>
+                            $retryOfId
                     ]
                 );
 
@@ -880,7 +932,22 @@ final class WeeklyPayrollEmailService
                         +
                         strlen(
                             $pdfAttachment['contents']
-                        )
+                        ),
+
+                    'delivery_source' =>
+                        $source,
+
+                    'schedule_id' =>
+                        $scheduleId,
+
+                    'attempt_number' =>
+                        $attemptNumber,
+
+                    'max_attempts' =>
+                        $maxAttempts,
+
+                    'retry_of_id' =>
+                        $retryOfId
                 ]
             );
 
@@ -897,6 +964,21 @@ final class WeeklyPayrollEmailService
 
                     'reference_date' =>
                         $referenceDate,
+
+                    'delivery_source' =>
+                        $source,
+
+                    'schedule_id' =>
+                        $scheduleId,
+
+                    'attempt_number' =>
+                        $attemptNumber,
+
+                    'max_attempts' =>
+                        $maxAttempts,
+
+                    'retry_of_id' =>
+                        $retryOfId,
 
                     'exception_class' =>
                         $exception::class,

@@ -50,7 +50,13 @@ final class ExceptionReportEmailService
     }
 
 
-    public function sendOpenExceptionReport(): bool
+    public function sendOpenExceptionReport(
+        string $source = 'manual',
+        ?int $scheduleId = null,
+        int $attemptNumber = 1,
+        int $maxAttempts = 1,
+        ?int $retryOfId = null
+    ): bool
     {
         try {
 
@@ -141,7 +147,22 @@ final class ExceptionReportEmailService
                         'generated_at' =>
                             $generatedAt->format(
                                 DATE_ATOM
-                            )
+                            ),
+
+                        'delivery_source' =>
+                            $source,
+
+                        'schedule_id' =>
+                            $scheduleId,
+
+                        'attempt_number' =>
+                            $attemptNumber,
+
+                        'max_attempts' =>
+                            $maxAttempts,
+
+                        'retry_of_id' =>
+                            $retryOfId
                     ]
                 );
 
@@ -195,7 +216,22 @@ final class ExceptionReportEmailService
                     'generated_at' =>
                         $generatedAt->format(
                             DATE_ATOM
-                        )
+                        ),
+
+                    'delivery_source' =>
+                        $source,
+
+                    'schedule_id' =>
+                        $scheduleId,
+
+                    'attempt_number' =>
+                        $attemptNumber,
+
+                    'max_attempts' =>
+                        $maxAttempts,
+
+                    'retry_of_id' =>
+                        $retryOfId
                 ]
             );
 
@@ -205,7 +241,13 @@ final class ExceptionReportEmailService
                     ->send(
                         $subject,
                         $body,
-                        'exception_reports'
+                        'exception_reports',
+                        [],
+                        $source,
+                        $scheduleId,
+                        $attemptNumber,
+                        $maxAttempts,
+                        $retryOfId
                     );
 
 
@@ -221,7 +263,22 @@ final class ExceptionReportEmailService
                             $periodCount,
 
                         'open_exception_count' =>
-                            $exceptionCount
+                            $exceptionCount,
+
+                        'delivery_source' =>
+                            $source,
+
+                        'schedule_id' =>
+                            $scheduleId,
+
+                        'attempt_number' =>
+                            $attemptNumber,
+
+                        'max_attempts' =>
+                            $maxAttempts,
+
+                        'retry_of_id' =>
+                            $retryOfId
                     ]
                 );
 
@@ -240,7 +297,22 @@ final class ExceptionReportEmailService
                         $periodCount,
 
                     'open_exception_count' =>
-                        $exceptionCount
+                        $exceptionCount,
+
+                    'delivery_source' =>
+                        $source,
+
+                    'schedule_id' =>
+                        $scheduleId,
+
+                    'attempt_number' =>
+                        $attemptNumber,
+
+                    'max_attempts' =>
+                        $maxAttempts,
+
+                    'retry_of_id' =>
+                        $retryOfId
                 ]
             );
 
@@ -254,6 +326,21 @@ final class ExceptionReportEmailService
                 [
                     'report_type' =>
                         'exception_reports',
+
+                    'delivery_source' =>
+                        $source,
+
+                    'schedule_id' =>
+                        $scheduleId,
+
+                    'attempt_number' =>
+                        $attemptNumber,
+
+                    'max_attempts' =>
+                        $maxAttempts,
+
+                    'retry_of_id' =>
+                        $retryOfId,
 
                     'exception_class' =>
                         $exception::class,

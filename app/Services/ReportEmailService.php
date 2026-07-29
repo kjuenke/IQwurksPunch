@@ -54,7 +54,13 @@ class ReportEmailService
     }
 
 
-    public function sendDailyPayrollReport(): bool
+    public function sendDailyPayrollReport(
+        string $source = 'manual',
+        ?int $scheduleId = null,
+        int $attemptNumber = 1,
+        int $maxAttempts = 1,
+        ?int $retryOfId = null
+    ): bool
     {
         $company =
             $this->settings
@@ -104,7 +110,22 @@ class ReportEmailService
                     'daily_payroll',
 
                 'report_date' =>
-                    $reportDate
+                    $reportDate,
+
+                'delivery_source' =>
+                    $source,
+
+                'schedule_id' =>
+                    $scheduleId,
+
+                'attempt_number' =>
+                    $attemptNumber,
+
+                'max_attempts' =>
+                    $maxAttempts,
+
+                'retry_of_id' =>
+                    $retryOfId
             ]
         );
 
@@ -652,7 +673,13 @@ class ReportEmailService
                     'open_payroll_exception_count' =>
                         $payrollPeriod['open_exception_count']
                         ??
-                        null
+                        null,
+
+                    'delivery_source' =>
+                        $source,
+
+                    'schedule_id' =>
+                        $scheduleId
                 ]
             );
 
@@ -716,7 +743,13 @@ class ReportEmailService
                         +
                         strlen(
                             $pdfAttachment['contents']
-                        )
+                        ),
+
+                    'delivery_source' =>
+                        $source,
+
+                    'schedule_id' =>
+                        $scheduleId
                 ]
             );
 
@@ -729,7 +762,12 @@ class ReportEmailService
                         ' Daily Payroll Report',
                         $body,
                         'daily_payroll',
-                        $emailAttachments
+                        $emailAttachments,
+                        $source,
+                        $scheduleId,
+                        $attemptNumber,
+                        $maxAttempts,
+                        $retryOfId
                     );
 
 
@@ -760,7 +798,22 @@ class ReportEmailService
                         'attachment_names' => [
                             $csvAttachment['filename'],
                             $pdfAttachment['filename']
-                        ]
+                        ],
+
+                        'delivery_source' =>
+                            $source,
+
+                        'schedule_id' =>
+                            $scheduleId,
+
+                        'attempt_number' =>
+                            $attemptNumber,
+
+                        'max_attempts' =>
+                            $maxAttempts,
+
+                        'retry_of_id' =>
+                            $retryOfId
                     ]
                 );
 
@@ -803,7 +856,22 @@ class ReportEmailService
                         +
                         strlen(
                             $pdfAttachment['contents']
-                        )
+                        ),
+
+                    'delivery_source' =>
+                        $source,
+
+                    'schedule_id' =>
+                        $scheduleId,
+
+                    'attempt_number' =>
+                        $attemptNumber,
+
+                    'max_attempts' =>
+                        $maxAttempts,
+
+                    'retry_of_id' =>
+                        $retryOfId
                 ]
             );
 
@@ -820,6 +888,21 @@ class ReportEmailService
 
                     'report_date' =>
                         $reportDate,
+
+                    'delivery_source' =>
+                        $source,
+
+                    'schedule_id' =>
+                        $scheduleId,
+
+                    'attempt_number' =>
+                        $attemptNumber,
+
+                    'max_attempts' =>
+                        $maxAttempts,
+
+                    'retry_of_id' =>
+                        $retryOfId,
 
                     'exception_class' =>
                         $exception::class,
