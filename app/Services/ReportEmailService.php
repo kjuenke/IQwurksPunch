@@ -8,6 +8,7 @@ use App\Logging\LoggerInterface;
 use App\Repositories\CompanySettingsRepository;
 use DateTimeImmutable;
 use DateTimeZone;
+use InvalidArgumentException;
 use Throwable;
 
 class ReportEmailService
@@ -59,7 +60,8 @@ class ReportEmailService
         ?int $scheduleId = null,
         int $attemptNumber = 1,
         int $maxAttempts = 1,
-        ?int $retryOfId = null
+        ?int $retryOfId = null,
+        ?string $reportDate = null
     ): bool
     {
         $company =
@@ -69,7 +71,7 @@ class ReportEmailService
             [];
 
 
-        $timezone =
+        $timezoneName =
             (string)(
                 $company['timezone']
                 ??
@@ -79,27 +81,26 @@ class ReportEmailService
 
         if (
             !in_array(
-                $timezone,
+                $timezoneName,
                 timezone_identifiers_list(),
                 true
             )
         ) {
-
-            $timezone =
+            $timezoneName =
                 'America/Los_Angeles';
         }
 
 
+        $timezone =
+            new DateTimeZone(
+                $timezoneName
+            );
+
+
         $reportDate =
-            (
-                new DateTimeImmutable(
-                    'now',
-                    new DateTimeZone(
-                        $timezone
-                    )
-                )
-            )->format(
-                'Y-m-d'
+            $this->validReportDate(
+                $reportDate,
+                $timezone
             );
 
 
@@ -190,7 +191,7 @@ class ReportEmailService
             $body .=
                 'Timezone: '
                 .
-                $timezone
+                $timezoneName
                 .
                 "\n\n";
 
@@ -370,7 +371,6 @@ class ReportEmailService
 
 
                     if (!$complete) {
-
                         $issueCount++;
                     }
 
@@ -398,7 +398,6 @@ class ReportEmailService
                             $employee['department']
                         )
                     ) {
-
                         $body .=
                             'Department: '
                             .
@@ -924,6 +923,78 @@ class ReportEmailService
     }
 
 
+    private function validReportDate(
+        ?string $reportDate,
+        DateTimeZone $timezone
+    ): string
+    {
+        $reportDate =
+            trim(
+                (string)(
+                    $reportDate
+                    ??
+                    ''
+                )
+            );
+
+
+        if ($reportDate === '') {
+
+            return
+                (
+                    new DateTimeImmutable(
+                        'now',
+                        $timezone
+                    )
+                )->format(
+                    'Y-m-d'
+                );
+        }
+
+
+        $date =
+            DateTimeImmutable::createFromFormat(
+                '!Y-m-d',
+                $reportDate,
+                $timezone
+            );
+
+
+        $errors =
+            DateTimeImmutable::getLastErrors();
+
+
+        if (
+            !$date
+            ||
+            (
+                is_array(
+                    $errors
+                )
+                &&
+                (
+                    $errors['warning_count'] > 0
+                    ||
+                    $errors['error_count'] > 0
+                )
+            )
+            ||
+            $date->format(
+                'Y-m-d'
+            )
+            !==
+            $reportDate
+        ) {
+            throw new InvalidArgumentException(
+                'Daily report date must be a valid date in YYYY-MM-DD format.'
+            );
+        }
+
+
+        return $reportDate;
+    }
+
+
     /**
      * @param array{
      *     association_status?:mixed,
@@ -1158,7 +1229,6 @@ class ReportEmailService
                     true
                 )
             ) {
-
                 $body .=
                     "Punch Protection: Punch corrections in this period require reopening the payroll period.\n";
             }
@@ -1255,7 +1325,6 @@ class ReportEmailService
             &&
             $username === ''
         ) {
-
             return 'Not recorded';
         }
 
@@ -1284,7 +1353,6 @@ class ReportEmailService
     ): string
     {
         if ($status === '') {
-
             return 'Unknown';
         }
 

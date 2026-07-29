@@ -252,6 +252,35 @@ final class ReportEmailServiceTest extends TestCase
     }
 
 
+    public function testDailyReportDateAcceptsValidIsoDate(): void
+    {
+        self::assertSame(
+            '2026-07-29',
+            $this->dailyReportDate(
+                '2026-07-29'
+            )
+        );
+    }
+
+
+    public function testDailyReportDateRejectsImpossibleDate(): void
+    {
+        $this->expectException(
+            InvalidArgumentException::class
+        );
+
+
+        $this->expectExceptionMessage(
+            'Daily report date must be a valid date in YYYY-MM-DD format.'
+        );
+
+
+        $this->dailyReportDate(
+            '2026-02-30'
+        );
+    }
+
+
     public function testWeeklyReferenceDateAcceptsValidIsoDate(): void
     {
         $date =
@@ -452,6 +481,39 @@ final class ReportEmailServiceTest extends TestCase
             (string)$method->invoke(
                 $service,
                 $metadata
+            );
+    }
+
+
+    private function dailyReportDate(
+        ?string $date
+    ): string
+    {
+        $reflection =
+            new ReflectionClass(
+                ReportEmailService::class
+            );
+
+
+        $service =
+            $reflection
+                ->newInstanceWithoutConstructor();
+
+
+        $method =
+            $reflection
+                ->getMethod(
+                    'validReportDate'
+                );
+
+
+        return
+            (string)$method->invoke(
+                $service,
+                $date,
+                new DateTimeZone(
+                    'America/Los_Angeles'
+                )
             );
     }
 
