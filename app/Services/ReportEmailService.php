@@ -20,6 +20,8 @@ class ReportEmailService
 
     private PayrollReportPeriodMetadataService $periodMetadata;
 
+    private PayrollEmailAttachmentService $attachments;
+
     private LoggerInterface $logger;
 
 
@@ -39,6 +41,10 @@ class ReportEmailService
 
         $this->periodMetadata =
             Container::payrollReportPeriodMetadataService();
+
+
+        $this->attachments =
+            new PayrollEmailAttachmentService();
 
 
         $this->logger =
@@ -651,13 +657,48 @@ class ReportEmailService
             );
 
 
+            $attachment =
+                $this->attachments
+                    ->dailyCsv(
+                        $summary,
+                        $reportDate
+                    );
+
+
+            $this->logger->info(
+                'Daily payroll CSV attachment generated.',
+                [
+                    'report_type' =>
+                        'daily_payroll',
+
+                    'report_date' =>
+                        $reportDate,
+
+                    'attachment_filename' =>
+                        $attachment['filename'],
+
+                    'attachment_content_type' =>
+                        $attachment['content_type'],
+
+                    'attachment_size_bytes' =>
+                        strlen(
+                            $attachment['contents']
+                        )
+                ]
+            );
+
+
             $sent =
                 $this->mail
                     ->send(
                         $companyName
                         .
                         ' Daily Payroll Report',
-                        $body
+                        $body,
+                        'daily_payroll',
+                        [
+                            $attachment
+                        ]
                     );
 
 
@@ -678,7 +719,10 @@ class ReportEmailService
                             ),
 
                         'payroll_period_association' =>
-                            $association
+                            $association,
+
+                        'attachment_filename' =>
+                            $attachment['filename']
                     ]
                 );
 
@@ -702,7 +746,15 @@ class ReportEmailService
                         ),
 
                     'payroll_period_association' =>
-                        $association
+                        $association,
+
+                    'attachment_filename' =>
+                        $attachment['filename'],
+
+                    'attachment_size_bytes' =>
+                        strlen(
+                            $attachment['contents']
+                        )
                 ]
             );
 

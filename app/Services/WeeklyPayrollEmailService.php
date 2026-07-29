@@ -21,6 +21,8 @@ final class WeeklyPayrollEmailService
 
     private PayrollReportPeriodMetadataService $periodMetadata;
 
+    private PayrollEmailAttachmentService $attachments;
+
     private LoggerInterface $logger;
 
 
@@ -40,6 +42,10 @@ final class WeeklyPayrollEmailService
 
         $this->periodMetadata =
             Container::payrollReportPeriodMetadataService();
+
+
+        $this->attachments =
+            new PayrollEmailAttachmentService();
 
 
         $this->logger =
@@ -698,6 +704,44 @@ final class WeeklyPayrollEmailService
             );
 
 
+            $attachment =
+                $this->attachments
+                    ->weeklyCsv(
+                        $summary,
+                        $weekStart,
+                        $weekEnd
+                    );
+
+
+            $this->logger->info(
+                'Weekly payroll CSV attachment generated.',
+                [
+                    'report_type' =>
+                        'weekly_payroll',
+
+                    'reference_date' =>
+                        $referenceDate,
+
+                    'week_start' =>
+                        $weekStart,
+
+                    'week_end' =>
+                        $weekEnd,
+
+                    'attachment_filename' =>
+                        $attachment['filename'],
+
+                    'attachment_content_type' =>
+                        $attachment['content_type'],
+
+                    'attachment_size_bytes' =>
+                        strlen(
+                            $attachment['contents']
+                        )
+                ]
+            );
+
+
             $subject =
                 $companyName
                 .
@@ -715,7 +759,10 @@ final class WeeklyPayrollEmailService
                     ->send(
                         $subject,
                         $body,
-                        'weekly_payroll'
+                        'weekly_payroll',
+                        [
+                            $attachment
+                        ]
                     );
 
 
@@ -742,7 +789,10 @@ final class WeeklyPayrollEmailService
                             ),
 
                         'payroll_period_association' =>
-                            $association
+                            $association,
+
+                        'attachment_filename' =>
+                            $attachment['filename']
                     ]
                 );
 
@@ -772,7 +822,15 @@ final class WeeklyPayrollEmailService
                         ),
 
                     'payroll_period_association' =>
-                        $association
+                        $association,
+
+                    'attachment_filename' =>
+                        $attachment['filename'],
+
+                    'attachment_size_bytes' =>
+                        strlen(
+                            $attachment['contents']
+                        )
                 ]
             );
 

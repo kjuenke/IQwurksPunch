@@ -6,6 +6,7 @@ namespace App\Services;
 use App\Core\Container;
 use App\Logging\LoggerInterface;
 use App\Repositories\EmailRepository;
+use InvalidArgumentException;
 use Symfony\Component\Mailer\Mailer;
 use Symfony\Component\Mailer\Transport;
 use Symfony\Component\Mime\Address;
@@ -46,10 +47,18 @@ class MailService
     }
 
 
+    /**
+     * @param array<int,array{
+     *     filename:mixed,
+     *     content_type?:mixed,
+     *     contents:mixed
+     * }> $attachments
+     */
     public function send(
         string $subject,
         string $body,
-        string $notificationType = 'daily_payroll'
+        string $notificationType = 'daily_payroll',
+        array $attachments = []
     ): bool
     {
         $recipients =
@@ -64,6 +73,12 @@ class MailService
             );
 
 
+        $attachmentCount =
+            count(
+                $attachments
+            );
+
+
         $this->logger->info(
             'Email delivery started.',
             [
@@ -75,6 +90,9 @@ class MailService
 
                 'recipient_count' =>
                     $recipientCount,
+
+                'attachment_count' =>
+                    $attachmentCount,
 
                 'transport_host' =>
                     $this->config['host']
@@ -98,7 +116,10 @@ class MailService
                         $subject,
 
                     'notification_type' =>
-                        $notificationType
+                        $notificationType,
+
+                    'attachment_count' =>
+                        $attachmentCount
                 ]
             );
 
@@ -115,6 +136,12 @@ class MailService
 
 
         try {
+
+            $attachments =
+                $this->normalizeAttachments(
+                    $attachments
+                );
+
 
             $dsn =
                 sprintf(
@@ -179,6 +206,16 @@ class MailService
             }
 
 
+            foreach ($attachments as $attachment) {
+
+                $email->attach(
+                    $attachment['contents'],
+                    $attachment['filename'],
+                    $attachment['content_type']
+                );
+            }
+
+
             $mailer->send(
                 $email
             );
@@ -201,7 +238,22 @@ class MailService
                         $notificationType,
 
                     'recipient_count' =>
-                        $recipientCount
+                        $recipientCount,
+
+                    'attachment_count' =>
+                        count(
+                            $attachments
+                        ),
+
+                    'attachment_names' =>
+                        $this->attachmentNames(
+                            $attachments
+                        ),
+
+                    'attachment_size_bytes' =>
+                        $this->attachmentSizeBytes(
+                            $attachments
+                        )
                 ]
             );
 
@@ -229,6 +281,11 @@ class MailService
                     'recipient_count' =>
                         $recipientCount,
 
+                    'attachment_count' =>
+                        count(
+                            $attachments
+                        ),
+
                     'exception_class' =>
                         $exception::class,
 
@@ -246,6 +303,212 @@ class MailService
 
             throw $exception;
         }
+    }
+
+
+    /**
+     * @param array<int,mixed> $attachments
+     *
+     * @return array<int,array{
+     *     filename:string,
+     *     content_type:string,
+     *     contents:string
+     * }>
+     */
+    private function normalizeAttachments(
+        array $attachments
+    ): array
+    {
+        $normalized = [];
+
+
+        foreach (
+            $attachments
+            as
+            $index =>
+            $attachment
+        ) {
+            if (!is_array($attachment)) {
+
+                throw new InvalidArgumentException(
+                    'Email attachment #'
+                    .
+                    (
+                        $index
+                        +
+                        1
+                    )
+                    .
+                    ' must be an array.'
+                );
+            }
+
+
+            $filename =
+                trim(
+                    str_replace(
+                        [
+                            "\r",
+                            "\n",
+                            "\0"
+                        ],
+                        '',
+                        basename(
+                            trim(
+                                (string)(
+                                    $attachment['filename']
+                                    ??
+                                    ''
+                                )
+                            )
+                        )
+                    )
+                );
+
+
+            if (
+                $filename === ''
+                ||
+                $filename === '.'
+                ||
+                $filename === '..'
+            ) {
+                throw new InvalidArgumentException(
+                    'Email attachment #'
+                    .
+                    (
+                        $index
+                        +
+                        1
+                    )
+                    .
+                    ' requires a valid filename.'
+                );
+            }
+
+
+            $contentType =
+                trim(
+                    str_replace(
+                        [
+                            "\r",
+                            "\n",
+                            "\0"
+                        ],
+                        '',
+                        (string)(
+                            $attachment['content_type']
+                            ??
+                            'application/octet-stream'
+                        )
+                    )
+                );
+
+
+            if ($contentType === '') {
+
+                $contentType =
+                    'application/octet-stream';
+            }
+
+
+            $contents =
+                $attachment['contents']
+                ??
+                null;
+
+
+            if (!is_string($contents)) {
+
+                throw new InvalidArgumentException(
+                    'Email attachment '
+                    .
+                    $filename
+                    .
+                    ' must contain string data.'
+                );
+            }
+
+
+            if ($contents === '') {
+
+                throw new InvalidArgumentException(
+                    'Email attachment '
+                    .
+                    $filename
+                    .
+                    ' cannot be empty.'
+                );
+            }
+
+
+            $normalized[] = [
+                'filename' =>
+                    $filename,
+
+                'content_type' =>
+                    $contentType,
+
+                'contents' =>
+                    $contents
+            ];
+        }
+
+
+        return $normalized;
+    }
+
+
+    /**
+     * @param array<int,array{
+     *     filename:string,
+     *     content_type:string,
+     *     contents:string
+     * }> $attachments
+     *
+     * @return array<int,string>
+     */
+    private function attachmentNames(
+        array $attachments
+    ): array
+    {
+        return
+            array_values(
+                array_map(
+                    static fn (
+                        array $attachment
+                    ): string =>
+                        $attachment['filename'],
+                    $attachments
+                )
+            );
+    }
+
+
+    /**
+     * @param array<int,array{
+     *     filename:string,
+     *     content_type:string,
+     *     contents:string
+     * }> $attachments
+     */
+    private function attachmentSizeBytes(
+        array $attachments
+    ): int
+    {
+        $bytes = 0;
+
+
+        foreach ($attachments as $attachment) {
+
+            $bytes +=
+                strlen(
+                    $attachment['contents']
+                );
+        }
+
+
+        return $bytes;
     }
 
 
