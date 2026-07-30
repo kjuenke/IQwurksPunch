@@ -4,8 +4,7 @@ declare(strict_types=1);
 namespace App\Console\Commands;
 
 use App\Console\CommandInterface;
-use App\Core\Container;
-use App\Repositories\EmailDeliveryAttemptRepository;
+use App\Services\EmailDeliveryRetryEligibilityService;
 use App\Services\EmailDeliveryRetryExecutionService;
 use App\Services\EmailDeliveryRetryPlanService;
 use InvalidArgumentException;
@@ -13,22 +12,20 @@ use Throwable;
 
 final class MailRetryCommand implements CommandInterface
 {
-    private EmailDeliveryAttemptRepository $attempts;
+    private EmailDeliveryRetryEligibilityService $eligibility;
 
     private EmailDeliveryRetryExecutionService $execution;
 
 
     public function __construct(
-        ?EmailDeliveryAttemptRepository $attempts = null,
+        ?EmailDeliveryRetryEligibilityService $eligibility = null,
         ?EmailDeliveryRetryExecutionService $execution = null
     )
     {
-        $this->attempts =
-            $attempts
+        $this->eligibility =
+            $eligibility
             ??
-            new EmailDeliveryAttemptRepository(
-                Container::db()
-            );
+            new EmailDeliveryRetryEligibilityService();
 
 
         $this->execution =
@@ -63,7 +60,15 @@ final class MailRetryCommand implements CommandInterface
 
 
             $limit =
-                $options['limit'];
+                $options['limit']
+                ??
+                $this->eligibility
+                    ->batchLimit();
+
+
+            $delayMinutes =
+                $this->eligibility
+                    ->delayMinutes();
 
 
             $send =
@@ -73,8 +78,8 @@ final class MailRetryCommand implements CommandInterface
             $failures =
                 array_values(
                     array_filter(
-                        $this->attempts
-                            ->retryableFailures(
+                        $this->eligibility
+                            ->eligibleFailures(
                                 $limit
                             ),
                         static fn (
@@ -116,6 +121,22 @@ final class MailRetryCommand implements CommandInterface
 
 
             echo
+                'Retry delay: '
+                .
+                $delayMinutes
+                .
+                ' minute'
+                .
+                (
+                    $delayMinutes === 1
+                        ? ''
+                        : 's'
+                )
+                .
+                PHP_EOL;
+
+
+            echo
                 'Mode: '
                 .
                 (
@@ -130,7 +151,7 @@ final class MailRetryCommand implements CommandInterface
             if ($failures === []) {
 
                 echo
-                    'No failed payroll-report deliveries are eligible for retry.'
+                    'No failed payroll-report deliveries have satisfied the retry policy.'
                     .
                     PHP_EOL;
 
@@ -455,7 +476,7 @@ final class MailRetryCommand implements CommandInterface
      *
      * @return array{
      *     send:bool,
-     *     limit:int
+     *     limit:int|null
      * }
      */
     private function parseArguments(
@@ -464,7 +485,7 @@ final class MailRetryCommand implements CommandInterface
     {
         $send = false;
 
-        $limit = 25;
+        $limit = null;
 
 
         foreach ($arguments as $argument) {
@@ -512,9 +533,13 @@ final class MailRetryCommand implements CommandInterface
 
 
         if (
-            $limit < 1
-            ||
-            $limit > 250
+            $limit !== null
+            &&
+            (
+                $limit < 1
+                ||
+                $limit > 250
+            )
         ) {
             throw new InvalidArgumentException(
                 'The --limit value must be between 1 and 250.'

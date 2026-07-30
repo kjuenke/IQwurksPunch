@@ -3,8 +3,10 @@ declare(strict_types=1);
 
 use App\Console\Commands\MailRetryCommand;
 use App\Repositories\EmailDeliveryAttemptRepository;
+use App\Services\EmailDeliveryRetryEligibilityService;
 use App\Services\EmailDeliveryRetryExecutionService;
 use App\Services\EmailDeliveryRetryPlanService;
+use App\Services\EmailDeliveryRetryPolicyService;
 use PHPUnit\Framework\TestCase;
 
 final class MailRetryCommandTest extends TestCase
@@ -71,6 +73,53 @@ final class MailRetryCommandTest extends TestCase
     }
 
 
+    public function testConfiguredDefaultsAreDisplayed(): void
+    {
+        $callCount = 0;
+
+
+        $command =
+            $this->command(
+                $callCount
+            );
+
+
+        ob_start();
+
+
+        $exitCode =
+            $command->execute();
+
+
+        $output =
+            (string)ob_get_clean();
+
+
+        self::assertSame(
+            0,
+            $exitCode
+        );
+
+
+        self::assertStringContainsString(
+            'Selection limit: 10',
+            $output
+        );
+
+
+        self::assertStringContainsString(
+            'Retry delay: 5 minutes',
+            $output
+        );
+
+
+        self::assertStringContainsString(
+            'Mode: PREVIEW',
+            $output
+        );
+    }
+
+
     public function testPreviewDoesNotExecuteRetry(): void
     {
         $failedAttemptId =
@@ -110,7 +159,7 @@ final class MailRetryCommandTest extends TestCase
 
 
         self::assertStringContainsString(
-            'Mode: PREVIEW',
+            'Retryable payroll-report deliveries: 1',
             $output
         );
 
@@ -135,6 +184,63 @@ final class MailRetryCommandTest extends TestCase
         self::assertSame(
             $failedAttemptId,
             (int)$retryable[0]['id']
+        );
+    }
+
+
+    public function testRecentFailureIsExcludedByDelayPolicy(): void
+    {
+        $this->createFailedDailyAttempt(
+            '2026-07-29',
+            '-1 minute'
+        );
+
+
+        $callCount = 0;
+
+
+        $command =
+            $this->command(
+                $callCount
+            );
+
+
+        ob_start();
+
+
+        $exitCode =
+            $command->execute(
+                [
+                    '--send'
+                ]
+            );
+
+
+        $output =
+            (string)ob_get_clean();
+
+
+        self::assertSame(
+            0,
+            $exitCode
+        );
+
+
+        self::assertSame(
+            0,
+            $callCount
+        );
+
+
+        self::assertStringContainsString(
+            'Retryable payroll-report deliveries: 0',
+            $output
+        );
+
+
+        self::assertStringContainsString(
+            'No failed payroll-report deliveries have satisfied the retry policy.',
+            $output
         );
     }
 
@@ -250,13 +356,13 @@ final class MailRetryCommandTest extends TestCase
 
 
         self::assertStringContainsString(
-            'No failed payroll-report deliveries are eligible for retry.',
+            'No failed payroll-report deliveries have satisfied the retry policy.',
             $secondOutput
         );
     }
 
 
-    public function testSendHonorsLimit(): void
+    public function testSendHonorsExplicitLimit(): void
     {
         $this->createFailedDailyAttempt(
             '2026-07-28'
@@ -362,6 +468,30 @@ final class MailRetryCommandTest extends TestCase
             $this->repository;
 
 
+        $policy =
+            new EmailDeliveryRetryPolicyService(
+                [
+                    'delivery_retry' => [
+                        'scheduled_max_attempts' =>
+                            3,
+
+                        'batch_limit' =>
+                            10,
+
+                        'delay_minutes' =>
+                            5
+                    ]
+                ]
+            );
+
+
+        $eligibility =
+            new EmailDeliveryRetryEligibilityService(
+                $repository,
+                $policy
+            );
+
+
         $execution =
             new EmailDeliveryRetryExecutionService(
                 new EmailDeliveryRetryPlanService(),
@@ -424,14 +554,15 @@ final class MailRetryCommandTest extends TestCase
 
         return
             new MailRetryCommand(
-                $this->repository,
+                $eligibility,
                 $execution
             );
     }
 
 
     private function createFailedDailyAttempt(
-        string $reportDate = '2026-07-29'
+        string $reportDate = '2026-07-29',
+        string $completedModifier = '-10 minutes'
     ): int
     {
         $attemptId =
@@ -469,6 +600,32 @@ final class MailRetryCommandTest extends TestCase
                     'Synthetic SMTP failure.',
                     false
                 )
+        );
+
+
+        $statement =
+            $this->database->prepare(
+                "
+                UPDATE email_delivery_attempts
+
+                SET completed_at = datetime(
+                    'now',
+                    :completed_modifier
+                )
+
+                WHERE id = :id
+                "
+            );
+
+
+        $statement->execute(
+            [
+                'completed_modifier' =>
+                    $completedModifier,
+
+                'id' =>
+                    $attemptId
+            ]
         );
 
 
