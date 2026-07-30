@@ -207,6 +207,112 @@ if ($requestedCommand === 'schedule:run') {
 }
 
 
+/*
+|--------------------------------------------------------------------------
+| Internal email retry execution lock
+|--------------------------------------------------------------------------
+|
+| Preview mode is read-only and does not require a lock. A mail:retry
+| command using --send receives an exclusive non-blocking lock so that
+| cron and manually started retry executions cannot process the same
+| failed delivery simultaneously.
+|
+*/
+
+$mailRetryLockHandle =
+    null;
+
+
+$mailRetrySendRequested =
+    $requestedCommand === 'mail:retry'
+    &&
+    in_array(
+        '--send',
+        array_slice(
+            $argv,
+            2
+        ),
+        true
+    );
+
+
+if ($mailRetrySendRequested) {
+
+    $mailRetryLockFile =
+        '/tmp/iqwurks-mail-retry.internal.lock';
+
+
+    $mailRetryLockHandle =
+        @fopen(
+            $mailRetryLockFile,
+            'c+'
+        );
+
+
+    if ($mailRetryLockHandle === false) {
+
+        fwrite(
+            STDERR,
+            'Unable to open the internal email retry lock file: '
+            .
+            $mailRetryLockFile
+            .
+            PHP_EOL
+        );
+
+
+        exit(1);
+    }
+
+
+    if (
+        !flock(
+            $mailRetryLockHandle,
+            LOCK_EX
+            |
+            LOCK_NB
+        )
+    ) {
+        fclose(
+            $mailRetryLockHandle
+        );
+
+
+        echo
+            'Email retry processing is already running. Skipping this execution.'
+            .
+            PHP_EOL;
+
+
+        exit(0);
+    }
+
+
+    ftruncate(
+        $mailRetryLockHandle,
+        0
+    );
+
+
+    rewind(
+        $mailRetryLockHandle
+    );
+
+
+    fwrite(
+        $mailRetryLockHandle,
+        (string)getmypid()
+        .
+        PHP_EOL
+    );
+
+
+    fflush(
+        $mailRetryLockHandle
+    );
+}
+
+
 $console =
     new ConsoleApplication(
         AppInfo::name(),
@@ -358,6 +464,23 @@ $exitCode =
     $console->run(
         $argv
     );
+
+
+if (
+    is_resource(
+        $mailRetryLockHandle
+    )
+) {
+    flock(
+        $mailRetryLockHandle,
+        LOCK_UN
+    );
+
+
+    fclose(
+        $mailRetryLockHandle
+    );
+}
 
 
 if (
