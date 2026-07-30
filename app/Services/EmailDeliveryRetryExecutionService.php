@@ -3,7 +3,9 @@ declare(strict_types=1);
 
 namespace App\Services;
 
+use App\Repositories\EmailDeliveryRetryQuarantineRepository;
 use Closure;
+use InvalidArgumentException;
 use RuntimeException;
 
 final class EmailDeliveryRetryExecutionService
@@ -16,12 +18,15 @@ final class EmailDeliveryRetryExecutionService
 
     private Closure $exceptionSender;
 
+    private EmailDeliveryRetryQuarantineRepository $quarantine;
+
 
     public function __construct(
         ?EmailDeliveryRetryPlanService $plans = null,
         ?callable $dailySender = null,
         ?callable $weeklySender = null,
-        ?callable $exceptionSender = null
+        ?callable $exceptionSender = null,
+        ?EmailDeliveryRetryQuarantineRepository $quarantine = null
     )
     {
         $this->plans =
@@ -85,6 +90,12 @@ final class EmailDeliveryRetryExecutionService
             Closure::fromCallable(
                 $exceptionSender
             );
+
+
+        $this->quarantine =
+            $quarantine
+            ??
+            new EmailDeliveryRetryQuarantineRepository();
     }
 
 
@@ -95,11 +106,24 @@ final class EmailDeliveryRetryExecutionService
         array $failedAttempt
     ): bool
     {
-        $plan =
-            $this->plans
-                ->plan(
-                    $failedAttempt
-                );
+        try {
+
+            $plan =
+                $this->plans
+                    ->plan(
+                        $failedAttempt
+                    );
+
+        } catch (InvalidArgumentException $exception) {
+
+            $this->quarantineMalformedAttempt(
+                $failedAttempt,
+                $exception
+            );
+
+
+            throw $exception;
+        }
 
 
         $notificationType =
@@ -183,6 +207,37 @@ final class EmailDeliveryRetryExecutionService
         throw new RuntimeException(
             'The retry plan contains an unsupported notification type.'
         );
+    }
+
+
+    /**
+     * @param array<string,mixed> $failedAttempt
+     */
+    private function quarantineMalformedAttempt(
+        array $failedAttempt,
+        InvalidArgumentException $exception
+    ): void
+    {
+        $attemptId =
+            (int)(
+                $failedAttempt['id']
+                ??
+                0
+            );
+
+
+        if ($attemptId < 1) {
+            return;
+        }
+
+
+        $this->quarantine
+            ->markPermanentFailure(
+                $attemptId,
+                'Retry metadata is invalid: '
+                .
+                $exception->getMessage()
+            );
     }
 
 
