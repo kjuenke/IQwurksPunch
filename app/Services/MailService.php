@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace App\Services;
 
 use App\Core\Container;
+use App\Exceptions\EmailAttachmentSizeExceededException;
 use App\Logging\LoggerInterface;
 use App\Repositories\EmailDeliveryAttemptRepository;
 use App\Repositories\EmailRepository;
@@ -23,6 +24,8 @@ class MailService
     private EmailDeliveryAttemptRepository $deliveryAttempts;
 
     private NotificationRecipientService $recipients;
+
+    private EmailAttachmentSizePolicyService $attachmentSizePolicy;
 
     private LoggerInterface $logger;
 
@@ -47,6 +50,10 @@ class MailService
 
         $this->recipients =
             Container::notificationRecipientService();
+
+
+        $this->attachmentSizePolicy =
+            new EmailAttachmentSizePolicyService();
 
 
         $this->logger =
@@ -126,6 +133,10 @@ class MailService
                 'attachment_count' =>
                     $attachmentCount,
 
+                'attachment_max_total_bytes' =>
+                    $this->attachmentSizePolicy
+                        ->maxTotalBytes(),
+
                 'transport_host' =>
                     $this->config['host']
                     ??
@@ -159,6 +170,11 @@ class MailService
                     $maxAttempts,
                     $retryOfId
                 );
+
+
+            $this->assertAttachmentSizeWithinLimit(
+                $attachments
+            );
 
 
             if ($recipientCount === 0) {
@@ -359,10 +375,18 @@ class MailService
                 );
 
 
+            $permanentFailure =
+                $this->isPermanentFailure(
+                    $exception,
+                    $attemptNumber,
+                    $maxAttempts
+                );
+
+
             $this->markDeliveryAttemptFailed(
                 $attemptId,
                 $exception->getMessage(),
-                $attemptNumber >= $maxAttempts,
+                $permanentFailure,
                 $emailLogId
             );
 
@@ -401,6 +425,22 @@ class MailService
                         count(
                             $attachments
                         ),
+
+                    'attachment_size_bytes' =>
+                        is_array(
+                            $attachments
+                        )
+                            ? $this->safeAttachmentSizeBytes(
+                                $attachments
+                            )
+                            : null,
+
+                    'attachment_max_total_bytes' =>
+                        $this->attachmentSizePolicy
+                            ->maxTotalBytes(),
+
+                    'permanent_failure' =>
+                        $permanentFailure,
 
                     'exception_class' =>
                         $exception::class,
@@ -616,6 +656,82 @@ class MailService
 
 
         foreach ($attachments as $attachment) {
+
+            $bytes +=
+                strlen(
+                    $attachment['contents']
+                );
+        }
+
+
+        return $bytes;
+    }
+
+
+    /**
+     * @param array<int,array{
+     *     filename:string,
+     *     content_type:string,
+     *     contents:string
+     * }> $attachments
+     */
+    private function assertAttachmentSizeWithinLimit(
+        array $attachments
+    ): void
+    {
+        $this->attachmentSizePolicy
+            ->assertWithinLimit(
+                $this->attachmentSizeBytes(
+                    $attachments
+                )
+            );
+    }
+
+
+    private function isPermanentFailure(
+        Throwable $exception,
+        int $attemptNumber,
+        int $maxAttempts
+    ): bool
+    {
+        return
+            $exception
+            instanceof
+            EmailAttachmentSizeExceededException
+            ||
+            $attemptNumber >= $maxAttempts;
+    }
+
+
+    /**
+     * @param array<int,mixed> $attachments
+     */
+    private function safeAttachmentSizeBytes(
+        array $attachments
+    ): ?int
+    {
+        $bytes = 0;
+
+
+        foreach ($attachments as $attachment) {
+
+            if (
+                !is_array(
+                    $attachment
+                )
+                ||
+                !array_key_exists(
+                    'contents',
+                    $attachment
+                )
+                ||
+                !is_string(
+                    $attachment['contents']
+                )
+            ) {
+                return null;
+            }
+
 
             $bytes +=
                 strlen(

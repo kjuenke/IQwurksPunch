@@ -2,6 +2,17 @@
 declare(strict_types=1);
 
 return [
+    'email_attachments' => [
+        /*
+         * Maximum combined raw size of all attachments on one email.
+         *
+         * Ten mebibytes leaves room for MIME encoding and other message
+         * overhead before reaching common SMTP message-size limits.
+         */
+        'max_total_bytes' =>
+            10485760
+    ],
+
     'delivery_retry' => [
         /*
          * The original scheduled delivery counts as attempt 1.
