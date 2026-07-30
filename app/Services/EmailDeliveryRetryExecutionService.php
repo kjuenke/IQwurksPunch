@@ -58,13 +58,13 @@ final class EmailDeliveryRetryExecutionService
 
         if ($exceptionSender === null) {
 
-            $exceptionReports =
-                new ExceptionReportEmailService();
+            $exceptionRetryClosure =
+                new ExceptionReportRetryClosureService();
 
 
             $exceptionSender = [
-                $exceptionReports,
-                'sendOpenExceptionReport'
+                $exceptionRetryClosure,
+                'sendRetry'
             ];
         }
 
