@@ -7,6 +7,7 @@ use App\Console\CommandInterface;
 use App\Core\Container;
 use App\Logging\LoggerInterface;
 use App\Repositories\ReportDeliveryScheduleRepository;
+use App\Services\EmailDeliveryRetryPolicyService;
 use App\Services\ExceptionReportEmailService;
 use App\Services\ReportDeliveryScheduleService;
 use App\Services\ReportEmailService;
@@ -23,10 +24,14 @@ class ScheduleRunCommand implements CommandInterface
 
     private ExceptionReportEmailService $exceptionReports;
 
+    private EmailDeliveryRetryPolicyService $retryPolicy;
+
     private LoggerInterface $logger;
 
 
-    public function __construct()
+    public function __construct(
+        ?EmailDeliveryRetryPolicyService $retryPolicy = null
+    )
     {
         $repository =
             new ReportDeliveryScheduleRepository(
@@ -50,6 +55,12 @@ class ScheduleRunCommand implements CommandInterface
 
         $this->exceptionReports =
             new ExceptionReportEmailService();
+
+
+        $this->retryPolicy =
+            $retryPolicy
+            ??
+            new EmailDeliveryRetryPolicyService();
 
 
         $this->logger =
@@ -81,6 +92,11 @@ class ScheduleRunCommand implements CommandInterface
             );
 
 
+        $scheduledMaxAttempts =
+            $this->retryPolicy
+                ->scheduledMaxAttempts();
+
+
         $this->logger->info(
             'Scheduler command started.',
             [
@@ -95,6 +111,9 @@ class ScheduleRunCommand implements CommandInterface
 
                 'timezone' =>
                     date_default_timezone_get(),
+
+                'scheduled_max_attempts' =>
+                    $scheduledMaxAttempts,
 
                 'memory_bytes' =>
                     memory_get_usage(
@@ -129,13 +148,13 @@ class ScheduleRunCommand implements CommandInterface
 
             foreach (
                 $reportTypes
-                as
-                $reportType => $reportLabel
+                as $reportType => $reportLabel
             ) {
                 $schedule =
-                    $this->schedule->get(
-                        $reportType
-                    );
+                    $this->schedule
+                        ->get(
+                            $reportType
+                        );
 
 
                 if (!$schedule) {
@@ -207,8 +226,13 @@ class ScheduleRunCommand implements CommandInterface
                 }
 
 
-                if (!(bool)$schedule['enabled']) {
-
+                if (
+                    !(bool)(
+                        $schedule['enabled']
+                        ??
+                        false
+                    )
+                ) {
                     $this->logger->debug(
                         'Scheduled report is disabled.',
                         [
@@ -255,15 +279,19 @@ class ScheduleRunCommand implements CommandInterface
                         'last_sent_at' =>
                             $schedule['last_sent_at']
                             ??
-                            null
+                            null,
+
+                        'scheduled_max_attempts' =>
+                            $scheduledMaxAttempts
                     ]
                 );
 
 
                 if (
-                    !$this->schedule->isDue(
-                        $reportType
-                    )
+                    !$this->schedule
+                        ->isDue(
+                            $reportType
+                        )
                 ) {
                     $this->logger->debug(
                         'Scheduled report is not due.',
@@ -291,7 +319,13 @@ class ScheduleRunCommand implements CommandInterface
                             $reportType,
 
                         'schedule_id' =>
-                            $scheduleId
+                            $scheduleId,
+
+                        'attempt_number' =>
+                            1,
+
+                        'max_attempts' =>
+                            $scheduledMaxAttempts
                     ]
                 );
 
@@ -310,7 +344,8 @@ class ScheduleRunCommand implements CommandInterface
                     $sent =
                         $this->sendReport(
                             $reportType,
-                            $scheduleId
+                            $scheduleId,
+                            $scheduledMaxAttempts
                         );
 
 
@@ -325,10 +360,11 @@ class ScheduleRunCommand implements CommandInterface
                             ' report delivery returned a failure result.';
 
 
-                        $this->schedule->markFailed(
-                            $reportType,
-                            $error
-                        );
+                        $this->schedule
+                            ->markFailed(
+                                $reportType,
+                                $error
+                            );
 
 
                         $this->logger->error(
@@ -338,7 +374,13 @@ class ScheduleRunCommand implements CommandInterface
                                     $reportType,
 
                                 'schedule_id' =>
-                                    $scheduleId
+                                    $scheduleId,
+
+                                'attempt_number' =>
+                                    1,
+
+                                'max_attempts' =>
+                                    $scheduledMaxAttempts
                             ]
                         );
 
@@ -356,9 +398,10 @@ class ScheduleRunCommand implements CommandInterface
 
 
                     if (
-                        !$this->schedule->markSent(
-                            $reportType
-                        )
+                        !$this->schedule
+                            ->markSent(
+                                $reportType
+                            )
                     ) {
                         $failureCount++;
 
@@ -369,10 +412,11 @@ class ScheduleRunCommand implements CommandInterface
                             ' report completed, but its schedule could not be marked as sent.';
 
 
-                        $this->schedule->markFailed(
-                            $reportType,
-                            $error
-                        );
+                        $this->schedule
+                            ->markFailed(
+                                $reportType,
+                                $error
+                            );
 
 
                         $this->logger->error(
@@ -409,7 +453,13 @@ class ScheduleRunCommand implements CommandInterface
                                 $reportType,
 
                             'schedule_id' =>
-                                $scheduleId
+                                $scheduleId,
+
+                            'attempt_number' =>
+                                1,
+
+                            'max_attempts' =>
+                                $scheduledMaxAttempts
                         ]
                     );
 
@@ -427,10 +477,11 @@ class ScheduleRunCommand implements CommandInterface
                     $failureCount++;
 
 
-                    $this->schedule->markFailed(
-                        $reportType,
-                        $exception->getMessage()
-                    );
+                    $this->schedule
+                        ->markFailed(
+                            $reportType,
+                            $exception->getMessage()
+                        );
 
 
                     $this->logger->error(
@@ -441,6 +492,12 @@ class ScheduleRunCommand implements CommandInterface
 
                             'schedule_id' =>
                                 $scheduleId,
+
+                            'attempt_number' =>
+                                1,
+
+                            'max_attempts' =>
+                                $scheduledMaxAttempts,
 
                             'exception_class' =>
                                 $exception::class,
@@ -494,7 +551,10 @@ class ScheduleRunCommand implements CommandInterface
                             $sentCount,
 
                         'failure_count' =>
-                            $failureCount
+                            $failureCount,
+
+                        'scheduled_max_attempts' =>
+                            $scheduledMaxAttempts
                     ]
                 );
 
@@ -531,7 +591,10 @@ class ScheduleRunCommand implements CommandInterface
                             0,
 
                         'failure_count' =>
-                            0
+                            0,
+
+                        'scheduled_max_attempts' =>
+                            $scheduledMaxAttempts
                     ]
                 );
 
@@ -568,7 +631,10 @@ class ScheduleRunCommand implements CommandInterface
                             0,
 
                         'failure_count' =>
-                            0
+                            0,
+
+                        'scheduled_max_attempts' =>
+                            $scheduledMaxAttempts
                     ]
                 );
 
@@ -598,7 +664,10 @@ class ScheduleRunCommand implements CommandInterface
                         $sentCount,
 
                     'failure_count' =>
-                        0
+                        0,
+
+                    'scheduled_max_attempts' =>
+                        $scheduledMaxAttempts
                 ]
             );
 
@@ -610,6 +679,9 @@ class ScheduleRunCommand implements CommandInterface
             $this->logger->critical(
                 'Unhandled scheduler exception.',
                 [
+                    'scheduled_max_attempts' =>
+                        $scheduledMaxAttempts,
+
                     'exception_class' =>
                         $exception::class,
 
@@ -639,7 +711,11 @@ class ScheduleRunCommand implements CommandInterface
             $this->logCompletion(
                 $startedAt,
                 1,
-                'exception'
+                'exception',
+                [
+                    'scheduled_max_attempts' =>
+                        $scheduledMaxAttempts
+                ]
             );
 
 
@@ -650,7 +726,8 @@ class ScheduleRunCommand implements CommandInterface
 
     private function sendReport(
         string $reportType,
-        int $scheduleId
+        int $scheduleId,
+        int $maxAttempts
     ): bool
     {
         if (
@@ -664,7 +741,7 @@ class ScheduleRunCommand implements CommandInterface
                         'scheduled',
                         $scheduleId,
                         1,
-                        1,
+                        $maxAttempts,
                         null
                     );
         }
@@ -687,7 +764,7 @@ class ScheduleRunCommand implements CommandInterface
                         'scheduled',
                         $scheduleId,
                         1,
-                        1,
+                        $maxAttempts,
                         null
                     );
         }
@@ -704,7 +781,7 @@ class ScheduleRunCommand implements CommandInterface
                         'scheduled',
                         $scheduleId,
                         1,
-                        1,
+                        $maxAttempts,
                         null
                     );
         }
