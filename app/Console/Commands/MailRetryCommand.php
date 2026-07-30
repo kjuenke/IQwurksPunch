@@ -6,7 +6,6 @@ namespace App\Console\Commands;
 use App\Console\CommandInterface;
 use App\Services\EmailDeliveryRetryEligibilityService;
 use App\Services\EmailDeliveryRetryExecutionService;
-use App\Services\EmailDeliveryRetryPlanService;
 use InvalidArgumentException;
 use Throwable;
 
@@ -75,30 +74,20 @@ final class MailRetryCommand implements CommandInterface
                 $options['send'];
 
 
+            /*
+             * Do not filter notification types here.
+             *
+             * Preview mode must reveal every eligible failure. Send mode
+             * passes each record to the retry planner, which either creates
+             * a safe regeneration plan or permanently quarantines malformed
+             * and unsupported retry metadata.
+             */
             $failures =
                 array_values(
-                    array_filter(
-                        $this->eligibility
-                            ->eligibleFailures(
-                                $limit
-                            ),
-                        static fn (
-                            array $attempt
-                        ): bool =>
-                            in_array(
-                                (string)(
-                                    $attempt['notification_type']
-                                    ??
-                                    ''
-                                ),
-                                [
-                                    EmailDeliveryRetryPlanService::DAILY_PAYROLL,
-                                    EmailDeliveryRetryPlanService::WEEKLY_PAYROLL,
-                                    EmailDeliveryRetryPlanService::EXCEPTION_REPORTS
-                                ],
-                                true
-                            )
-                    )
+                    $this->eligibility
+                        ->eligibleFailures(
+                            $limit
+                        )
                 );
 
 

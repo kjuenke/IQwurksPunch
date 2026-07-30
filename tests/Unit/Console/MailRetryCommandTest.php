@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 use App\Console\Commands\MailRetryCommand;
 use App\Repositories\EmailDeliveryAttemptRepository;
+use App\Repositories\EmailDeliveryRetryQuarantineRepository;
 use App\Services\EmailDeliveryRetryEligibilityService;
 use App\Services\EmailDeliveryRetryExecutionService;
 use App\Services\EmailDeliveryRetryPlanService;
@@ -188,6 +189,100 @@ final class MailRetryCommandTest extends TestCase
     }
 
 
+    public function testPreviewDisplaysUnsupportedNotificationWithoutQuarantining(): void
+    {
+        $failedAttemptId =
+            $this->createFailedUnsupportedAttempt();
+
+
+        $callCount = 0;
+
+
+        $command =
+            $this->command(
+                $callCount
+            );
+
+
+        ob_start();
+
+
+        $exitCode =
+            $command->execute();
+
+
+        $output =
+            (string)ob_get_clean();
+
+
+        self::assertSame(
+            0,
+            $exitCode
+        );
+
+
+        self::assertSame(
+            0,
+            $callCount
+        );
+
+
+        self::assertStringContainsString(
+            'Retryable payroll-report deliveries: 1',
+            $output
+        );
+
+
+        self::assertStringContainsString(
+            'approval_notifications',
+            $output
+        );
+
+
+        self::assertStringContainsString(
+            'Payroll Approval Notification',
+            $output
+        );
+
+
+        $attempt =
+            $this->repository
+                ->find(
+                    $failedAttemptId
+                );
+
+
+        self::assertNotNull(
+            $attempt
+        );
+
+
+        self::assertSame(
+            'failed',
+            $attempt['status']
+        );
+
+
+        self::assertSame(
+            0,
+            (int)$attempt['permanent_failure']
+        );
+
+
+        self::assertSame(
+            'Synthetic unsupported-notification failure.',
+            $attempt['error_message']
+        );
+
+
+        self::assertCount(
+            1,
+            $this->repository
+                ->retryableFailures()
+        );
+    }
+
+
     public function testRecentFailureIsExcludedByDelayPolicy(): void
     {
         $this->createFailedDailyAttempt(
@@ -352,6 +447,143 @@ final class MailRetryCommandTest extends TestCase
         self::assertSame(
             1,
             $callCount
+        );
+
+
+        self::assertStringContainsString(
+            'No failed payroll-report deliveries have satisfied the retry policy.',
+            $secondOutput
+        );
+    }
+
+
+    public function testSendQuarantinesUnsupportedNotification(): void
+    {
+        $failedAttemptId =
+            $this->createFailedUnsupportedAttempt();
+
+
+        $callCount = 0;
+
+
+        $command =
+            $this->command(
+                $callCount
+            );
+
+
+        ob_start();
+
+
+        $firstExitCode =
+            $command->execute(
+                [
+                    '--send'
+                ]
+            );
+
+
+        $firstOutput =
+            (string)ob_get_clean();
+
+
+        self::assertSame(
+            1,
+            $firstExitCode
+        );
+
+
+        self::assertSame(
+            0,
+            $callCount
+        );
+
+
+        self::assertStringContainsString(
+            'Retryable payroll-report deliveries: 1',
+            $firstOutput
+        );
+
+
+        self::assertStringContainsString(
+            'approval_notifications',
+            $firstOutput
+        );
+
+
+        self::assertStringContainsString(
+            'Failed retries: 1',
+            $firstOutput
+        );
+
+
+        $attempt =
+            $this->repository
+                ->find(
+                    $failedAttemptId
+                );
+
+
+        self::assertNotNull(
+            $attempt
+        );
+
+
+        self::assertSame(
+            'failed',
+            $attempt['status']
+        );
+
+
+        self::assertSame(
+            1,
+            (int)$attempt['permanent_failure']
+        );
+
+
+        self::assertSame(
+            'Retry metadata is invalid: This email notification type cannot be regenerated safely.',
+            $attempt['error_message']
+        );
+
+
+        self::assertSame(
+            [],
+            $this->repository
+                ->retryableFailures()
+        );
+
+
+        ob_start();
+
+
+        $secondExitCode =
+            $command->execute(
+                [
+                    '--send'
+                ]
+            );
+
+
+        $secondOutput =
+            (string)ob_get_clean();
+
+
+        self::assertSame(
+            0,
+            $secondExitCode
+        );
+
+
+        self::assertSame(
+            0,
+            $callCount
+        );
+
+
+        self::assertStringContainsString(
+            'Retryable payroll-report deliveries: 0',
+            $secondOutput
         );
 
 
@@ -548,7 +780,11 @@ final class MailRetryCommandTest extends TestCase
                 static fn (
                     mixed ...$arguments
                 ): bool =>
-                    true
+                    true,
+
+                new EmailDeliveryRetryQuarantineRepository(
+                    $this->database
+                )
             );
 
 
@@ -603,6 +839,61 @@ final class MailRetryCommandTest extends TestCase
         );
 
 
+        $this->setCompletedAge(
+            $attemptId,
+            $completedModifier
+        );
+
+
+        return $attemptId;
+    }
+
+
+    private function createFailedUnsupportedAttempt(
+        string $completedModifier = '-10 minutes'
+    ): int
+    {
+        $attemptId =
+            $this->repository
+                ->createPending(
+                    'approval_notifications',
+                    'system',
+                    'Payroll Approval Notification',
+                    'payroll@example.com',
+                    [],
+                    0,
+                    null,
+                    null,
+                    1,
+                    3
+                );
+
+
+        self::assertTrue(
+            $this->repository
+                ->markFailed(
+                    $attemptId,
+                    'Synthetic unsupported-notification failure.',
+                    false
+                )
+        );
+
+
+        $this->setCompletedAge(
+            $attemptId,
+            $completedModifier
+        );
+
+
+        return $attemptId;
+    }
+
+
+    private function setCompletedAge(
+        int $attemptId,
+        string $completedModifier
+    ): void
+    {
         $statement =
             $this->database->prepare(
                 "
@@ -627,9 +918,6 @@ final class MailRetryCommandTest extends TestCase
                     $attemptId
             ]
         );
-
-
-        return $attemptId;
     }
 
 
