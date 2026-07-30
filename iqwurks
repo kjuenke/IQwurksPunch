@@ -14,6 +14,7 @@ use App\Console\Commands\BackupVerifyCommand;
 use App\Console\Commands\DatabaseCheckCommand;
 use App\Console\Commands\DoctorCommand;
 use App\Console\Commands\MailCheckCommand;
+use App\Console\Commands\MailRetryCommand;
 use App\Console\Commands\MaintenanceOffCommand;
 use App\Console\Commands\MaintenanceOnCommand;
 use App\Console\Commands\MaintenanceStatusCommand;
@@ -319,6 +320,16 @@ $console->register(
         'Check SMTP configuration, connectivity, TLS, and delivery status.',
         static fn (): CommandInterface =>
             new MailCheckCommand()
+    )
+);
+
+
+$console->register(
+    new LazyCommand(
+        'mail:retry',
+        'Preview or retry failed payroll-report email deliveries.',
+        static fn (): CommandInterface =>
+            new MailRetryCommand()
     )
 );
 
