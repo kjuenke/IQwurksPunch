@@ -5,7 +5,7 @@ namespace App\Console\Commands;
 
 use App\Console\CommandInterface;
 use App\Services\UpgradeExecutionApplyInterface;
-use App\Services\UpgradeExecutionApplyService;
+use App\Services\UpgradeExecutionJournaledApplyService;
 use InvalidArgumentException;
 use Throwable;
 
@@ -21,7 +21,7 @@ final class UpgradeApplyCommand implements CommandInterface
         $this->upgrades =
             $upgrades
             ??
-            new UpgradeExecutionApplyService(
+            new UpgradeExecutionJournaledApplyService(
                 dirname(
                     __DIR__,
                     3
