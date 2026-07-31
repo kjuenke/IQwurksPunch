@@ -24,6 +24,7 @@ use App\Console\Commands\SchedulerCheckCommand;
 use App\Console\Commands\UpgradeCheckCommand;
 use App\Console\Commands\UpgradePlanCommand;
 use App\Console\Commands\UpgradePreviewCommand;
+use App\Console\Commands\UpgradeApplyCommand;
 use App\Console\Commands\VersionCommand;
 use App\Core\AppInfo;
 use App\Core\Config;
@@ -63,7 +64,8 @@ $databaseIndependentCommands = [
     'scheduler:check',
     'upgrade:check',
     'upgrade:plan',
-    'upgrade:preview'
+    'upgrade:preview',
+    'upgrade:apply'
 ];
 
 
@@ -504,6 +506,15 @@ $console->register(
         'Preview the controlled upgrade execution without making changes.',
         static fn (): CommandInterface =>
             new UpgradePreviewCommand()
+    )
+);
+
+$console->register(
+    new LazyCommand(
+        'upgrade:apply',
+        'Apply the controlled upgrade after exact confirmation.',
+        static fn (): CommandInterface =>
+            new UpgradeApplyCommand()
     )
 );
 
