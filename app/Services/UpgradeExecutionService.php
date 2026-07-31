@@ -6,7 +6,7 @@ namespace App\Services;
 use InvalidArgumentException;
 use RuntimeException;
 
-final class UpgradeExecutionService
+final class UpgradeExecutionService implements UpgradeExecutionPreviewInterface
 {
     private string $projectRoot;
 

@@ -23,6 +23,7 @@ use App\Console\Commands\ScheduleRunCommand;
 use App\Console\Commands\SchedulerCheckCommand;
 use App\Console\Commands\UpgradeCheckCommand;
 use App\Console\Commands\UpgradePlanCommand;
+use App\Console\Commands\UpgradePreviewCommand;
 use App\Console\Commands\VersionCommand;
 use App\Core\AppInfo;
 use App\Core\Config;
@@ -61,7 +62,8 @@ $databaseIndependentCommands = [
     'maintenance:status',
     'scheduler:check',
     'upgrade:check',
-    'upgrade:plan'
+    'upgrade:plan',
+    'upgrade:preview'
 ];
 
 
@@ -495,6 +497,15 @@ $console->register(
     )
 );
 
+
+$console->register(
+    new LazyCommand(
+        'upgrade:preview',
+        'Preview the controlled upgrade execution without making changes.',
+        static fn (): CommandInterface =>
+            new UpgradePreviewCommand()
+    )
+);
 
 $exitCode =
     $console->run(
