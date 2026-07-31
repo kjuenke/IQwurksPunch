@@ -13,6 +13,7 @@ use App\Console\Commands\BackupRunCommand;
 use App\Console\Commands\BackupVerifyCommand;
 use App\Console\Commands\DatabaseCheckCommand;
 use App\Console\Commands\DoctorCommand;
+use App\Console\Commands\InstallCheckCommand;
 use App\Console\Commands\MailCheckCommand;
 use App\Console\Commands\MailRetryCommand;
 use App\Console\Commands\MaintenanceOffCommand;
@@ -51,6 +52,7 @@ $databaseIndependentCommands = [
     'backup:verify',
     'database:check',
     'doctor',
+    'install:check',
     'mail:check',
     'maintenance:on',
     'maintenance:off',
@@ -416,6 +418,16 @@ $console->register(
         'Run application, database, backup, mail, and scheduler diagnostics.',
         static fn (): CommandInterface =>
             new DoctorCommand()
+    )
+);
+
+
+$console->register(
+    new LazyCommand(
+        'install:check',
+        'Check whether the current machine is ready to install IQwurksPunch.',
+        static fn (): CommandInterface =>
+            new InstallCheckCommand()
     )
 );
 
