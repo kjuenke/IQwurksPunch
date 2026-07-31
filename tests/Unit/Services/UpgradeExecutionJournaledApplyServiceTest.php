@@ -124,6 +124,12 @@ final class UpgradeExecutionJournaledApplyServiceTest extends TestCase
         self::assertTrue(
             $journal->completedResult['successful']
         );
+
+
+        self::assertSame(
+            'completed',
+            $journal->completedResult['journal_status']
+        );
     }
 
 
@@ -178,6 +184,12 @@ final class UpgradeExecutionJournaledApplyServiceTest extends TestCase
         self::assertSame(
             'migrations',
             $journal->completedResult['failed_stage']
+        );
+
+
+        self::assertSame(
+            'failed',
+            $journal->completedResult['journal_status']
         );
 
 
@@ -356,6 +368,12 @@ final class UpgradeExecutionJournaledApplyServiceTest extends TestCase
         self::assertSame(
             'failed',
             $result['journal_status']
+        );
+
+
+        self::assertSame(
+            'failed',
+            $journal->completedResult['journal_status']
         );
 
 

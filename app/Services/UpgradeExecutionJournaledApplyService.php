@@ -267,8 +267,18 @@ final class UpgradeExecutionJournaledApplyService implements UpgradeExecutionApp
             $executionId;
 
 
+        $expectedJournalStatus =
+            (
+                $result['successful']
+                ??
+                false
+            )
+                ? 'completed'
+                : 'failed';
+
+
         $result['journal_status'] =
-            'running';
+            $expectedJournalStatus;
 
 
         $result['journal_error'] =
@@ -287,15 +297,7 @@ final class UpgradeExecutionJournaledApplyService implements UpgradeExecutionApp
             $result['journal_status'] =
                 $completedRecord['status']
                 ??
-                (
-                    (
-                        $result['successful']
-                        ??
-                        false
-                    )
-                        ? 'completed'
-                        : 'failed'
-                );
+                $expectedJournalStatus;
 
 
             $result['journal_completed_at'] =
