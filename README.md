@@ -13,12 +13,12 @@ IQwurksPunch is built with PHP, Twig, SQLite, Bootstrap, and a custom MVC framew
 ## Current Version
 
 ```text
-0.7.0
+0.8.0
 ```
 
-Version 0.7 adds structured payroll review and approval, payroll-period locking and reopening, immutable workflow history, payroll-exception resolution, protected approved payroll records, report workflow metadata, database-backed authorization hardening, and centralized CSRF protection.
+Version 0.8 expands payroll reporting automation with manual and scheduled weekly reports, scheduled exception reports, approval and operational notifications, CSV and PDF email attachments, delivery-attempt history, controlled automatic retries, permanent-failure quarantine, and attachment-size safeguards.
 
-Version 0.7.0 has completed production validation, release acceptance, and final release preparation.
+Version 0.8.0 has completed implementation, automated validation, release acceptance, and final release preparation.
 
 ---
 
@@ -844,27 +844,34 @@ php vendor/bin/phpunit --display-deprecations
 Expected Version 0.7 result:
 
 ```text
-OK (136 tests, 693 assertions)
+OK (251 tests, 1138 assertions)
 ```
 
-Version 0.7 test coverage includes:
+Version 0.8 test coverage includes:
 
-- Payroll-period creation and validation
-- Period-overlap prevention
-- Workflow transitions
-- Approval blocking
-- Payroll locking and reopening
-- Immutable workflow history
-- Transaction rollback
-- Concurrency protection
-- Payroll-exception synchronization
-- Exception resolution and acceptance
-- Payroll-period punch protection
-- Company-timezone protected-date handling
-- Review-note validation
-- CSV, PDF, and email workflow metadata
+- Payroll-period review, approval, locking, and reopening
+- Payroll-exception synchronization and resolution
+- Protected payroll-period punch correction
+- Manual and scheduled weekly payroll email delivery
+- Scheduled payroll-exception delivery
+- Payroll-approval notifications
+- Operational-failure notifications
+- CSV and PDF payroll email attachments
+- Email delivery-attempt history
+- Scheduled delivery metadata
+- Retry planning and execution
+- Daily and weekly report-date preservation
+- Configurable retry limits and delays
+- Retry-chain duplicate prevention
+- Exception-report retry closure
+- Internal retry execution locking
+- Malformed retry-record quarantine
+- Unsupported retry-type quarantine
+- Attachment normalization and size limits
+- Oversized-delivery permanent-failure handling
 - Database-backed authorization
 - CSRF token handling
+- Employee-kiosk Enter-key operation
 
 Every modified PHP file should also pass:
 
@@ -916,50 +923,55 @@ tests/
 
 ## Project Status
 
-Version 0.7 is the current stable release.
+Version 0.8 is the current stable release.
 
-It completes the core Payroll Review and Approval milestone, including:
+It completes the Reporting Automation and Delivery Reliability milestone, including:
 
-- Payroll-period creation
-- Overlap prevention
-- Formal review workflow
-- Payroll-exception synchronization
-- Exception resolution and acceptance
-- Approval blocking
-- Payroll approval
-- Payroll locking
-- Payroll reopening
-- Immutable workflow history
-- Immutable supervisor review notes
-- Approved-period punch protection
-- Locked-period punch protection
-- Payroll workflow metadata in web, CSV, PDF, and email reports
-- Database-backed workflow authorization
-- Centralized CSRF protection
+- Manual weekly payroll email delivery
+- Scheduled weekly payroll delivery
+- Scheduled payroll-exception delivery
+- Payroll-approval notifications
+- Operational-failure notifications
+- CSV payroll email attachments
+- PDF payroll email attachments
+- Structured report-delivery schedules
+- Detailed email delivery-attempt history
+- Configurable retry policies
+- Delayed automatic retry eligibility
+- Retry-chain duplicate prevention
+- Exception-report retry closure
+- Malformed retry-record quarantine
+- Unsupported retry-type quarantine
+- Permanent oversized-attachment failure handling
+- Internal and external retry execution locks
+- Employee-kiosk Enter-key operation
 
-The validated Version 0.7 baseline is:
+The validated Version 0.8 baseline is:
 
 ```text
-Application version: 0.7.0
-Tests: 136
-Assertions: 693
-Database tables: 16
-Applied migrations: 12
+Application version: 0.8.0
+Tests: 251
+Assertions: 1138
+Database tables: 18
+Applied migrations: 16
 SQLite journal mode: wal
 Database integrity: ok
 Foreign-key violations: 0
 ```
 
-Items deferred beyond Version 0.7 include:
+Items deferred beyond Version 0.8 include:
 
 - Advanced payroll-period filtering
-- Department-level review summaries
+- Department-level payroll-review summaries
 - Employee-level review-completion tracking
 - Workflow-aware export filename suffixes
+- Employee time-card email attachments
+- User-selectable attachment formats
+- Long-term report attachment archives
+- Standalone delivery-status administration dashboard
+- Multiple delivery times for one report type
+- Named recipient groups
 - External payroll-provider export profiles
-- Manual and scheduled weekly payroll email delivery
-- Scheduled exception-report delivery
-- PDF and CSV email attachments
 - Guided installation and upgrade automation
 - Release packaging
 

@@ -749,51 +749,185 @@ The following items remain planned for later releases:
 - PDF and CSV email attachments
 
 ---
-## Version 0.8 — Reporting Automation
+## Version 0.8 — Reporting Automation and Delivery Reliability
 
-**Status: Planned**
+**Status: Completed — July 31, 2026**
 
-Version 0.8 is expected to expand report scheduling and delivery.
+Version 0.8 expands report scheduling and email delivery into an auditable, retry-aware reporting system.
 
-Planned work:
+Completed work:
 
 ### Additional Email Reports
 
 - Manual weekly payroll email delivery
 - Scheduled weekly payroll email delivery
-- Scheduled exception-report delivery
+- Scheduled payroll-exception delivery
 - Payroll-approval notifications
-- Backup-failure notifications
-- Diagnostic-failure notifications
+- Operational-failure notifications
+- Company-timezone report generation
+- Payroll workflow metadata in daily and weekly reports
 
-### Report Scheduling
+### Structured Report Scheduling
 
-- Independent schedules by report type
-- Multiple delivery times
-- Recipient groups
-- Day-of-week configuration
+- Independent daily payroll schedules
+- Independent weekly payroll schedules
+- Independent payroll-exception schedules
 - Schedule activation and deactivation
-- Last-run status
-- Next-run preview
+- Delivery-time configuration
+- Weekly day-of-week configuration
+- Weekday-only scheduling where applicable
+- Last-delivery timestamp and result
 - Duplicate-send prevention by report type
+- Schedule identifiers in delivery history
 
-### Attachments
+### Notification Center Expansion
 
-- PDF email attachments
-- CSV email attachments
-- Employee time-card attachments
-- Configurable attachment formats
-- Attachment-size validation
+- Daily payroll subscriptions
+- Weekly payroll subscriptions
+- Exception-report subscriptions
+- Approval-notification subscriptions
+- Operational-failure subscriptions
+- Active-recipient enforcement
+- Notification-type allowlisting
 
-### Delivery Reliability
+### Payroll Email Attachments
 
-- Delivery retry policy
-- Failure notifications
-- Delivery-attempt history
-- Retry limits
+- Daily payroll CSV attachments
+- Daily payroll PDF attachments
+- Weekly payroll CSV attachments
+- Weekly payroll PDF attachments
+- Shared in-memory attachment generation
+- Safe filenames and content types
+- Attachment count, filename, and size history
+
+### Attachment Safety
+
+- Centralized attachment-size policy
+- Default combined raw limit of 10 MiB
+- Configuration validation
+- Enforcement before SMTP setup
+- Permanent oversized-delivery failures
+- Oversized attempt history
+- Oversized retry exclusion
+
+### Delivery Attempt History
+
+- Pending, sent, and failed states
+- Manual, scheduled, system, and retry sources
+- Attempt-number tracking
+- Maximum-attempt tracking
+- Retry-parent relationships
 - Permanent-failure status
-- Report archive
-- Delivery-status dashboard
+- Error-message history
+- Attachment metadata
+- Start and completion timestamps
+
+### Delivery Retry Policy
+
+- Retry-plan validation
+- Daily payroll retry execution
+- Weekly payroll retry execution
+- Exception-report retry execution
+- Original daily report-date preservation
+- Original weekly reference-date preservation
+- Configurable attempt maximums
+- Configurable batch limits
+- Configurable retry delays
+- Preview-only retry mode
+- Explicit send mode
+- Automatic retry cron integration
+
+### Retry Safety
+
+- Delayed eligibility after temporary failures
+- Duplicate retry-child prevention
+- Internal nonblocking retry lock
+- External cron lock
+- Malformed retry-record quarantine
+- Unsupported notification-type quarantine
+- Permanent-failure exclusion
+- Exception-report closure messages
+
+### Kiosk Usability
+
+- Automatic focus on the available punch-action button
+- Enter-key activation of Clock In or Clock Out
+- Existing mouse and touch operation preserved
+
+### Database
+
+Added migrations:
+
+```text
+013_create_report_delivery_schedules.php
+014_add_approval_notifications.php
+015_add_operational_failures.php
+016_create_email_delivery_attempts.php
+```
+
+Added primary tables:
+
+```text
+report_delivery_schedules
+email_delivery_attempts
+```
+
+Validated Version 0.8 database baseline:
+
+```text
+18 tables
+16 applied migrations
+SQLite journal mode: wal
+Database integrity: ok
+Foreign-key violations: 0
+```
+
+### Automated Testing
+
+Version 0.8 adds tests for:
+
+- Weekly payroll email delivery
+- Scheduled weekly reports
+- Scheduled exception reports
+- Approval notifications
+- Operational-failure notifications
+- CSV and PDF attachments
+- Attachment normalization
+- Attachment-size policy
+- Oversized delivery handling
+- Delivery-attempt history
+- Retry-parent relationships
+- Retry planning and execution
+- Retry policy and delay
+- Retry command behavior
+- Retry locking
+- Retry quarantine
+- Exception-report closure
+- Unsupported retry types
+
+Final release test baseline:
+
+```text
+251 tests
+1138 assertions
+```
+
+### Deferred Beyond Version 0.8
+
+The following items remain planned for later releases:
+
+- Employee time-card email attachments
+- User-selectable attachment formats
+- Long-term report attachment archives
+- Standalone delivery-status dashboard
+- Multiple delivery times for one report type
+- Named recipient groups
+- Advanced payroll-period filtering
+- Department-level payroll-review summaries
+- Employee-level review-completion tracking
+- Workflow-status suffixes in export filenames
+- External payroll-provider export profiles
+- Configurable payroll export mappings
 
 ---
 

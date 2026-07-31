@@ -1974,7 +1974,7 @@ git switch -c feature/DESCRIPTIVE-NAME
 For a release:
 
 ```bash
-git switch -c release/0.6.0
+git switch -c release/0.8.0
 ```
 
 During development:
@@ -2128,10 +2128,10 @@ Display it with:
 ./iqwurks version
 ```
 
-For Version 0.6:
+For Version 0.8:
 
 ```text
-0.6.0
+0.8.0
 ```
 
 Before release:
@@ -2168,7 +2168,7 @@ Use for backward-compatible fixes.
 Example:
 
 ```text
-0.7.0
+0.8.0
 ```
 
 Use for backward-compatible functionality and milestones.
@@ -2192,7 +2192,7 @@ Database migrations do not automatically require a major version when normal upg
 Example:
 
 ```bash
-git switch -c release/0.6.0
+git switch -c release/0.8.0
 ```
 
 Confirm:
@@ -2206,9 +2206,9 @@ cat VERSION
 Expected:
 
 ```text
-release/0.6.0
-0.6.0
-IQwurksPunch 0.6.0
+release/0.8.0
+0.8.0
+IQwurksPunch 0.8.0
 ```
 
 Complete documentation and validation on the release branch before committing or tagging.

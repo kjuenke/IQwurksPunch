@@ -6,6 +6,219 @@ The project follows Semantic Versioning for stable releases and generally follow
 
 ---
 
+## [0.8.0] - 2026-07-31
+
+### Added
+
+#### Weekly Payroll Email Delivery
+
+- Added manual weekly payroll email delivery.
+- Added scheduled weekly payroll email delivery.
+- Added weekly delivery schedules using company-local weekday and time.
+- Added preservation of the original weekly reference date during retries.
+
+#### Payroll-Exception Reports
+
+- Added scheduled open payroll-exception reports.
+- Added actionable payroll-period and employee exception summaries.
+- Added exception-report retry closure messages when the original exceptions have been resolved.
+
+#### Approval and Operational Notifications
+
+- Added payroll-approval notifications.
+- Added operational-failure notifications.
+- Added independent recipient subscriptions for both notification categories.
+- Expanded Notification Center support for:
+  - `daily_payroll`
+  - `weekly_payroll`
+  - `exception_reports`
+  - `approval_notifications`
+  - `operational_failures`
+
+#### Payroll Email Attachments
+
+- Added CSV and PDF attachments to daily payroll emails.
+- Added CSV and PDF attachments to weekly payroll emails.
+- Added shared in-memory payroll attachment generation.
+- Added stable attachment filenames and content types.
+- Added attachment count, filename, and raw-size history.
+
+#### Report Delivery Schedules
+
+- Added structured schedules for daily payroll reports.
+- Added structured schedules for weekly payroll reports.
+- Added structured schedules for exception reports.
+- Added schedule enablement, timing, weekday settings, and last-delivery metadata.
+- Added schedule identifiers to delivery-attempt history.
+
+#### Email Delivery Attempt History
+
+- Added detailed email delivery-attempt records.
+- Added pending, sent, and failed statuses.
+- Added manual, scheduled, system, and retry sources.
+- Added attempt-number and maximum-attempt tracking.
+- Added retry-parent relationships.
+- Added permanent-failure status.
+- Added delivery error messages.
+- Added attachment metadata.
+- Added start and completion timestamps.
+
+#### Email Retry System
+
+- Added retry planning and retry execution.
+- Added retry support for:
+  - `daily_payroll`
+  - `weekly_payroll`
+  - `exception_reports`
+- Added daily report-date preservation.
+- Added weekly reference-date preservation.
+- Added configurable retry maximums, batch limits, and delays.
+- Added delayed retry eligibility.
+- Added duplicate retry-child prevention.
+- Added preview and send modes.
+- Added the console command:
+
+```text
+mail:retry
+```
+
+#### Retry Safety
+
+- Added an internal nonblocking send-mode retry lock.
+- Added support for an external cron lock.
+- Added malformed retry-record quarantine.
+- Added unsupported notification-type quarantine.
+- Added permanent-failure exclusion from future retries.
+- Added safe closure of resolved exception-report retry chains.
+
+#### Attachment-Size Protection
+
+- Added centralized attachment-size policy.
+- Added a default 10 MiB combined raw attachment limit.
+- Added `EmailAttachmentSizeExceededException`.
+- Added attachment-size enforcement before SMTP transport creation.
+- Added permanent failure classification for oversized messages.
+- Added oversized-delivery attempt history.
+- Added exclusion of oversized failures from retry processing.
+
+#### Employee Kiosk
+
+- Added automatic focus to the available Clock In or Clock Out button.
+- Added Enter-key activation of the available authenticated punch action.
+
+#### Automated Tests
+
+- Added weekly payroll email tests.
+- Added scheduled report-delivery tests.
+- Added exception-report email tests.
+- Added approval and operational notification tests.
+- Added attachment-generation and normalization tests.
+- Added delivery-attempt repository tests.
+- Added retry planning, policy, eligibility, execution, and command tests.
+- Added retry quarantine tests.
+- Added exception-report closure tests.
+- Added attachment-size policy tests.
+- Added oversized-delivery integration tests.
+- Added unsupported retry-type command tests.
+
+The Version 0.8 test suite contains:
+
+```text
+251 tests
+1138 assertions
+```
+
+### Changed
+
+- Updated the application version to `0.8.0`.
+- Expanded scheduling from daily payroll only to daily, weekly, and exception reports.
+- Expanded Notification Center subscriptions.
+- Changed scheduled reports to use configured retry-attempt limits.
+- Changed failed delivery tracking to preserve complete attempt chains.
+- Changed retries to wait for the configured delay.
+- Changed daily and weekly retries to regenerate the original report period.
+- Changed exception-report retries to close resolved conditions safely.
+- Changed attachments to be generated in memory.
+- Changed `MailService` to enforce attachment-size policy before SMTP setup.
+- Changed retry preview to show every eligible failed record.
+- Changed unsupported retry types to be quarantined during send mode.
+- Changed the kiosk action screen to support Enter-key activation.
+
+### Fixed
+
+- Fixed scheduled delivery failures lacking detailed attempt history.
+- Fixed daily retries potentially sending the wrong report date.
+- Fixed weekly retries potentially sending the wrong reporting week.
+- Fixed one failed delivery being able to create duplicate retry children.
+- Fixed immediate retry loops after temporary failures.
+- Fixed concurrent retry execution outside the cron lock.
+- Fixed resolved exception conditions remaining in an open retry chain.
+- Fixed malformed retry records remaining eligible indefinitely.
+- Fixed unsupported retry types being silently hidden.
+- Fixed oversized messages reaching the SMTP path.
+- Fixed oversized failures being treated as temporary failures.
+- Fixed the kiosk action screen requiring mouse or touch after PIN validation.
+
+### Security and Data Integrity
+
+- Retry metadata is validated before report regeneration.
+- Invalid retry records are permanently quarantined.
+- Unsupported event-driven notifications are not regenerated automatically.
+- Retry-parent relationships prevent duplicate retry children.
+- Internal and external locks protect retry execution.
+- Attachment filenames are normalized.
+- Attachment contents and metadata are validated.
+- Attachment size is enforced before SMTP transport creation.
+- Oversized attempts remain auditable while being excluded from retries.
+- Notification types remain protected by an explicit allowlist.
+- SQLite foreign-key enforcement and WAL mode remain enabled.
+
+### Database Changes
+
+Added migrations:
+
+```text
+013_create_report_delivery_schedules.php
+014_add_approval_notifications.php
+015_add_operational_failures.php
+016_create_email_delivery_attempts.php
+```
+
+Added primary tables:
+
+```text
+report_delivery_schedules
+email_delivery_attempts
+```
+
+Added notification-recipient fields:
+
+```text
+approval_notifications
+operational_failures
+```
+
+### Release Validation
+
+Final Version 0.8 automated-test result:
+
+```text
+OK (251 tests, 1138 assertions)
+```
+
+Final release baseline:
+
+```text
+Application version: 0.8.0
+Database tables: 18
+Applied migrations: 16
+SQLite journal mode: wal
+Database integrity: ok
+Foreign-key violations: 0
+```
+
+---
+
 ## [0.7.0] - 2026-07-27
 
 ### Added
