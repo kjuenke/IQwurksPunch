@@ -25,6 +25,7 @@ use App\Console\Commands\UpgradeCheckCommand;
 use App\Console\Commands\UpgradePlanCommand;
 use App\Console\Commands\UpgradePreviewCommand;
 use App\Console\Commands\UpgradeApplyCommand;
+use App\Console\Commands\UpgradeStatusCommand;
 use App\Console\Commands\VersionCommand;
 use App\Core\AppInfo;
 use App\Core\Config;
@@ -65,7 +66,8 @@ $databaseIndependentCommands = [
     'upgrade:check',
     'upgrade:plan',
     'upgrade:preview',
-    'upgrade:apply'
+    'upgrade:apply',
+    'upgrade:status'
 ];
 
 
@@ -515,6 +517,15 @@ $console->register(
         'Apply the controlled upgrade after exact confirmation.',
         static fn (): CommandInterface =>
             new UpgradeApplyCommand()
+    )
+);
+
+$console->register(
+    new LazyCommand(
+        'upgrade:status',
+        'Display the latest or a specific controlled upgrade execution.',
+        static fn (): CommandInterface =>
+            new UpgradeStatusCommand()
     )
 );
 
