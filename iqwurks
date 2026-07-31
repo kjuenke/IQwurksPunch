@@ -22,6 +22,7 @@ use App\Console\Commands\MaintenanceStatusCommand;
 use App\Console\Commands\ScheduleRunCommand;
 use App\Console\Commands\SchedulerCheckCommand;
 use App\Console\Commands\UpgradeCheckCommand;
+use App\Console\Commands\UpgradePlanCommand;
 use App\Console\Commands\VersionCommand;
 use App\Core\AppInfo;
 use App\Core\Config;
@@ -59,7 +60,8 @@ $databaseIndependentCommands = [
     'maintenance:off',
     'maintenance:status',
     'scheduler:check',
-    'upgrade:check'
+    'upgrade:check',
+    'upgrade:plan'
 ];
 
 
@@ -480,6 +482,16 @@ $console->register(
         'Check whether the current IQwurksPunch installation is ready to upgrade.',
         static fn (): CommandInterface =>
             new UpgradeCheckCommand()
+    )
+);
+
+
+$console->register(
+    new LazyCommand(
+        'upgrade:plan',
+        'Display the proposed IQwurksPunch upgrade workflow without making changes.',
+        static fn (): CommandInterface =>
+            new UpgradePlanCommand()
     )
 );
 
