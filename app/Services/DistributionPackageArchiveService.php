@@ -3,9 +3,6 @@ declare(strict_types=1);
 
 namespace App\Services;
 
-use JsonException;
-use Phar;
-use PharData;
 use RuntimeException;
 use Throwable;
 
@@ -17,11 +14,17 @@ final class DistributionPackageArchiveService
 
     private DistributionPackageStagingService $staging;
 
+    private ProcessRunnerInterface $processes;
+
+    private DistributionPackageVerificationService $verifications;
+
 
     public function __construct(
         ?string $projectRoot = null,
         ?DistributionPackageManifestService $manifests = null,
-        ?DistributionPackageStagingService $staging = null
+        ?DistributionPackageStagingService $staging = null,
+        ?ProcessRunnerInterface $processes = null,
+        ?DistributionPackageVerificationService $verifications = null
     )
     {
         $projectRoot =
@@ -93,6 +96,23 @@ final class DistributionPackageArchiveService
                 $this->projectRoot,
                 $this->manifests
             );
+
+
+        $this->processes =
+            $processes
+            ??
+            new ProcessRunnerService(
+                120.0
+            );
+
+
+        $this->verifications =
+            $verifications
+            ??
+            new DistributionPackageVerificationService(
+                $this->projectRoot,
+                $this->processes
+            );
     }
 
 
@@ -109,17 +129,6 @@ final class DistributionPackageArchiveService
             microtime(
                 true
             );
-
-
-        if (
-            !class_exists(
-                PharData::class
-            )
-        ) {
-            throw new RuntimeException(
-                'The PHP Phar extension is required to build a distribution archive.'
-            );
-        }
 
 
         $manifest =
@@ -196,16 +205,6 @@ final class DistributionPackageArchiveService
             $packageFileName;
 
 
-        $tarPath =
-            $artifactDirectory
-            .
-            DIRECTORY_SEPARATOR
-            .
-            $packageBaseName
-            .
-            '.tar';
-
-
         if (
             file_exists(
                 $archivePath
@@ -223,30 +222,10 @@ final class DistributionPackageArchiveService
         }
 
 
-        if (
-            file_exists(
-                $tarPath
-            )
-            ||
-            is_link(
-                $tarPath
-            )
-        ) {
-            throw new RuntimeException(
-                'The temporary distribution archive already exists: '
-                .
-                $tarPath
-            );
-        }
-
-
         $stagingDirectory =
             null;
 
         $archiveCreated =
-            false;
-
-        $tarCreated =
             false;
 
 
@@ -315,152 +294,82 @@ final class DistributionPackageArchiveService
             }
 
 
-            $stagedEntries =
-                $this->collectStagingEntries(
+            if (
+                basename(
                     $stagingDirectory
-                );
-
-
-            $tar =
-                new PharData(
-                    $tarPath
-                );
-
-
-            $tarCreated =
-                true;
-
-
-            $tar->addEmptyDir(
+                )
+                !==
                 $packageBaseName
+            ) {
+                throw new RuntimeException(
+                    'The controlled staging directory name does not match the package name.'
+                );
+            }
+
+
+            $this->normalizeContainerDirectories(
+                $stagingDirectory
             );
 
 
-            $directoryEntries =
-                array_values(
-                    array_filter(
-                        $stagedEntries,
-                        static fn (
-                            array $entry
-                        ): bool =>
-                            (
-                                $entry['type']
-                                ??
-                                ''
-                            )
-                            ===
-                            'directory'
-                    )
+            $archiveProcess =
+                $this->processes->run(
+                    [
+                        'tar',
+                        '--create',
+                        '--gzip',
+                        '--file',
+                        $archivePath,
+                        '--directory',
+                        dirname(
+                            $stagingDirectory
+                        ),
+                        '--owner=0',
+                        '--group=0',
+                        '--numeric-owner',
+                        '--sort=name',
+                        '--mtime=@0',
+                        '--format=gnu',
+                        $packageBaseName
+                    ],
+                    $this->projectRoot,
+                    [],
+                    120.0
                 );
 
 
-            usort(
-                $directoryEntries,
-                static function (
-                    array $left,
-                    array $right
-                ): int {
-                    $leftPath =
+            if (
+                (
+                    $archiveProcess['successful']
+                    ??
+                    false
+                )
+                !==
+                true
+            ) {
+                throw new RuntimeException(
+                    'GNU tar could not create the distribution archive: '
+                    .
+                    trim(
                         (string)(
-                            $left['path']
+                            $archiveProcess['stderr']
                             ??
-                            ''
-                        );
-
-
-                    $rightPath =
-                        (string)(
-                            $right['path']
-                            ??
-                            ''
-                        );
-
-
-                    $depthComparison =
-                        substr_count(
-                            $leftPath,
-                            '/'
+                            'Unknown tar failure.'
                         )
-                        <=>
-                        substr_count(
-                            $rightPath,
-                            '/'
-                        );
-
-
-                    return
-                        $depthComparison !== 0
-                            ? $depthComparison
-                            : strcmp(
-                                $leftPath,
-                                $rightPath
-                            );
-                }
-            );
-
-
-            foreach ($directoryEntries as $entry) {
-
-                $tar->addEmptyDir(
-                    $packageBaseName
-                    .
-                    '/'
-                    .
-                    $entry['path']
-                );
-            }
-
-
-            foreach ($stagedEntries as $entry) {
-
-                if (
-                    (
-                        $entry['type']
-                        ??
-                        ''
                     )
-                    !==
-                    'file'
-                ) {
-                    continue;
-                }
-
-
-                $tar->addFile(
-                    $entry['absolute_path'],
-                    $packageBaseName
-                    .
-                    '/'
-                    .
-                    $entry['path']
                 );
             }
 
 
-            unset(
-                $tar
-            );
-
-
-            $tarArchive =
-                new PharData(
-                    $tarPath
-                );
-
-
-            $compressedArchive =
-                $tarArchive->compress(
-                    Phar::GZ
-                );
-
-
-            unset(
-                $compressedArchive,
-                $tarArchive
-            );
-
-
-            if (!is_file($archivePath)) {
+            if (
+                !is_file(
+                    $archivePath
+                )
+                ||
+                !is_readable(
+                    $archivePath
+                )
+            ) {
                 throw new RuntimeException(
                     'The compressed distribution archive was not created.'
                 );
@@ -475,53 +384,6 @@ final class DistributionPackageArchiveService
                 $archivePath,
                 0640
             );
-
-
-            if (
-                is_file(
-                    $tarPath
-                )
-                &&
-                !unlink(
-                    $tarPath
-                )
-            ) {
-                throw new RuntimeException(
-                    'The temporary uncompressed distribution archive could not be removed.'
-                );
-            }
-
-
-            $tarCreated =
-                false;
-
-
-            $verification =
-                $this->verifyArchive(
-                    $archivePath,
-                    $packageBaseName,
-                    $stagedEntries,
-                    (string)(
-                        $stagingResult['staged_manifest_sha256']
-                        ??
-                        ''
-                    )
-                );
-
-
-            if (
-                (
-                    $verification['successful']
-                    ??
-                    false
-                )
-                !==
-                true
-            ) {
-                throw new RuntimeException(
-                    'The distribution archive failed integrity verification.'
-                );
-            }
 
 
             $archiveSize =
@@ -547,6 +409,36 @@ final class DistributionPackageArchiveService
             if ($archiveSha256 === false) {
                 throw new RuntimeException(
                     'The distribution archive could not be hashed.'
+                );
+            }
+
+
+            $verification =
+                $this->verifications->verify(
+                    $archivePath,
+                    $archiveSha256
+                );
+
+
+            if (
+                (
+                    $verification['successful']
+                    ??
+                    false
+                )
+                !==
+                true
+            ) {
+                $firstFailure =
+                    $verification['failures'][0]['message']
+                    ??
+                    'Unknown verification failure.';
+
+
+                throw new RuntimeException(
+                    'The distribution archive failed independent verification: '
+                    .
+                    $firstFailure
                 );
             }
 
@@ -611,24 +503,35 @@ final class DistributionPackageArchiveService
                 'staging_removed' =>
                     true,
 
+                'archive_process' =>
+                    $archiveProcess,
+
                 'verification' =>
                     $verification,
 
                 'summary' => [
                     'archived_files' =>
-                        $verification['verified_files']
-                        ??
-                        0,
+                        (int)(
+                            $verification['verified_files']
+                            ??
+                            0
+                        )
+                        +
+                        1,
 
                     'archived_directories' =>
-                        $verification['verified_directories']
-                        ??
-                        0,
+                        (int)(
+                            $verification['verified_directories']
+                            ??
+                            0
+                        ),
 
                     'verification_failures' =>
-                        $verification['failures']
-                        ??
-                        0
+                        (int)(
+                            $verification['failure_count']
+                            ??
+                            0
+                        )
                 ],
 
                 'changes_made' =>
@@ -657,19 +560,6 @@ final class DistributionPackageArchiveService
         } catch (Throwable $exception) {
 
             if (
-                $tarCreated
-                &&
-                is_file(
-                    $tarPath
-                )
-            ) {
-                @unlink(
-                    $tarPath
-                );
-            }
-
-
-            if (
                 $archiveCreated
                 &&
                 is_file(
@@ -696,6 +586,69 @@ final class DistributionPackageArchiveService
 
 
             throw $exception;
+        }
+    }
+
+
+    private function normalizeContainerDirectories(
+        string $stagingDirectory
+    ): void
+    {
+        $directories = [
+            $stagingDirectory,
+            $stagingDirectory
+            .
+            '/database',
+            $stagingDirectory
+            .
+            '/storage'
+        ];
+
+
+        foreach ($directories as $directory) {
+
+            if (!is_dir($directory)) {
+                continue;
+            }
+
+
+            if (
+                !chmod(
+                    $directory,
+                    0755
+                )
+            ) {
+                throw new RuntimeException(
+                    'A package container directory could not be assigned mode 0755: '
+                    .
+                    $directory
+                );
+            }
+
+
+            $permissions =
+                fileperms(
+                    $directory
+                );
+
+
+            if (
+                $permissions === false
+                ||
+                (
+                    $permissions
+                    &
+                    07777
+                )
+                !==
+                0755
+            ) {
+                throw new RuntimeException(
+                    'A package container directory did not retain mode 0755: '
+                    .
+                    $directory
+                );
+            }
         }
     }
 
@@ -729,17 +682,13 @@ final class DistributionPackageArchiveService
             );
 
 
-        $segments =
-            explode(
-                '/',
-                $normalized
-            );
-
-
         if (
             in_array(
                 '..',
-                $segments,
+                explode(
+                    '/',
+                    $normalized
+                ),
                 true
             )
         ) {
@@ -788,479 +737,6 @@ final class DistributionPackageArchiveService
 
 
         return $artifactDirectory;
-    }
-
-
-    /**
-     * @return array<int,array<string,mixed>>
-     */
-    private function collectStagingEntries(
-        string $stagingDirectory
-    ): array
-    {
-        $entries = [];
-
-
-        $this->walkStagingDirectory(
-            $stagingDirectory,
-            '',
-            $entries
-        );
-
-
-        usort(
-            $entries,
-            static fn (
-                array $left,
-                array $right
-            ): int =>
-                strcmp(
-                    (string)(
-                        $left['path']
-                        ??
-                        ''
-                    ),
-                    (string)(
-                        $right['path']
-                        ??
-                        ''
-                    )
-                )
-        );
-
-
-        return $entries;
-    }
-
-
-    /**
-     * @param array<int,array<string,mixed>> $entries
-     */
-    private function walkStagingDirectory(
-        string $absoluteDirectory,
-        string $relativeDirectory,
-        array &$entries
-    ): void
-    {
-        $items =
-            scandir(
-                $absoluteDirectory
-            );
-
-
-        if ($items === false) {
-            throw new RuntimeException(
-                'The distribution staging directory could not be read.'
-            );
-        }
-
-
-        foreach ($items as $item) {
-
-            if (
-                $item === '.'
-                ||
-                $item === '..'
-            ) {
-                continue;
-            }
-
-
-            $relativePath =
-                $relativeDirectory === ''
-                    ? $item
-                    : $relativeDirectory
-                        .
-                        '/'
-                        .
-                        $item;
-
-
-            $absolutePath =
-                $absoluteDirectory
-                .
-                DIRECTORY_SEPARATOR
-                .
-                $item;
-
-
-            if (is_link($absolutePath)) {
-                throw new RuntimeException(
-                    'Symbolic links are not permitted in the distribution staging tree: '
-                    .
-                    $relativePath
-                );
-            }
-
-
-            if (is_dir($absolutePath)) {
-
-                $entries[] = [
-                    'path' =>
-                        $relativePath,
-
-                    'absolute_path' =>
-                        $absolutePath,
-
-                    'type' =>
-                        'directory',
-
-                    'size_bytes' =>
-                        0,
-
-                    'sha256' =>
-                        null
-                ];
-
-
-                $this->walkStagingDirectory(
-                    $absolutePath,
-                    $relativePath,
-                    $entries
-                );
-
-
-                continue;
-            }
-
-
-            if (!is_file($absolutePath)) {
-                throw new RuntimeException(
-                    'An unsupported entry was found in the distribution staging tree: '
-                    .
-                    $relativePath
-                );
-            }
-
-
-            if (!is_readable($absolutePath)) {
-                throw new RuntimeException(
-                    'A distribution staging file is not readable: '
-                    .
-                    $relativePath
-                );
-            }
-
-
-            $size =
-                filesize(
-                    $absolutePath
-                );
-
-
-            $sha256 =
-                hash_file(
-                    'sha256',
-                    $absolutePath
-                );
-
-
-            if (
-                $size === false
-                ||
-                $sha256 === false
-            ) {
-                throw new RuntimeException(
-                    'A distribution staging file could not be inspected: '
-                    .
-                    $relativePath
-                );
-            }
-
-
-            $entries[] = [
-                'path' =>
-                    $relativePath,
-
-                'absolute_path' =>
-                    $absolutePath,
-
-                'type' =>
-                    'file',
-
-                'size_bytes' =>
-                    $size,
-
-                'sha256' =>
-                    $sha256
-            ];
-        }
-    }
-
-
-    /**
-     * @param array<int,array<string,mixed>> $stagedEntries
-     *
-     * @return array<string,mixed>
-     */
-    private function verifyArchive(
-        string $archivePath,
-        string $packageBaseName,
-        array $stagedEntries,
-        string $expectedPortableManifestSha256
-    ): array
-    {
-        $verifiedFiles =
-            0;
-
-        $verifiedDirectories =
-            0;
-
-        $failures = [];
-
-
-        $archiveRoot =
-            'phar://'
-            .
-            $archivePath
-            .
-            '/'
-            .
-            $packageBaseName;
-
-
-        if (!is_dir($archiveRoot)) {
-            $failures[] = [
-                'path' =>
-                    $packageBaseName,
-
-                'reason' =>
-                    'package_root_missing'
-            ];
-        }
-
-
-        foreach ($stagedEntries as $entry) {
-
-            $relativePath =
-                (string)(
-                    $entry['path']
-                    ??
-                    ''
-                );
-
-
-            $archiveEntry =
-                $archiveRoot
-                .
-                '/'
-                .
-                $relativePath;
-
-
-            if (
-                (
-                    $entry['type']
-                    ??
-                    ''
-                )
-                ===
-                'directory'
-            ) {
-                if (is_dir($archiveEntry)) {
-                    $verifiedDirectories++;
-
-                } else {
-                    $failures[] = [
-                        'path' =>
-                            $relativePath,
-
-                        'reason' =>
-                            'directory_missing'
-                    ];
-                }
-
-
-                continue;
-            }
-
-
-            if (!is_file($archiveEntry)) {
-                $failures[] = [
-                    'path' =>
-                        $relativePath,
-
-                    'reason' =>
-                        'file_missing'
-                ];
-
-
-                continue;
-            }
-
-
-            $actualDigest =
-                hash_file(
-                    'sha256',
-                    $archiveEntry
-                );
-
-
-            $expectedDigest =
-                (string)(
-                    $entry['sha256']
-                    ??
-                    ''
-                );
-
-
-            if (
-                $actualDigest === false
-                ||
-                $expectedDigest === ''
-                ||
-                !hash_equals(
-                    $expectedDigest,
-                    $actualDigest
-                )
-            ) {
-                $failures[] = [
-                    'path' =>
-                        $relativePath,
-
-                    'reason' =>
-                        'digest_mismatch',
-
-                    'expected_sha256' =>
-                        $expectedDigest,
-
-                    'actual_sha256' =>
-                        $actualDigest === false
-                            ? null
-                            : $actualDigest
-                ];
-
-
-                continue;
-            }
-
-
-            $verifiedFiles++;
-        }
-
-
-        $portableManifestPath =
-            $archiveRoot
-            .
-            '/PACKAGE-MANIFEST.json';
-
-
-        $portableManifestSha256 =
-            is_file(
-                $portableManifestPath
-            )
-                ? hash_file(
-                    'sha256',
-                    $portableManifestPath
-                )
-                : false;
-
-
-        if (
-            $expectedPortableManifestSha256 === ''
-            ||
-            $portableManifestSha256 === false
-            ||
-            !hash_equals(
-                $expectedPortableManifestSha256,
-                $portableManifestSha256
-            )
-        ) {
-            $failures[] = [
-                'path' =>
-                    'PACKAGE-MANIFEST.json',
-
-                'reason' =>
-                    'portable_manifest_digest_mismatch',
-
-                'expected_sha256' =>
-                    $expectedPortableManifestSha256,
-
-                'actual_sha256' =>
-                    $portableManifestSha256 === false
-                        ? null
-                        : $portableManifestSha256
-            ];
-        }
-
-
-        $portableManifest =
-            null;
-
-
-        if (is_file($portableManifestPath)) {
-
-            $contents =
-                file_get_contents(
-                    $portableManifestPath
-                );
-
-
-            if ($contents !== false) {
-
-                try {
-
-                    $decoded =
-                        json_decode(
-                            $contents,
-                            true,
-                            512,
-                            JSON_THROW_ON_ERROR
-                        );
-
-
-                    if (is_array($decoded)) {
-                        $portableManifest =
-                            $decoded;
-                    }
-
-                } catch (JsonException $exception) {
-
-                    $failures[] = [
-                        'path' =>
-                            'PACKAGE-MANIFEST.json',
-
-                        'reason' =>
-                            'portable_manifest_invalid_json',
-
-                        'message' =>
-                            $exception->getMessage()
-                    ];
-                }
-            }
-        }
-
-
-        return [
-            'successful' =>
-                $failures === [],
-
-            'verified_files' =>
-                $verifiedFiles,
-
-            'verified_directories' =>
-                $verifiedDirectories,
-
-            'failures' =>
-                count(
-                    $failures
-                ),
-
-            'failure_details' =>
-                $failures,
-
-            'portable_manifest_sha256' =>
-                $portableManifestSha256 === false
-                    ? null
-                    : $portableManifestSha256,
-
-            'portable_manifest_schema_version' =>
-                is_array($portableManifest)
-                    ? $portableManifest['schema_version']
-                        ??
-                        null
-                    : null
-        ];
     }
 
 
