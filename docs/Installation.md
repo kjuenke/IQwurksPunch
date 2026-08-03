@@ -1,527 +1,584 @@
-# IQwurksPunch Production Installation Guide
+# IQwurksPunch Installation and Upgrade Guide
 
-**Applies to:** IQwurksPunch 0.6.0
-**Target platform:** Dedicated Ubuntu Linux computer
-**Validated environment:** Ubuntu 26.04 LTS, PHP 8.5, Nginx, PHP-FPM, SQLite, LightDM, Openbox, and Chromium
+**Application:** IQwurksPunch
+**Guide baseline:** Version 0.9
+**Audience:** Linux administrators, deployment operators, and release maintainers
 
 ---
 
 ## 1. Purpose
 
-This guide describes how to deploy IQwurksPunch as a production employee time clock on a dedicated Linux computer.
+IQwurksPunch is a self-hosted employee time-clock and payroll-preparation system designed for a dedicated Linux kiosk.
 
-The completed installation provides:
+This guide covers:
 
-- A local physical employee kiosk
-- Employee access without Linux or application login accounts
-- Supervisor access from trusted LAN computers
-- Nginx and PHP-FPM production hosting
-- SQLite database storage
-- Automatic payroll-report scheduling
-- Automatic verified database backups
-- Log rotation
-- Maintenance mode
-- Database and application diagnostics
-- Browser and reboot recovery
-- LAN firewall restrictions
+- Verifying a distribution archive
+- Performing a fresh installation
+- Installing Composer dependencies
+- Initializing the SQLite database
+- Configuring Nginx and PHP-FPM
+- Configuring SMTP
+- Installing scheduled reports, retries, and backups
+- Configuring log rotation and firewall access
+- Configuring a physical Chromium kiosk
+- Performing controlled upgrades
+- Assessing interrupted upgrades
+- Recovering from failed upgrades
+- Building and verifying release packages
 
-This guide assumes the application will be installed at:
+The application does not currently install operating-system services automatically. Nginx, PHP-FPM, cron, logrotate, firewall, LightDM, Openbox, and Chromium configuration remain administrator-controlled.
+
+---
+
+## 2. Supported Deployment Model
+
+The validated production model uses:
+
+- Ubuntu Linux
+- PHP 8.5 or newer
+- PHP-FPM
+- SQLite
+- Composer
+- Nginx
+- Cron
+- GNU `tar`
+- `flock`
+- Logrotate
+- UFW or another firewall
+- LightDM, Openbox, and Chromium for the physical kiosk
+
+The validated application path is:
 
 ```text
 /var/www/IQwurksPunch
 ```
 
-The validated production server uses:
+The validated web routes are:
 
 ```text
-Hostname: iqwurks
-IP address: 192.168.1.82
-Trusted LAN: 192.168.1.0/24
-Company timezone: America/Los_Angeles
+Employee kiosk:       http://SERVER_ADDRESS/kiosk
+Supervisor login:     http://SERVER_ADDRESS/login
+Operations dashboard: http://SERVER_ADDRESS/dashboard
+Initial setup:        http://SERVER_ADDRESS/setup
 ```
 
-Replace deployment-specific addresses and timezones where necessary.
-
----
-
-## 2. Production Architecture
-
-The validated deployment uses these components:
-
-```text
-Employee
-    |
-    v
-Chromium kiosk
-    |
-    v
-http://127.0.0.1/kiosk
-    |
-    v
-Nginx
-    |
-    v
-PHP-FPM 8.5
-    |
-    v
-IQwurksPunch
-    |
-    v
-SQLite database
-```
-
-Supervisors access the same Nginx installation over the trusted LAN:
-
-```text
-http://SERVER_ADDRESS/login
-```
-
-Background services use the console application:
-
-```text
-./iqwurks
-```
-
-Scheduled operations include:
-
-- Payroll-report scheduling
-- Verified database backups
-- Log rotation
-- Operating-system service supervision
-
----
-
-## 3. Application URLs
-
-### Local Physical Kiosk
+The physical kiosk normally opens:
 
 ```text
 http://127.0.0.1/kiosk
 ```
 
-### LAN Employee Kiosk
+---
+
+## 3. Distribution Package Contents
+
+A release archive is named:
 
 ```text
-http://192.168.1.82/kiosk
+iqwurkspunch-VERSION.tar.gz
 ```
 
-### Supervisor Login
+The archive contains one versioned root directory:
 
 ```text
-http://192.168.1.82/login
+iqwurkspunch-VERSION/
 ```
 
-### Supervisor Dashboard
+A package includes:
 
-```text
-http://192.168.1.82/dashboard
-```
+- Application source
+- Database migrations
+- Configuration examples
+- Documentation
+- Automated tests
+- Composer metadata
+- Empty runtime directories
+- `PACKAGE-MANIFEST.json`
+- `VERSION`
+- `iqwurks`
+- `migrate.php`
 
-### Optional Netdata Monitoring
+A package intentionally excludes:
 
-```text
-http://192.168.1.82:19999
-```
+- `vendor/`
+- `.git/`
+- `.env`
+- `config/mail.php`
+- Runtime SQLite databases
+- SQLite WAL and SHM files
+- Runtime logs
+- Runtime backups
+- Runtime exports
+- Runtime cache files
+- Runtime session files
+- Machine inventory files
+- `firewall-rules.txt`
+- `installed-packages.txt`
 
-Replace `192.168.1.82` with the address assigned to the target computer.
+Composer dependencies are installed after extraction.
 
 ---
 
-## 4. Before Installation
+## 4. Package Security Model
 
-Confirm that the computer has:
+Every official package should be accompanied by a published SHA-256 digest.
 
-- A supported 64-bit Ubuntu installation
-- A reliable local-network connection
-- A fixed IP address or DHCP reservation
-- Correct date and time
-- Correct timezone
-- Adequate disk space
-- A working keyboard and display for initial setup
-- Internet access during package installation
-- SMTP credentials if payroll email will be used
+The archive also contains:
 
-Recommended operational practices:
+```text
+PACKAGE-MANIFEST.json
+```
 
-- Use wired Ethernet when possible.
-- Reserve the server address in the DHCP server.
-- Use a UPS for the kiosk computer and network equipment.
-- Record the server hostname and MAC address.
-- Keep an external copy of verified database backups.
-- Do not expose the HTTP service directly to the public internet.
+The manifest records:
+
+- Application version
+- Expected package filename
+- Expected package root
+- Every packaged file
+- Every packaged directory
+- File SHA-256 digests
+- Packaged file modes
+- Packaged directory modes
+
+The `package:verify` command independently checks:
+
+- Archive SHA-256 when supplied
+- Gzip and TAR readability
+- One versioned top-level root
+- Safe archive paths
+- Manifest schema
+- Package identity
+- Application version
+- Every manifest-listed file
+- Every manifest-listed directory
+- Every file SHA-256 digest
+- File permissions
+- Directory permissions
+- Required installation files
+- Required empty runtime directories
+- Unexpected archive entries
+- Symbolic links
+- Forbidden files
+- Runtime data leakage
+- Temporary verification cleanup
+
+Package verification is read-only.
 
 ---
 
-## 5. Update Ubuntu
+# Part I — Fresh Installation
 
-Run as `root` or through `sudo`:
+## 5. Prepare the Server
+
+Update the operating system:
 
 ```bash
 apt update
 apt full-upgrade -y
 ```
 
-Reboot if the operating system or kernel was upgraded:
-
-```bash
-reboot
-```
-
-After reboot, confirm the system version:
-
-```bash
-cat /etc/os-release
-uname -a
-```
-
----
-
-## 6. Set the Hostname
-
-The validated hostname is:
-
-```text
-iqwurks
-```
-
-Set the hostname:
-
-```bash
-hostnamectl set-hostname iqwurks
-```
-
-Review:
-
-```bash
-hostnamectl
-hostname
-```
-
-Ensure `/etc/hosts` contains a local hostname entry similar to:
-
-```text
-127.0.1.1 iqwurks
-```
-
----
-
-## 7. Set the System Timezone
-
-The validated timezone is:
-
-```text
-America/Los_Angeles
-```
-
-Set it with:
-
-```bash
-timedatectl set-timezone America/Los_Angeles
-```
-
-Confirm:
-
-```bash
-timedatectl
-date
-```
-
-The system timezone and IQwurksPunch company timezone should normally agree.
-
-The company timezone is configured later through:
-
-```text
-Settings → Company Settings
-```
-
----
-
-## 8. Install Core Packages
-
-Install the production web and application components:
+Install the production components appropriate for the target Ubuntu release:
 
 ```bash
 apt install -y \
     nginx \
     sqlite3 \
-    git \
+    composer \
+    cron \
     curl \
     unzip \
-    cron \
+    git \
     logrotate \
     ufw
 ```
 
-Install PHP 8.5, PHP-FPM, and the extensions required by the application.
+Install PHP 8.5 or newer with:
 
-The exact package set depends on the Ubuntu repository configuration. Typical packages include:
+- PHP CLI
+- PHP-FPM
+- SQLite support
+- XML support
+- DOM support
+- XMLWriter support
+- JSON support
+- Filter support
+- Hash support
+- Iconv support
+- Tokenizer support
+- Phar support
 
-```bash
-apt install -y \
-    php8.5 \
-    php8.5-cli \
-    php8.5-fpm \
-    php8.5-sqlite3 \
-    php8.5-mbstring \
-    php8.5-xml \
-    php8.5-curl \
-    php8.5-zip \
-    php8.5-intl
-```
+Package names vary by Ubuntu release and repository.
 
 Confirm PHP:
 
 ```bash
-php -v
-php -m
+php --version
 ```
 
 Confirm PHP-FPM:
 
 ```bash
-systemctl status php8.5-fpm
+php-fpm8.5 --version
 ```
 
-IQwurksPunch includes a System Doctor that will later check the complete required PHP-extension set.
+Confirm SQLite:
 
----
+```bash
+sqlite3 --version
+```
 
-## 9. Install Composer
-
-Check whether Composer is already available:
+Confirm Composer:
 
 ```bash
 composer --version
 ```
 
-When Composer is not installed, install it using the approved Composer installation method for the operating system.
-
-After installation, confirm:
+Confirm GNU TAR:
 
 ```bash
-composer --version
+tar --version
 ```
 
-The validated deployment used Composer 2.9 or later.
+Confirm required system commands:
+
+```bash
+command -v php
+command -v composer
+command -v sqlite3
+command -v curl
+command -v unzip
+command -v nginx
+command -v cron
+command -v flock
+command -v logrotate
+command -v tar
+```
 
 ---
 
-## 10. Place the Application
+## 6. Obtain the Release Archive
 
-Create the web application parent directory:
+Place the release archive in a temporary installation location.
 
-```bash
-mkdir -p /var/www
-```
-
-Place or clone the IQwurksPunch source at:
+Example:
 
 ```text
-/var/www/IQwurksPunch
+/root/iqwurkspunch-0.9.0.tar.gz
 ```
+
+Set shell variables:
+
+```bash
+ARCHIVE="/root/iqwurkspunch-0.9.0.tar.gz"
+EXPECTED_SHA256="PUBLISHED_64_CHARACTER_SHA256"
+```
+
+Replace both values with the actual release information.
+
+---
+
+## 7. Verify the Published Archive Digest
+
+Before extraction:
+
+```bash
+sha256sum "$ARCHIVE"
+```
+
+Compare the output with the published release checksum.
+
+An exact command-line comparison can be performed with:
+
+```bash
+test "$(
+    sha256sum "$ARCHIVE" | awk '{print $1}'
+)" = "$EXPECTED_SHA256" \
+    && echo 'Archive checksum matches.' \
+    || echo 'ERROR: Archive checksum does not match.'
+```
+
+Do not install an archive whose checksum does not match.
+
+Test gzip integrity:
+
+```bash
+gzip -t "$ARCHIVE"
+```
+
+Test the TAR listing:
+
+```bash
+tar -tzf "$ARCHIVE" >/dev/null
+```
+
+Confirm the archive contains one versioned root:
+
+```bash
+tar -tzf "$ARCHIVE" \
+    | cut -d/ -f1 \
+    | sort -u
+```
+
+---
+
+## 8. Extract the Application
+
+Inspect the archive root name:
+
+```bash
+tar -tzf "$ARCHIVE" \
+    | head -n 1
+```
+
+Extract under `/var/www`:
+
+```bash
+tar -xzf "$ARCHIVE" \
+    --directory /var/www \
+    --no-same-owner \
+    --same-permissions
+```
+
+Rename the versioned directory to the production path.
 
 Example:
 
 ```bash
-cd /var/www
-
-git clone REPOSITORY_URL IQwurksPunch
+mv \
+    /var/www/iqwurkspunch-0.9.0 \
+    /var/www/IQwurksPunch
 ```
 
-For an archive installation:
-
-```bash
-mkdir -p /var/www/IQwurksPunch
-```
-
-Extract the release contents into that directory.
-
-Confirm:
+Enter the project:
 
 ```bash
 cd /var/www/IQwurksPunch
-
-pwd
-ls -la
 ```
 
-Expected project files include:
+Confirm the package version:
 
-```text
-app/
-bootstrap/
-config/
-database/
-docs/
-public/
-releases/
-routes/
-storage/
-tests/
-composer.json
-iqwurks
-migrate.php
-VERSION
+```bash
+cat VERSION
 ```
 
 ---
 
-## 11. Install Composer Dependencies
+## 9. Install Composer Dependencies
 
-From the project root:
+The release archive does not contain `vendor/`.
+
+Install the locked production dependencies:
 
 ```bash
 cd /var/www/IQwurksPunch
 
-composer install \
+COMPOSER_ALLOW_SUPERUSER=1 composer install \
     --no-dev \
+    --prefer-dist \
+    --no-interaction \
     --optimize-autoloader
 ```
 
-For development or release validation, install development dependencies:
+For a development or release-validation system, omit `--no-dev`:
 
 ```bash
-composer install
+COMPOSER_ALLOW_SUPERUSER=1 composer install \
+    --prefer-dist \
+    --no-interaction
 ```
 
-Confirm Composer autoloading:
+Validate Composer metadata:
 
 ```bash
-php -r '
-require "vendor/autoload.php";
-echo "Composer autoload OK." . PHP_EOL;
-'
+composer validate \
+    --no-check-publish \
+    --no-interaction
+```
+
+Validate installed platform requirements:
+
+```bash
+composer check-platform-reqs
+```
+
+Confirm autoloading:
+
+```bash
+test -r vendor/autoload.php \
+    && echo 'Composer autoloader is available.' \
+    || echo 'ERROR: Composer autoloader is missing.'
 ```
 
 ---
 
-## 12. Create Runtime Directories
+## 10. Independently Verify the Extracted Release Archive
 
-Create the required runtime directories:
+After Composer dependencies are installed, use the application’s verifier against the original archive:
 
 ```bash
 cd /var/www/IQwurksPunch
 
-mkdir -p \
-    database/sqlite \
-    storage/backups \
-    storage/cache \
-    storage/exports \
-    storage/logs \
-    storage/sessions
+./iqwurks package:verify \
+    --archive="$ARCHIVE" \
+    --sha256="$EXPECTED_SHA256"
 ```
 
-The web process must be able to write to:
+A successful result includes:
 
 ```text
-database/sqlite
-storage/backups
-storage/cache
-storage/exports
-storage/logs
-storage/sessions
+Mode: VERIFY
+Status: PASS
+Successful: yes
+Checksum matches: yes
+Verification failures: 0
+Temporary workspace removed: yes
+Changes made: no
 ```
 
-Set the validated ownership and permissions:
-
-```bash
-chown -R www-data:www-data \
-    database/sqlite \
-    storage/backups \
-    storage/cache \
-    storage/exports \
-    storage/logs \
-    storage/sessions
-```
-
-Set group-writable directory permissions:
-
-```bash
-chmod 0770 \
-    database/sqlite \
-    storage/backups \
-    storage/cache \
-    storage/exports \
-    storage/logs \
-    storage/sessions
-```
-
-Ensure parent directories are traversable by the web process:
-
-```bash
-chown -R root:www-data /var/www/IQwurksPunch
-```
-
-Give files group-read access and directories group traversal:
-
-```bash
-find /var/www/IQwurksPunch \
-    -type d \
-    -exec chmod 0750 {} \;
-
-find /var/www/IQwurksPunch \
-    -type f \
-    -exec chmod 0640 {} \;
-```
-
-Restore executable permission to the console entry points:
-
-```bash
-chmod 0750 \
-    iqwurks \
-    migrate.php
-```
-
-Restore public static-file access:
-
-```bash
-find public \
-    -type d \
-    -exec chmod 0755 {} \;
-
-find public \
-    -type f \
-    -exec chmod 0644 {} \;
-```
-
-Reapply runtime-directory permissions after any broad ownership or permission operation:
-
-```bash
-chown -R www-data:www-data \
-    database/sqlite \
-    storage/backups \
-    storage/cache \
-    storage/exports \
-    storage/logs \
-    storage/sessions
-
-chmod 0770 \
-    database/sqlite \
-    storage/backups \
-    storage/cache \
-    storage/exports \
-    storage/logs \
-    storage/sessions
-```
-
-The root user can still run administrative console commands.
+Do not proceed when package verification fails.
 
 ---
 
-## 13. Configure SMTP Mail
+## 11. Set Source Ownership and Permissions
 
-The active SMTP configuration is stored in:
-
-```text
-config/mail.php
-```
-
-This file contains secrets and must not be committed to Git.
-
-Start from the example configuration when present:
+Set the source tree to a controlled owner and web-service group:
 
 ```bash
-cp config/mail.example.php config/mail.php
+cd /var/www
+
+chown -R root:www-data IQwurksPunch
+```
+
+Set normal source directories:
+
+```bash
+find /var/www/IQwurksPunch \
+    -type d \
+    -exec chmod 0755 {} +
+```
+
+Set normal source files:
+
+```bash
+find /var/www/IQwurksPunch \
+    -type f \
+    -exec chmod 0644 {} +
+```
+
+Restore executable entry points:
+
+```bash
+chmod 0750 \
+    /var/www/IQwurksPunch/iqwurks \
+    /var/www/IQwurksPunch/migrate.php
+```
+
+---
+
+## 12. Configure Writable Runtime Directories
+
+The web application and console operations require writable runtime paths.
+
+Create and normalize them:
+
+```bash
+install \
+    -d \
+    -o www-data \
+    -g www-data \
+    -m 2770 \
+    /var/www/IQwurksPunch/database/sqlite \
+    /var/www/IQwurksPunch/storage/backups \
+    /var/www/IQwurksPunch/storage/cache \
+    /var/www/IQwurksPunch/storage/exports \
+    /var/www/IQwurksPunch/storage/logs \
+    /var/www/IQwurksPunch/storage/sessions
+```
+
+Normalize any existing runtime contents:
+
+```bash
+chown -R www-data:www-data \
+    /var/www/IQwurksPunch/database/sqlite \
+    /var/www/IQwurksPunch/storage/backups \
+    /var/www/IQwurksPunch/storage/cache \
+    /var/www/IQwurksPunch/storage/exports \
+    /var/www/IQwurksPunch/storage/logs \
+    /var/www/IQwurksPunch/storage/sessions
+```
+
+Set runtime directory modes:
+
+```bash
+find \
+    /var/www/IQwurksPunch/database/sqlite \
+    /var/www/IQwurksPunch/storage/backups \
+    /var/www/IQwurksPunch/storage/cache \
+    /var/www/IQwurksPunch/storage/exports \
+    /var/www/IQwurksPunch/storage/logs \
+    /var/www/IQwurksPunch/storage/sessions \
+    -type d \
+    -exec chmod 2770 {} +
+```
+
+Set runtime file modes:
+
+```bash
+find \
+    /var/www/IQwurksPunch/database/sqlite \
+    /var/www/IQwurksPunch/storage/backups \
+    /var/www/IQwurksPunch/storage/cache \
+    /var/www/IQwurksPunch/storage/exports \
+    /var/www/IQwurksPunch/storage/logs \
+    /var/www/IQwurksPunch/storage/sessions \
+    -type f \
+    -exec chmod 0660 {} +
+```
+
+---
+
+## 13. Run Installation Preflight
+
+Run:
+
+```bash
+cd /var/www/IQwurksPunch
+
+./iqwurks install:check
+```
+
+The preflight checks:
+
+1. Operating system
+2. PHP version
+3. PHP extensions
+4. System commands
+5. Application source
+6. Composer dependencies
+7. Runtime directories
+8. Disk capacity
+
+A healthy system reports:
+
+```text
+Overall status: PASS
+Failures: 0
+```
+
+Correct every failure before database initialization.
+
+---
+
+## 14. Configure SMTP
+
+Copy the example configuration:
+
+```bash
+cd /var/www/IQwurksPunch
+
+cp \
+    config/mail.example.php \
+    config/mail.php
 ```
 
 Edit:
@@ -530,182 +587,144 @@ Edit:
 nano config/mail.php
 ```
 
-Enter the correct:
+Configure:
 
 - SMTP hostname
 - SMTP port
-- Encryption method
-- Username
-- Password
-- Sender address
+- SMTP username
+- SMTP password
+- Encryption
+- Sender email
 - Sender name
 
-Restrict permissions:
+Protect the file:
 
 ```bash
 chown root:www-data config/mail.php
 chmod 0640 config/mail.php
 ```
 
-Confirm Git ignores the file:
+Confirm Git ignores it:
 
 ```bash
-git check-ignore -v config/mail.php
+git check-ignore -v config/mail.php 2>/dev/null \
+    || true
 ```
 
-Do not store payroll-recipient addresses in `config/mail.php`.
+The SMTP configuration contains only transport and sender information.
 
-Recipients are managed through the application’s Notification Center.
+Payroll recipients are managed later through the IQwurksPunch Notification Center.
 
 ---
 
-## 14. Configure Backup and Maintenance Settings
+## 15. Initialize the Database
 
-### Backup Configuration
-
-File:
-
-```text
-config/backup.php
-```
-
-Validated configuration:
-
-```php
-<?php
-declare(strict_types=1);
-
-return [
-    'directory' =>
-        dirname(
-            __DIR__
-        )
-        .
-        '/storage/backups',
-
-    'retention_count' =>
-        30,
-
-    'lock_file' =>
-        dirname(
-            __DIR__
-        )
-        .
-        '/storage/cache/backup.lock',
-];
-```
-
-### Maintenance Configuration
-
-File:
-
-```text
-config/maintenance.php
-```
-
-Validated configuration:
-
-```php
-<?php
-declare(strict_types=1);
-
-return [
-    'file' =>
-        dirname(
-            __DIR__
-        )
-        .
-        '/storage/cache/maintenance.json',
-
-    'retry_after_seconds' =>
-        300,
-];
-```
-
-Validate both files:
-
-```bash
-php -l config/backup.php
-php -l config/maintenance.php
-```
-
----
-
-## 15. Initialize or Migrate the Database
-
-Run:
+Review migration status:
 
 ```bash
 cd /var/www/IQwurksPunch
 
-php migrate.php
+php migrate.php status
 ```
 
-Version 0.6 should record 11 migrations, including:
+Apply migrations:
+
+```bash
+php migrate.php migrate
+```
+
+Review the final status:
+
+```bash
+php migrate.php status
+```
+
+All migrations should display:
 
 ```text
-010_add_punch_correction_support.php
-011_add_kiosk_inactivity_timeout.php
+[OK]
 ```
 
-Review the schema:
+Confirm the database was created:
 
 ```bash
-sqlite3 database/sqlite/iqwurks.sqlite "
-.tables
-"
+ls -lh database/sqlite
 ```
 
-Review migration history:
+Restore runtime ownership after migration:
 
 ```bash
-sqlite3 database/sqlite/iqwurks.sqlite "
-SELECT migration
-FROM migrations
-ORDER BY migration;
-"
+chown -R www-data:www-data database/sqlite
+find database/sqlite -type d -exec chmod 2770 {} +
+find database/sqlite -type f -exec chmod 0660 {} +
 ```
 
-Check database health:
+---
+
+## 16. Validate Database Health
+
+Run:
 
 ```bash
 ./iqwurks database:check
 ```
 
-A healthy database should report:
+Expected essentials:
 
 ```text
-Status: HEALTHY
-Journal mode: wal
-Integrity check: ok
+Integrity: ok
 Foreign-key violations: 0
-Applied migrations: 11
+Journal mode: wal
 ```
+
+IQwurksPunch configures SQLite with:
+
+```sql
+PRAGMA foreign_keys = ON;
+PRAGMA busy_timeout = 10000;
+PRAGMA journal_mode = WAL;
+PRAGMA synchronous = NORMAL;
+PRAGMA wal_autocheckpoint = 1000;
+```
+
+Do not continue when database integrity fails or foreign-key violations are present.
 
 ---
 
-## 16. Create the Initial Supervisor
+## 17. Configure PHP-FPM
 
-When no supervisor exists, open:
+Confirm the PHP-FPM socket:
+
+```bash
+find /run/php \
+    -maxdepth 1 \
+    -type s \
+    -name 'php*-fpm.sock' \
+    -print
+```
+
+The expected PHP 8.5 socket is commonly:
 
 ```text
-http://SERVER_ADDRESS/setup
+/run/php/php8.5-fpm.sock
 ```
 
-Create the initial administrator account.
+Enable and start PHP-FPM:
 
-Use a strong password.
+```bash
+systemctl enable --now php8.5-fpm
+```
 
-After the initial account is created:
+Confirm:
 
-1. Confirm supervisor login.
-2. Confirm `/setup` no longer permits unsafe reinitialization.
-3. Record the account securely.
-4. Do not share the supervisor password with kiosk employees.
+```bash
+systemctl is-active php8.5-fpm
+systemctl is-enabled php8.5-fpm
+```
 
 ---
 
-## 17. Configure Nginx
+## 18. Configure Nginx
 
 Create:
 
@@ -717,31 +736,15 @@ Use:
 
 ```nginx
 server {
-    listen 80 default_server;
-    listen [::]:80 default_server;
+    listen 80;
+    listen [::]:80;
 
-    server_name
-        iqwurks
-        iqwurks.local
-        192.168.1.82
-        _;
+    server_name _;
 
     root /var/www/IQwurksPunch/public;
     index index.php;
 
-    charset utf-8;
-
-    access_log /var/log/nginx/iqwurks-punch-access.log;
-    error_log /var/log/nginx/iqwurks-punch-error.log warn;
-
-    server_tokens off;
-
-    client_max_body_size 10m;
-
-    add_header X-Content-Type-Options "nosniff" always;
-    add_header X-Frame-Options "SAMEORIGIN" always;
-    add_header Referrer-Policy "same-origin" always;
-    add_header X-Robots-Tag "noindex, nofollow" always;
+    client_max_body_size 12m;
 
     location / {
         try_files $uri $uri/ /index.php?$query_string;
@@ -750,48 +753,37 @@ server {
     location = /index.php {
         include fastcgi_params;
 
-        fastcgi_param SCRIPT_FILENAME
-            $document_root$fastcgi_script_name;
-
-        fastcgi_param SCRIPT_NAME
-            $fastcgi_script_name;
-
-        fastcgi_param HTTP_PROXY "";
+        fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
+        fastcgi_param DOCUMENT_ROOT $document_root;
 
         fastcgi_pass unix:/run/php/php8.5-fpm.sock;
-
-        fastcgi_read_timeout 120s;
     }
 
     location ~ \.php$ {
         return 404;
     }
 
-    location ~ /\.(?!well-known).* {
+    location ~ /\.(?!well-known) {
         deny all;
     }
 
-    location ~* \.(?:css|js|jpg|jpeg|gif|png|svg|ico|webp|woff|woff2)$ {
-        expires 7d;
-
-        add_header Cache-Control "public, max-age=604800";
-
+    location ^~ /assets/ {
         try_files $uri =404;
 
-        access_log off;
+        expires 7d;
+
+        add_header Cache-Control "public";
     }
+
+    add_header X-Content-Type-Options "nosniff" always;
+    add_header X-Frame-Options "SAMEORIGIN" always;
+    add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+
+    server_tokens off;
 }
 ```
 
-Change the hostname or IP address where required.
-
-Disable the default site:
-
-```bash
-rm -f /etc/nginx/sites-enabled/default
-```
-
-Enable IQwurksPunch:
+Enable the site:
 
 ```bash
 ln -s \
@@ -799,17 +791,23 @@ ln -s \
     /etc/nginx/sites-enabled/iqwurks-punch
 ```
 
-Test Nginx:
+Remove the default site when it is not needed:
+
+```bash
+rm -f /etc/nginx/sites-enabled/default
+```
+
+Validate:
 
 ```bash
 nginx -t
 ```
 
-Restart and enable it:
+Enable and reload Nginx:
 
 ```bash
-systemctl restart nginx
-systemctl enable nginx
+systemctl enable --now nginx
+systemctl reload nginx
 ```
 
 Confirm:
@@ -821,84 +819,42 @@ systemctl is-enabled nginx
 
 ---
 
-## 18. Configure PHP-FPM
+## 19. Complete Initial Application Setup
 
-Create:
+Open:
 
-```bash
-nano /etc/php/8.5/fpm/conf.d/99-iqwurks-punch.ini
+```text
+http://SERVER_ADDRESS/setup
 ```
 
-Use:
+Create the initial administrator account.
 
-```ini
-expose_php = Off
+Then open:
 
-display_errors = Off
-display_startup_errors = Off
-log_errors = On
-error_reporting = E_ALL
-
-error_log = /var/www/IQwurksPunch/storage/logs/php-fpm-error.log
-
-memory_limit = 256M
-max_execution_time = 120
-max_input_time = 120
-max_input_vars = 2000
-
-post_max_size = 10M
-upload_max_filesize = 10M
-
-session.use_strict_mode = 1
-session.use_only_cookies = 1
-session.cookie_httponly = 1
-session.cookie_samesite = Lax
-session.gc_maxlifetime = 28800
-
-opcache.enable = 1
-opcache.enable_cli = 0
-opcache.validate_timestamps = 1
-opcache.revalidate_freq = 2
-opcache.memory_consumption = 128
-opcache.interned_strings_buffer = 16
-opcache.max_accelerated_files = 10000
-
-date.timezone = America/Los_Angeles
+```text
+http://SERVER_ADDRESS/login
 ```
 
-Change the timezone when required.
+Log in and configure:
 
-Validate PHP configuration:
+- Company name
+- Company address
+- Company timezone
+- Kiosk inactivity timeout
+- Payroll rounding
+- Meal deduction
+- Paid breaks
+- Labor rules
+- Notification recipients
+- Report delivery schedules
 
-```bash
-php-fpm8.5 -t
-```
-
-Restart and enable PHP-FPM:
-
-```bash
-systemctl restart php8.5-fpm
-systemctl enable php8.5-fpm
-```
-
-Confirm:
-
-```bash
-systemctl is-active php8.5-fpm
-systemctl is-enabled php8.5-fpm
-```
-
-Confirm the socket exists:
-
-```bash
-ls -l /run/php/php8.5-fpm.sock
-```
+The setup route should no longer permit initial account creation after an administrator exists.
 
 ---
 
-## 19. Test the Web Application
+## 20. Validate Application Routes
 
-Test locally:
+Test the kiosk:
 
 ```bash
 curl \
@@ -906,7 +862,11 @@ curl \
     --output /dev/null \
     --write-out 'Kiosk HTTP %{http_code}\n' \
     http://127.0.0.1/kiosk
+```
 
+Test the login page:
+
+```bash
 curl \
     --silent \
     --output /dev/null \
@@ -914,14 +874,7 @@ curl \
     http://127.0.0.1/login
 ```
 
-Expected:
-
-```text
-Kiosk HTTP 200
-Login HTTP 200
-```
-
-Test a protected page while logged out:
+Test the dashboard redirect or response:
 
 ```bash
 curl \
@@ -931,45 +884,41 @@ curl \
     http://127.0.0.1/dashboard
 ```
 
-A redirect response is expected for unauthenticated access.
-
-From another LAN computer, open:
-
-```text
-http://192.168.1.82/kiosk
-http://192.168.1.82/login
-```
-
 ---
 
-## 20. Verify Local Frontend Assets
+## 21. Verify Local Frontend Assets
 
-Run from the project root:
+Run:
 
 ```bash
 cd /var/www/IQwurksPunch
 
-sha256sum --check public/assets/vendor/SHA256SUMS
+sha256sum --check \
+    public/assets/vendor/SHA256SUMS
 ```
 
-Do not run the checksum command from inside `public/assets/vendor`.
-
-Verify HTTP access:
+Test Bootstrap assets:
 
 ```bash
-curl -I \
-    http://127.0.0.1/assets/vendor/bootstrap/5.3.7/css/bootstrap.min.css
+curl --head \
+    http://127.0.0.1/assets/vendor/bootstrap/5.3.8/css/bootstrap.min.css
+```
 
-curl -I \
-    http://127.0.0.1/assets/vendor/bootstrap/5.3.7/js/bootstrap.bundle.min.js
+```bash
+curl --head \
+    http://127.0.0.1/assets/vendor/bootstrap/5.3.8/js/bootstrap.bundle.min.js
+```
 
-curl -I \
+Test Bootstrap Icons:
+
+```bash
+curl --head \
     http://127.0.0.1/assets/vendor/bootstrap-icons/1.13.1/font/bootstrap-icons.min.css
 ```
 
 Each asset should return HTTP 200.
 
-Confirm the rendered kiosk has no old CDN dependency:
+Confirm the kiosk does not reference the old primary CDN:
 
 ```bash
 curl --silent http://127.0.0.1/kiosk \
@@ -980,7 +929,7 @@ curl --silent http://127.0.0.1/kiosk \
 
 ---
 
-## 21. Configure the Payroll Scheduler
+## 22. Configure Scheduled Reports
 
 Edit root’s crontab:
 
@@ -1000,7 +949,7 @@ Confirm:
 crontab -l
 ```
 
-Run the scheduler manually:
+Run manually:
 
 ```bash
 cd /var/www/IQwurksPunch
@@ -1014,43 +963,64 @@ A normal result may be:
 No scheduled report is due.
 ```
 
-Run diagnostics:
+Run scheduler diagnostics:
 
 ```bash
 ./iqwurks scheduler:check
 ```
 
-A healthy installation should pass all scheduler checks.
+---
+
+## 23. Configure Automatic Email Retries
+
+Version 0.8 and later support retrying eligible failed payroll-report deliveries.
+
+A typical five-minute retry schedule is:
+
+```cron
+*/5 * * * * cd /var/www/IQwurksPunch && /usr/bin/flock -n /tmp/iqwurks-mail-retry.lock /usr/bin/php iqwurks mail:retry --send >> storage/logs/cron-mail-retry.log 2>&1
+```
+
+Preview eligible retry work manually:
+
+```bash
+./iqwurks mail:retry
+```
+
+Run eligible retries manually:
+
+```bash
+./iqwurks mail:retry --send
+```
+
+The retry policy enforces:
+
+- Attempt limits
+- Retry delays
+- Batch limits
+- Duplicate-child prevention
+- Permanent-failure exclusions
+- Unsupported-type quarantine
+- Malformed-record quarantine
+
+The internal application lock and the external cron lock both protect send-mode retry execution.
 
 ---
 
-## 22. Configure Automatic Backups
+## 24. Configure Automatic Backups
 
-Edit root’s crontab:
-
-```bash
-crontab -e
-```
-
-Add:
+Add a verified daily backup schedule to root’s crontab:
 
 ```cron
 # BEGIN IQWURKSPUNCH BACKUP
-# Daily verified SQLite backup with automatic retention
 CRON_TZ=America/Los_Angeles
 15 1 * * * cd /var/www/IQwurksPunch && /usr/bin/flock -n /tmp/iqwurks-backup-cron.lock /usr/bin/php iqwurks backup:run >> storage/logs/cron-backup.log 2>&1
 # END IQWURKSPUNCH BACKUP
 ```
 
-Change the timezone and schedule where necessary.
+Change the timezone and schedule for the deployment.
 
-Confirm:
-
-```bash
-crontab -l
-```
-
-Test the backup workflow:
+Test:
 
 ```bash
 cd /var/www/IQwurksPunch
@@ -1060,11 +1030,11 @@ cd /var/www/IQwurksPunch
 ./iqwurks backup:verify
 ```
 
-A backup should not be considered successful until verification passes.
+A backup should not be considered usable until verification passes.
 
 ---
 
-## 23. Configure Log Rotation
+## 25. Configure Log Rotation
 
 Create:
 
@@ -1104,38 +1074,35 @@ Use:
 }
 ```
 
-The second section becomes usable after the `kiosk` account is created.
-
 Validate:
 
 ```bash
-logrotate --debug /etc/logrotate.d/iqwurks-punch
+logrotate --debug \
+    /etc/logrotate.d/iqwurks-punch
 ```
 
-Confirm the logrotate timer:
+Confirm the timer:
 
 ```bash
-systemctl status logrotate.timer
 systemctl is-enabled logrotate.timer
+systemctl is-active logrotate.timer
 ```
-
-A forced test can be run during installation:
-
-```bash
-logrotate --force /etc/logrotate.d/iqwurks-punch
-```
-
-After a forced rotation, the current mail log may be empty until the next successful email.
-
-That can temporarily produce a System Doctor warning.
 
 ---
 
-## 24. Configure the Firewall
+## 26. Configure the Firewall
 
-Enable only trusted-LAN access.
+Permit access only from the trusted network.
 
-Allow SSH:
+Replace:
+
+```text
+192.168.1.0/24
+```
+
+with the correct trusted subnet.
+
+Allow SSH first:
 
 ```bash
 ufw allow from 192.168.1.0/24 \
@@ -1153,16 +1120,7 @@ ufw allow from 192.168.1.0/24 \
     comment 'LAN IQwurksPunch'
 ```
 
-When Netdata is installed, allow it:
-
-```bash
-ufw allow from 192.168.1.0/24 \
-    to any port 19999 \
-    proto tcp \
-    comment 'LAN Netdata'
-```
-
-Enable UFW:
+Enable UFW only after SSH access has been allowed:
 
 ```bash
 ufw enable
@@ -1174,39 +1132,30 @@ Review:
 ufw status numbered
 ```
 
-Validated rules:
+The validated deployment uses HTTP only on a trusted LAN.
 
-```text
-22/tcp       ALLOW IN    192.168.1.0/24
-80/tcp       ALLOW IN    192.168.1.0/24
-19999/tcp    ALLOW IN    192.168.1.0/24
-```
-
-Do not enable UFW remotely until the SSH rule has been added and verified.
+Add HTTPS before exposing IQwurksPunch to an untrusted network.
 
 ---
 
-## 25. Configure a Fixed Network Address
+## 27. Configure a Stable Network Address
 
-A dedicated kiosk should keep a consistent address.
+Use either:
 
-Preferred methods:
+- A DHCP reservation
+- A correctly configured static address
 
-- DHCP reservation in the router or DHCP server
-- Correctly configured static addressing
+Record:
 
-The validated reservation is:
+- Hostname
+- IP address
+- Network interface
+- MAC address
+- Gateway
+- DNS server
+- Trusted subnet
 
-```text
-Hostname: iqwurks
-IP address: 192.168.1.82
-MAC address: d4:be:d9:ce:ee:0c
-Interface: enp3s0
-Gateway: 192.168.1.254
-DHCP/DNS server: 192.168.1.234
-```
-
-Confirm the current address:
+Confirm:
 
 ```bash
 ip address show
@@ -1214,19 +1163,13 @@ ip route
 hostname -I
 ```
 
-Confirm the default route:
-
-```bash
-ip route show default
-```
-
-After creating a DHCP reservation, renew the lease or reboot and confirm the expected address remains assigned.
-
 ---
 
-## 26. Install the Physical Kiosk Components
+# Part II — Physical Kiosk
 
-Install the graphical kiosk packages:
+## 28. Install Kiosk Components
+
+Install:
 
 ```bash
 apt install -y \
@@ -1237,7 +1180,9 @@ apt install -y \
     unclutter
 ```
 
-Install Chromium using the supported Ubuntu package or snap:
+Install Chromium using the supported Ubuntu package or snap.
+
+Example:
 
 ```bash
 snap install chromium
@@ -1251,9 +1196,9 @@ Confirm:
 
 ---
 
-## 27. Create the Restricted Kiosk User
+## 29. Create the Restricted Kiosk User
 
-Create the local kiosk account:
+Create:
 
 ```bash
 adduser \
@@ -1262,23 +1207,9 @@ adduser \
     kiosk
 ```
 
-Confirm:
-
-```bash
-id kiosk
-```
-
 The account must not have `sudo` access.
 
-Check:
-
-```bash
-getent group sudo
-```
-
-Do not add `kiosk` to the `sudo` group.
-
-Create its configuration and state directories:
+Create configuration directories:
 
 ```bash
 install \
@@ -1287,7 +1218,9 @@ install \
     -g kiosk \
     -m 0700 \
     /home/kiosk/.config/openbox
+```
 
+```bash
 install \
     -d \
     -o kiosk \
@@ -1298,7 +1231,7 @@ install \
 
 ---
 
-## 28. Configure LightDM Automatic Login
+## 30. Configure LightDM Automatic Login
 
 Create:
 
@@ -1317,23 +1250,15 @@ autologin-session=openbox
 greeter-session=lightdm-gtk-greeter
 ```
 
-Confirm the file:
-
-```bash
-cat /etc/lightdm/lightdm.conf.d/50-iqwurks-kiosk.conf
-```
-
 Enable LightDM:
 
 ```bash
 systemctl enable lightdm
 ```
 
-Do not restart LightDM remotely unless interruption of the physical screen is acceptable.
-
 ---
 
-## 29. Create the Kiosk Browser Launcher
+## 31. Create the Kiosk Browser Launcher
 
 Create:
 
@@ -1406,22 +1331,22 @@ do
 done
 ```
 
-Set ownership and permissions:
+Protect and validate:
 
 ```bash
-chown root:root /usr/local/bin/iqwurks-kiosk-browser
-chmod 0755 /usr/local/bin/iqwurks-kiosk-browser
-```
+chown root:root \
+    /usr/local/bin/iqwurks-kiosk-browser
 
-Validate Bash syntax:
+chmod 0755 \
+    /usr/local/bin/iqwurks-kiosk-browser
 
-```bash
-bash -n /usr/local/bin/iqwurks-kiosk-browser
+bash -n \
+    /usr/local/bin/iqwurks-kiosk-browser
 ```
 
 ---
 
-## 30. Configure Openbox Autostart
+## 32. Configure Openbox Autostart
 
 Create:
 
@@ -1438,8 +1363,7 @@ Use:
 /usr/bin/xset s noblank
 /usr/bin/xset -dpms
 
-/usr/bin/xsetroot \
-    -solid black
+/usr/bin/xsetroot -solid black
 
 /usr/bin/unclutter \
     -idle 1 \
@@ -1461,20 +1385,15 @@ chmod 0755 \
 Validate:
 
 ```bash
-sh -n /home/kiosk/.config/openbox/autostart
+sh -n \
+    /home/kiosk/.config/openbox/autostart
 ```
 
 ---
 
-## 31. Disable Sleep and Display Interruption
+## 33. Disable Sleep and Display Interruption
 
-The Openbox autostart file disables:
-
-- X screen saver
-- Screen blanking
-- Display power management
-
-Also mask operating-system sleep targets:
+Mask sleep targets:
 
 ```bash
 systemctl mask \
@@ -1494,25 +1413,23 @@ systemctl status \
     hybrid-sleep.target
 ```
 
-The targets should show as masked.
-
 ---
 
-## 32. Start the Physical Kiosk
+## 34. Start and Test the Kiosk
 
-Restart LightDM:
+Restart LightDM during an approved maintenance window:
 
 ```bash
 systemctl restart lightdm
 ```
 
-The physical display should:
+The physical screen should:
 
-1. Automatically log in as `kiosk`.
+1. Log in automatically as `kiosk`.
 2. Start Openbox.
-3. Wait for IQwurksPunch to respond.
+3. Wait for IQwurksPunch.
 4. Start Chromium.
-5. Open the employee kiosk full-screen.
+5. Display the employee kiosk full-screen.
 
 Review the browser log:
 
@@ -1521,182 +1438,19 @@ tail -n 100 \
     /home/kiosk/.local/state/iqwurks-kiosk/browser.log
 ```
 
----
-
-## 33. Test Browser Recovery
-
-Find Chromium processes:
-
-```bash
-pgrep -a chromium
-```
-
-Terminate the kiosk browser during a controlled test:
+Test automatic browser recovery:
 
 ```bash
 pkill -u kiosk chromium
 ```
 
-The launcher should restart Chromium after approximately two seconds.
-
-Review:
-
-```bash
-tail -n 50 \
-    /home/kiosk/.local/state/iqwurks-kiosk/browser.log
-```
-
-Expected log behavior includes:
-
-```text
-Chromium exited with code ...
-Restarting in two seconds.
-Starting Chromium kiosk browser.
-```
+Chromium should restart after approximately two seconds.
 
 ---
 
-## 34. Configure Kiosk Inactivity Protection
+# Part III — Installation Validation
 
-Log in as a supervisor and open:
-
-```text
-Settings → Company Settings
-```
-
-Under:
-
-```text
-Kiosk Safety
-```
-
-set:
-
-```text
-Kiosk Inactivity Timeout
-```
-
-Allowed range:
-
-```text
-15–600 seconds
-```
-
-Recommended production default:
-
-```text
-60 seconds
-```
-
-Test:
-
-1. Enter a valid employee number.
-2. Leave the PIN screen untouched.
-3. Confirm the final ten-second warning appears.
-4. Confirm the kiosk returns to the starting screen.
-5. Confirm no punch is recorded.
-6. Repeat on the punch-action screen.
-7. Confirm keyboard, mouse, or touch activity restarts the timer.
-
----
-
-## 35. Configure Company Settings
-
-Log in as a supervisor.
-
-Open:
-
-```text
-Settings → Company Settings
-```
-
-Configure:
-
-- Company name
-- Address
-- City
-- State
-- ZIP code
-- Phone
-- Email
-- Timezone
-- Kiosk inactivity timeout
-- Punch rounding
-- Automatic meal deduction
-- Meal deduction minutes
-- Paid-break allowance
-
-Save and reload the page to confirm persistence.
-
----
-
-## 36. Configure Labor Rules
-
-Open:
-
-```text
-Settings → Labor Rules
-```
-
-Configure:
-
-- Daily overtime threshold
-- Weekly overtime threshold
-- Double-time threshold
-- Sunday or Monday workweek start
-
-Ensure the double-time threshold is greater than the daily overtime threshold.
-
-Generate test payroll reports after changing labor rules.
-
----
-
-## 37. Configure Notification Recipients
-
-Open the Notification Center.
-
-Add payroll-report recipients.
-
-Configure each recipient’s subscriptions:
-
-- Daily payroll
-- Weekly payroll
-- Exception reports
-
-Activate the recipients that should receive scheduled reports.
-
-Recipients are stored in the database and are separate from SMTP transport settings.
-
----
-
-## 38. Configure Automatic Report Delivery
-
-Open the report email settings.
-
-Configure:
-
-- Automatic delivery enabled or disabled
-- Delivery time
-- Delivery days
-- Active recipients
-
-Save the schedule.
-
-Run:
-
-```bash
-./iqwurks scheduler:check
-```
-
-Confirm that:
-
-- The schedule is structurally valid.
-- Active recipients are available.
-- The cron entry is installed.
-
----
-
-## 39. Run Mail Diagnostics
+## 35. Run Mail Diagnostics
 
 Run:
 
@@ -1709,44 +1463,43 @@ cd /var/www/IQwurksPunch
 Review:
 
 - SMTP configuration
-- Hostname resolution
+- DNS resolution
 - TCP connectivity
 - TLS readiness
-- Delivery status
+- Recent delivery status
 
-Send a manual test or payroll email through the application after diagnostics pass.
-
-A newly rotated empty mail log may cause a temporary warning.
+Send a manual test or payroll report after diagnostics pass.
 
 ---
 
-## 40. Run the Complete Diagnostic Suite
+## 36. Run the Complete Diagnostic Suite
 
 Run:
 
 ```bash
 cd /var/www/IQwurksPunch
 
+./iqwurks install:check
 ./iqwurks database:check
 ./iqwurks scheduler:check
 ./iqwurks doctor
 ```
 
-Expected essentials:
+Required results:
 
-```text
-Database status: HEALTHY
-Scheduler status: PASS
-System Doctor: no failures
-```
+- No installation-preflight failures
+- Database integrity `ok`
+- Zero foreign-key violations
+- Scheduler diagnostics pass
+- System Doctor has no failures
 
-A mail-activity warning may be acceptable immediately after log rotation when SMTP configuration and recent historical delivery are otherwise confirmed.
+A recent mail-activity warning may be acceptable immediately after log rotation when SMTP connectivity and historical delivery are otherwise confirmed.
 
 ---
 
-## 41. Run Automated Tests
+## 37. Run Automated Tests
 
-For a development or release-validation installation:
+For development or release validation:
 
 ```bash
 cd /var/www/IQwurksPunch
@@ -1754,86 +1507,20 @@ cd /var/www/IQwurksPunch
 php vendor/bin/phpunit
 ```
 
-Expected Version 0.6 result:
+The Version 0.9 development baseline at the time this guide was updated is:
 
 ```text
-OK (36 tests, 188 assertions)
+359 tests
+2734 assertions
 ```
 
-If `vendor/bin/phpunit` is not executable, use:
+The release baseline may increase as Version 0.9 is completed.
 
-```bash
-php vendor/bin/phpunit
-```
-
-Do not continue to release validation when tests fail.
+Do not approve a release when automated tests fail.
 
 ---
 
-## 42. Validate PHP Syntax
-
-Every PHP file modified during installation or deployment should pass:
-
-```bash
-php -l PATH_TO_FILE.php
-```
-
-Validate the primary configuration and application entry files:
-
-```bash
-php -l config/backup.php
-php -l config/maintenance.php
-php -l public/index.php
-php -l app/Core/Database.php
-php -l app/Controllers/KioskController.php
-php -l routes/web.php
-php -l database/migrations/010_add_punch_correction_support.php
-php -l database/migrations/011_add_kiosk_inactivity_timeout.php
-```
-
----
-
-## 43. Test Maintenance Mode
-
-Enable it:
-
-```bash
-cd /var/www/IQwurksPunch
-
-./iqwurks maintenance:on Installation validation
-```
-
-Check:
-
-```bash
-./iqwurks maintenance:status
-```
-
-Confirm a web request receives the maintenance response.
-
-Disable it:
-
-```bash
-./iqwurks maintenance:off
-```
-
-Confirm:
-
-```bash
-./iqwurks maintenance:status
-```
-
-Do not use:
-
-```bash
-./iqwurks maintenance:on --help
-```
-
-The current console does not implement universal per-command help. That command would enable maintenance mode with `--help` as the reason.
-
----
-
-## 44. Create the First Verified Backup
+## 38. Create the First Verified Backup
 
 Run:
 
@@ -1847,19 +1534,57 @@ cd /var/www/IQwurksPunch
 
 Record the newest verified backup filename.
 
-Preview a restore without applying it:
+Preview a restore:
 
 ```bash
 ./iqwurks backup:restore BACKUP_FILENAME
 ```
 
-Do not apply a restore during ordinary installation validation unless a controlled restore test has been planned.
+Do not apply a restore unless a controlled restore or recovery procedure is intended.
 
 ---
 
-## 45. Reboot Recovery Test
+## 39. Test Maintenance Mode
 
-After configuration is complete:
+Enable:
+
+```bash
+./iqwurks maintenance:on Installation validation
+```
+
+Check:
+
+```bash
+./iqwurks maintenance:status
+```
+
+Disable:
+
+```bash
+./iqwurks maintenance:off
+```
+
+Confirm:
+
+```bash
+./iqwurks maintenance:status
+```
+
+The console does not implement universal per-command `--help`.
+
+Do not run:
+
+```bash
+./iqwurks maintenance:on --help
+```
+
+That command would treat `--help` as the maintenance reason.
+
+---
+
+## 40. Perform a Reboot-Recovery Test
+
+Reboot:
 
 ```bash
 reboot
@@ -1872,20 +1597,18 @@ systemctl is-active nginx
 systemctl is-active php8.5-fpm
 systemctl is-active cron
 systemctl is-active lightdm
-systemctl is-active snapd
 ```
 
-Confirm automatic startup:
+Confirm enablement:
 
 ```bash
 systemctl is-enabled nginx
 systemctl is-enabled php8.5-fpm
 systemctl is-enabled cron
 systemctl is-enabled lightdm
-systemctl is-enabled snapd
 ```
 
-Verify the web application:
+Validate web routes:
 
 ```bash
 curl \
@@ -1893,25 +1616,15 @@ curl \
     --output /dev/null \
     --write-out 'Kiosk HTTP %{http_code}\n' \
     http://127.0.0.1/kiosk
+```
 
+```bash
 curl \
     --silent \
     --output /dev/null \
     --write-out 'Login HTTP %{http_code}\n' \
     http://127.0.0.1/login
 ```
-
-Verify:
-
-- The physical kiosk started.
-- Chromium is full-screen.
-- The employee-number screen is visible.
-- LAN kiosk access works.
-- Supervisor login works.
-- Protected routes redirect unauthenticated users.
-- Scheduler activity resumed.
-- Automatic backup cron remains installed.
-- Firewall rules remain active.
 
 Run:
 
@@ -1923,202 +1636,755 @@ cd /var/www/IQwurksPunch
 ./iqwurks doctor
 ```
 
+Confirm:
+
+- Physical kiosk starts automatically
+- Chromium is full-screen
+- Employee-number screen is visible
+- LAN kiosk access works
+- Supervisor login works
+- Scheduler cron remains installed
+- Retry cron remains installed
+- Backup cron remains installed
+- Firewall remains active
+
 ---
 
-## 46. Production Service Files
+# Part IV — Controlled Upgrade
 
-The validated system-level files are:
+## 41. Upgrade Safety Principles
+
+A safe upgrade requires:
+
+- A verified release archive
+- A verified archive checksum
+- A recent verified database backup
+- Sufficient disk capacity
+- Healthy migration history
+- Healthy database integrity
+- Maintenance-mode protection
+- Matching application and database rollback materials
+- A tested recovery plan
+
+Never restore only an old database while leaving incompatible newer application files in place.
+
+Never restore only old application files while leaving an incompatible newer database in place.
+
+Application source and database state must remain compatible.
+
+---
+
+## 42. Verify the New Release Before Deployment
+
+Set:
+
+```bash
+NEW_ARCHIVE="/root/iqwurkspunch-NEW_VERSION.tar.gz"
+NEW_SHA256="PUBLISHED_64_CHARACTER_SHA256"
+```
+
+Verify:
+
+```bash
+sha256sum "$NEW_ARCHIVE"
+```
+
+Test:
+
+```bash
+gzip -t "$NEW_ARCHIVE"
+tar -tzf "$NEW_ARCHIVE" >/dev/null
+```
+
+Extract the package to a temporary release-validation directory:
+
+```bash
+VALIDATION_ROOT="$(mktemp -d /tmp/iqwurks-release-validation.XXXXXXXX)"
+
+tar -xzf "$NEW_ARCHIVE" \
+    --directory "$VALIDATION_ROOT" \
+    --no-same-owner \
+    --same-permissions
+```
+
+Enter the extracted package root and install dependencies:
+
+```bash
+cd "$VALIDATION_ROOT"/iqwurkspunch-NEW_VERSION
+
+COMPOSER_ALLOW_SUPERUSER=1 composer install \
+    --no-dev \
+    --prefer-dist \
+    --no-interaction \
+    --optimize-autoloader
+```
+
+Verify the archive through the new release code:
+
+```bash
+./iqwurks package:verify \
+    --archive="$NEW_ARCHIVE" \
+    --sha256="$NEW_SHA256"
+```
+
+Remove the validation workspace only after verification succeeds:
+
+```bash
+rm -rf "$VALIDATION_ROOT"
+```
+
+---
+
+## 43. Run Upgrade Readiness Checks
+
+From the current production installation:
+
+```bash
+cd /var/www/IQwurksPunch
+
+./iqwurks upgrade:check
+```
+
+The readiness check examines:
+
+1. Application version
+2. Composer state
+3. Upgrade paths
+4. Database health
+5. Migration history
+6. Verified backup
+7. Maintenance mode
+8. Disk capacity
+
+A warning that maintenance mode is inactive is expected before an upgrade begins.
+
+A failure must be corrected before deployment.
+
+---
+
+## 44. Review the Upgrade Plan
+
+Run:
+
+```bash
+./iqwurks upgrade:plan
+```
+
+The plan describes:
+
+1. Pre-upgrade validation
+2. Maintenance protection
+3. Safety backup
+4. Composer dependencies
+5. Migrations
+6. Ownership and permissions
+7. Post-upgrade validation
+8. Return to service
+9. Rollback reference
+
+The plan is read-only.
+
+---
+
+## 45. Preview Controlled Upgrade Execution
+
+Run:
+
+```bash
+./iqwurks upgrade:preview
+```
+
+The preview reports:
+
+- Whether the upgrade can be applied
+- Planned process commands
+- Pending migrations
+- Maintenance expectations
+- Backup expectations
+- Validation stages
+- Rollback references
+- Exact confirmation phrase
+
+The preview changes nothing.
+
+Record the exact confirmation phrase.
+
+Example:
+
+```text
+UPGRADE 0.9.0
+```
+
+Use the phrase displayed by the command, not the example.
+
+---
+
+## 46. Preserve Local Configuration and Runtime State
+
+Before replacing application source, preserve:
+
+```text
+config/mail.php
+database/sqlite/
+storage/backups/
+storage/cache/
+storage/exports/
+storage/logs/
+storage/sessions/
+```
+
+Also preserve system-level configuration:
 
 ```text
 /etc/nginx/sites-available/iqwurks-punch
-/etc/nginx/sites-enabled/iqwurks-punch
-/etc/php/8.5/fpm/conf.d/99-iqwurks-punch.ini
-/etc/lightdm/lightdm.conf.d/50-iqwurks-kiosk.conf
+/etc/php/8.5/fpm/
+ /etc/lightdm/lightdm.conf.d/50-iqwurks-kiosk.conf
 /usr/local/bin/iqwurks-kiosk-browser
 /home/kiosk/.config/openbox/autostart
 /etc/logrotate.d/iqwurks-punch
+root crontab
+UFW rules
 ```
 
-The validated root cron includes:
+Do not copy packaged empty runtime directories over live runtime data.
 
-```text
-schedule:run
-backup:run
-```
-
-These system-level files are outside the Git repository.
-
-Keep secure backup copies of them or record them in deployment documentation.
+Do not overwrite `config/mail.php` with `config/mail.example.php`.
 
 ---
 
-## 47. Production Runtime Paths
+## 47. Deploy the New Application Source
 
-Important application paths include:
+Stop at this point unless:
+
+- Package verification passed
+- Upgrade readiness has no failures
+- A recent verified backup exists
+- The exact upgrade confirmation phrase has been recorded
+- A rollback copy of the current release is available
+
+Deploy the release application files while preserving:
+
+- Local SMTP configuration
+- Active SQLite database and sidecars
+- Backups
+- Logs
+- Exports
+- Sessions
+- Cache state required for recovery
+- Upgrade journals
+
+The controlled upgrade command does not download or copy a release archive. Release files must already be deployed to the intended application tree.
+
+After deploying the source files, restore executable modes:
+
+```bash
+chmod 0750 \
+    /var/www/IQwurksPunch/iqwurks \
+    /var/www/IQwurksPunch/migrate.php
+```
+
+Restore runtime ownership:
+
+```bash
+chown -R www-data:www-data \
+    /var/www/IQwurksPunch/database/sqlite \
+    /var/www/IQwurksPunch/storage/backups \
+    /var/www/IQwurksPunch/storage/cache \
+    /var/www/IQwurksPunch/storage/exports \
+    /var/www/IQwurksPunch/storage/logs \
+    /var/www/IQwurksPunch/storage/sessions
+```
+
+---
+
+## 48. Apply the Controlled Upgrade
+
+Run the preview again from the deployed release:
+
+```bash
+cd /var/www/IQwurksPunch
+
+./iqwurks upgrade:preview
+```
+
+Use the exact phrase shown by the preview:
+
+```bash
+./iqwurks upgrade:apply \
+    --confirm="EXACT_PHRASE_FROM_PREVIEW"
+```
+
+The controlled upgrade engine:
+
+- Requires exact confirmation
+- Uses an exclusive upgrade lock
+- Activates maintenance mode when needed
+- Creates and verifies a pre-upgrade backup
+- Installs locked Composer dependencies
+- Runs migrations
+- Restores production permissions
+- Runs validation commands
+- Creates and verifies a post-upgrade backup
+- Deactivates maintenance only when it activated maintenance
+- Stops after the first failed process stage
+- Leaves maintenance active after a failure
+- Records the execution in the upgrade journal
+
+Do not interrupt a running upgrade unless the process is clearly hung and a recovery procedure is available.
+
+---
+
+## 49. Review Upgrade Status
+
+Display the latest upgrade execution:
+
+```bash
+./iqwurks upgrade:status
+```
+
+Display a specific execution:
+
+```bash
+./iqwurks upgrade:status \
+    --id=EXECUTION_ID
+```
+
+Status reporting includes:
+
+- Execution ID
+- Version
+- Start and completion timestamps
+- Success or failure
+- Failed stage
+- Backups
+- Rollback availability
+- Maintenance state
+- Journal status
+- Process results
+- Stage results
+
+The status command is read-only.
+
+---
+
+## 50. Assess an Interrupted Upgrade
+
+Run:
+
+```bash
+./iqwurks upgrade:recovery-check
+```
+
+Possible classifications include:
+
+```text
+CLEAR
+COMPLETE
+ACTIVE
+INTERRUPTED
+INCONSISTENT
+UNKNOWN
+```
+
+The assessment inspects:
+
+- Latest journal status
+- Recorded process ID
+- Process existence
+- Upgrade lock file
+- Actual lock state
+- Lock metadata
+- Maintenance mode
+- Operator action requirements
+
+The recovery check changes nothing.
+
+Do not start another upgrade when the result is:
+
+```text
+ACTIVE
+INTERRUPTED
+INCONSISTENT
+UNKNOWN
+```
+
+until the condition has been reviewed.
+
+---
+
+## 51. Post-Upgrade Validation
+
+Run:
+
+```bash
+cd /var/www/IQwurksPunch
+
+./iqwurks version
+php migrate.php status
+./iqwurks install:check
+./iqwurks database:check
+./iqwurks scheduler:check
+./iqwurks doctor
+./iqwurks maintenance:status
+```
+
+For release validation, run:
+
+```bash
+php vendor/bin/phpunit
+```
+
+Confirm:
+
+- Expected application version
+- Every migration is applied
+- Database integrity is `ok`
+- Foreign-key violations are zero
+- SQLite journal mode is `wal`
+- Scheduler diagnostics pass
+- Mail diagnostics have no blocking failure
+- Maintenance mode is inactive
+- Kiosk works
+- Supervisor login works
+- Dashboard works
+- Reports work
+- Scheduled reports continue
+- Retry processing continues
+- Backups continue
+
+---
+
+## 52. Upgrade Failure and Rollback
+
+When an upgrade fails:
+
+1. Leave maintenance mode active.
+2. Run `upgrade:status`.
+3. Run `upgrade:recovery-check`.
+4. Record the failed stage.
+5. Preserve the upgrade journal.
+6. Verify the pre-upgrade backup.
+7. Restore the matching previous application release.
+8. Restore the matching verified database backup when required.
+9. Restore local configuration.
+10. Restore ownership and permissions.
+11. Run database health checks.
+12. Run migration status.
+13. Run diagnostics.
+14. Disable maintenance only after recovery validation passes.
+
+A database rollback must use a backup that matches the restored application release.
+
+The controlled upgrade engine intentionally does not perform an unsafe automatic database rollback.
+
+---
+
+# Part V — Release Packaging
+
+## 53. Preview a Distribution Package
+
+From a clean release source tree:
+
+```bash
+cd /var/www/IQwurksPunch
+
+./iqwurks package:build
+```
+
+Preview mode reports:
+
+- Version
+- Package filename
+- Artifact path
+- Manifest SHA-256
+- Entry count
+- Source-file count
+- Directory count
+- Generated runtime directories
+- Excluded entries
+- Unsafe entries
+- Source bytes
+
+Preview mode creates no staging directory or archive.
+
+---
+
+## 54. Build a Distribution Package
+
+Run:
+
+```bash
+./iqwurks package:build --build
+```
+
+The build process:
+
+- Creates an approved staging tree
+- Copies only manifest-approved files
+- Generates empty runtime directories
+- Normalizes file modes
+- Normalizes directory modes
+- Creates a deterministic GNU TAR archive
+- Sets numeric owner and group metadata
+- Normalizes archive timestamps
+- Creates a gzip-compressed archive
+- Independently verifies the finished archive
+- Removes temporary staging
+
+Expected packaged modes:
+
+```text
+Normal directories:          0755
+Writable runtime directories: 0770
+Normal files:                0644
+iqwurks:                     0750
+migrate.php:                 0750
+Archive file:                0640
+```
+
+Generated packages are stored under:
+
+```text
+storage/exports/packages
+```
+
+Generated packages are ignored by Git.
+
+---
+
+## 55. Verify a Distribution Package
+
+Verify the current-version default archive:
+
+```bash
+./iqwurks package:verify
+```
+
+Verify a named archive:
+
+```bash
+./iqwurks package:verify \
+    --archive=PATH_TO_ARCHIVE
+```
+
+Verify a named archive against a published checksum:
+
+```bash
+./iqwurks package:verify \
+    --archive=PATH_TO_ARCHIVE \
+    --sha256=PUBLISHED_SHA256
+```
+
+A release must not be published unless verification reports:
+
+```text
+Status: PASS
+Successful: yes
+Checksum matches: yes
+Verification failures: 0
+Temporary workspace removed: yes
+Changes made: no
+```
+
+---
+
+## 56. Release Acceptance Checklist
+
+### Package
+
+- [ ] Package name matches the release version.
+- [ ] Archive checksum has been recorded.
+- [ ] Archive contains one versioned root.
+- [ ] `PACKAGE-MANIFEST.json` is present.
+- [ ] `package:verify` reports `PASS`.
+- [ ] Verification failures are zero.
+- [ ] No symbolic links are present.
+- [ ] No secrets are present.
+- [ ] No SQLite database is present.
+- [ ] No runtime logs are present.
+- [ ] No runtime backups are present.
+- [ ] No runtime exports are present.
+- [ ] No session files are present.
+- [ ] No machine inventory files are present.
+- [ ] No `vendor/` directory is present.
+- [ ] Runtime directories are empty.
+- [ ] Normal directories are `0755`.
+- [ ] Writable runtime directories are `0770`.
+- [ ] Normal files are `0644`.
+- [ ] Console entry points are `0750`.
+
+### Application
+
+- [ ] Application version is correct.
+- [ ] Composer metadata validates.
+- [ ] Composer platform requirements pass.
+- [ ] Installation preflight passes.
+- [ ] All migrations are applied.
+- [ ] Database integrity is `ok`.
+- [ ] Foreign-key violations are zero.
+- [ ] SQLite journal mode is `wal`.
+- [ ] Automated tests pass.
+- [ ] Maintenance mode is inactive.
+
+### Operations
+
+- [ ] Nginx is active and enabled.
+- [ ] PHP-FPM is active and enabled.
+- [ ] Cron is active and enabled.
+- [ ] Scheduler cron is installed.
+- [ ] Email-retry cron is installed.
+- [ ] Backup cron is installed.
+- [ ] Logrotate is configured.
+- [ ] Firewall rules are active.
+- [ ] SMTP diagnostics pass.
+- [ ] A verified backup exists.
+- [ ] Supervisor login works.
+- [ ] Employee kiosk works.
+- [ ] Reboot recovery passes.
+
+---
+
+## 57. Security Checklist
+
+Before production use, confirm:
+
+- Strong administrator and supervisor passwords
+- Only active authorized users have supervisor access
+- `config/mail.php` is not in Git
+- `config/mail.php` is mode `0640`
+- Nginx document root is `public`
+- Arbitrary PHP execution is blocked
+- Hidden files are blocked
+- Runtime paths are not publicly served
+- UFW or another firewall is active
+- HTTP access is limited to the trusted LAN
+- SSH access is limited appropriately
+- Kiosk user has no `sudo` access
+- Runtime directories are writable only as required
+- Database files are excluded from release packages
+- Database files are excluded from Git
+- Backups are excluded from release packages
+- Backups are excluded from Git
+- Session files are excluded from release packages
+- Session files are excluded from Git
+- A recent verified backup exists
+- Maintenance mode is inactive
+- Diagnostics have no failures
+- The kiosk cannot browse arbitrary sites during normal operation
+- HTTPS is used before any untrusted-network exposure
+
+---
+
+## 58. Important Runtime Paths
 
 ```text
 Database:
 database/sqlite/iqwurks.sqlite
 
-Database sidecars:
+SQLite sidecars:
 database/sqlite/iqwurks.sqlite-wal
 database/sqlite/iqwurks.sqlite-shm
 
 Backups:
 storage/backups
 
-Cache and locks:
+Upgrade state and cache:
 storage/cache
 
-Exports:
+Exports and packages:
 storage/exports
 
-Application logs:
+Logs:
 storage/logs
 
-PHP sessions:
+Sessions:
 storage/sessions
 
 Maintenance state:
 storage/cache/maintenance.json
-
-Backup lock:
-storage/cache/backup.lock
-
-Kiosk browser log:
-/home/kiosk/.local/state/iqwurks-kiosk/browser.log
 ```
 
-Do not commit runtime files to Git.
+Do not commit runtime data.
+
+Do not include runtime data in release archives.
 
 ---
 
-## 48. Security Checklist
+## 59. System-Level Configuration Files
 
-Before production use, confirm:
+The validated deployment uses system files outside the repository:
 
-- Supervisor passwords are strong.
-- Only active administrators and supervisors have administrative access.
-- `config/mail.php` is ignored by Git.
-- `config/mail.php` has restricted permissions.
-- The Nginx document root is `public`.
-- Arbitrary PHP execution is blocked.
-- Hidden files are blocked.
-- UFW is active.
-- HTTP port 80 is limited to the trusted LAN.
-- SSH is limited to the trusted LAN.
-- The kiosk user has no `sudo` access.
-- Runtime directories are writable only as required.
-- Session files are ignored by Git.
-- Database files are ignored by Git.
-- Backups are ignored by Git.
-- A verified backup exists.
-- Maintenance mode is inactive.
-- Diagnostics show no failures.
-- The physical kiosk cannot browse arbitrary websites through normal operation.
+```text
+/etc/nginx/sites-available/iqwurks-punch
+/etc/nginx/sites-enabled/iqwurks-punch
+/etc/php/8.5/fpm/
+/etc/lightdm/lightdm.conf.d/50-iqwurks-kiosk.conf
+/usr/local/bin/iqwurks-kiosk-browser
+/home/kiosk/.config/openbox/autostart
+/etc/logrotate.d/iqwurks-punch
+root crontab
+UFW rules
+```
 
-The validated deployment uses HTTP only on a trusted LAN.
+Maintain secure backup copies or deployment records for these files.
 
-Add HTTPS before exposing IQwurksPunch across an untrusted network.
+Do not store SMTP passwords, supervisor passwords, employee PINs, or password hashes in general deployment documentation.
 
 ---
 
-## 49. Installation Acceptance Checklist
+## 60. Current Limitations
 
-The installation is ready for production only after all applicable items pass.
+Version 0.9 does not currently provide:
 
-### Application
-
-- [ ] IQwurksPunch reports Version 0.6.0.
-- [ ] Composer autoloading works.
-- [ ] All migrations are applied.
-- [ ] Database health is `HEALTHY`.
-- [ ] SQLite journal mode is `wal`.
-- [ ] Foreign-key violations are zero.
-- [ ] Supervisor login works.
-- [ ] Dashboard works.
-- [ ] Employee management works.
-- [ ] Reports work.
-- [ ] Settings work.
-- [ ] Labor Rules works.
-- [ ] Punch correction works.
-- [ ] Kiosk works.
-
-### Kiosk
-
-- [ ] LightDM automatically logs in as `kiosk`.
-- [ ] Openbox starts.
-- [ ] Chromium starts full-screen.
-- [ ] Chromium restarts after termination.
-- [ ] Screen blanking is disabled.
-- [ ] Display power management is disabled.
-- [ ] Suspend and hibernation are disabled.
-- [ ] Kiosk timeout resets the PIN screen.
-- [ ] Kiosk timeout resets the action screen.
-- [ ] Activity restarts the timeout.
-- [ ] Timeout does not create a punch.
-
-### Operations
-
-- [ ] Nginx is enabled and active.
-- [ ] PHP-FPM is enabled and active.
-- [ ] Cron is enabled and active.
-- [ ] Scheduler cron is installed.
-- [ ] Backup cron is installed.
-- [ ] Logrotate is enabled.
-- [ ] UFW is active.
-- [ ] LAN access works.
-- [ ] SMTP configuration passes diagnostics.
-- [ ] A manual email has been sent successfully.
-- [ ] A verified backup exists.
-- [ ] Restore preview works.
-- [ ] System Doctor has no failures.
-- [ ] Automated tests pass.
-- [ ] Reboot recovery passes.
-
----
-
-## 50. Known Installation Limitations
-
-Version 0.6 does not yet provide:
-
-- A guided graphical installer
-- An automated upgrade command
-- Automatic Nginx configuration installation
-- Automatic PHP-FPM configuration installation
+- A graphical operating-system installer
+- Automatic Ubuntu package installation
+- Automatic Nginx installation
+- Automatic PHP-FPM installation
 - Automatic cron installation
-- Automatic LightDM or Openbox configuration
-- Automatic firewall configuration
-- Versioned release packaging
-- Universal per-command console help
+- Automatic logrotate installation
+- Automatic firewall installation
+- Automatic LightDM installation
+- Automatic Openbox installation
+- Automatic Chromium installation
 - Built-in HTTPS provisioning
-- Multiple independently managed kiosk profiles
+- Cryptographic package signatures beyond published SHA-256 verification
+- Automatic release download
+- Automatic application-source replacement
+- Unsafe automatic database rollback
+- Universal per-command `--help`
 
-These tasks currently require manual system administration.
+These remain controlled administrator operations.
 
 ---
 
-## 51. Post-Installation Documentation
+## 61. Deployment Record
 
-After installation, record:
+After installation or upgrade, record:
 
+- Application version
+- Package filename
+- Package SHA-256
+- Installation date
+- Upgrade execution ID when applicable
 - Server hostname
 - Server IP address
 - Network interface
 - MAC address
 - Gateway
 - DNS server
-- DHCP reservation
+- Trusted subnet
 - Application path
 - Company timezone
-- Supervisor account owner
 - SMTP provider
-- Backup schedule
+- Scheduler cron
+- Retry cron
+- Backup cron
 - Backup retention
-- Scheduler schedule
 - Kiosk timeout
-- System-level configuration file locations
-- Date of the most recent recovery test
-- Date of the most recent reboot validation
+- System configuration locations
+- Latest verified backup
+- Latest recovery test
+- Latest reboot validation
+- Automated-test result
 
-Do not record passwords, PINs, SMTP secrets, or password hashes in general deployment documentation.
+Do not record secrets in the deployment record.
