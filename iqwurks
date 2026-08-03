@@ -21,10 +21,11 @@ use App\Console\Commands\MaintenanceOnCommand;
 use App\Console\Commands\MaintenanceStatusCommand;
 use App\Console\Commands\ScheduleRunCommand;
 use App\Console\Commands\SchedulerCheckCommand;
+use App\Console\Commands\UpgradeApplyCommand;
 use App\Console\Commands\UpgradeCheckCommand;
 use App\Console\Commands\UpgradePlanCommand;
 use App\Console\Commands\UpgradePreviewCommand;
-use App\Console\Commands\UpgradeApplyCommand;
+use App\Console\Commands\UpgradeRecoveryCheckCommand;
 use App\Console\Commands\UpgradeStatusCommand;
 use App\Console\Commands\VersionCommand;
 use App\Core\AppInfo;
@@ -67,7 +68,8 @@ $databaseIndependentCommands = [
     'upgrade:plan',
     'upgrade:preview',
     'upgrade:apply',
-    'upgrade:status'
+    'upgrade:status',
+    'upgrade:recovery-check'
 ];
 
 
@@ -511,6 +513,7 @@ $console->register(
     )
 );
 
+
 $console->register(
     new LazyCommand(
         'upgrade:apply',
@@ -520,6 +523,7 @@ $console->register(
     )
 );
 
+
 $console->register(
     new LazyCommand(
         'upgrade:status',
@@ -528,6 +532,17 @@ $console->register(
             new UpgradeStatusCommand()
     )
 );
+
+
+$console->register(
+    new LazyCommand(
+        'upgrade:recovery-check',
+        'Assess whether the latest controlled upgrade was interrupted.',
+        static fn (): CommandInterface =>
+            new UpgradeRecoveryCheckCommand()
+    )
+);
+
 
 $exitCode =
     $console->run(
