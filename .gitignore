@@ -20,6 +20,10 @@ config/mail.php
 /storage/backups/*
 !/storage/backups/.gitkeep
 
+# Generated exports and distribution packages
+/storage/exports/*
+!/storage/exports/.gitkeep
+
 # Sessions
 /storage/sessions/*
 !/storage/sessions/.gitkeep
