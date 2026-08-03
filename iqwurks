@@ -12,6 +12,7 @@ use App\Console\Commands\BackupRestoreCommand;
 use App\Console\Commands\BackupRunCommand;
 use App\Console\Commands\BackupVerifyCommand;
 use App\Console\Commands\DatabaseCheckCommand;
+use App\Console\Commands\DistributionPackageBuildCommand;
 use App\Console\Commands\DoctorCommand;
 use App\Console\Commands\InstallCheckCommand;
 use App\Console\Commands\MailCheckCommand;
@@ -63,6 +64,7 @@ $databaseIndependentCommands = [
     'maintenance:on',
     'maintenance:off',
     'maintenance:status',
+    'package:build',
     'scheduler:check',
     'upgrade:check',
     'upgrade:plan',
@@ -460,6 +462,16 @@ $console->register(
         'Preview or retry failed payroll-report email deliveries.',
         static fn (): CommandInterface =>
             new MailRetryCommand()
+    )
+);
+
+
+$console->register(
+    new LazyCommand(
+        'package:build',
+        'Preview or build a verified IQwurksPunch distribution archive.',
+        static fn (): CommandInterface =>
+            new DistributionPackageBuildCommand()
     )
 );
 
