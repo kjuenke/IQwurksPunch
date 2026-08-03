@@ -13,6 +13,7 @@ use App\Console\Commands\BackupRunCommand;
 use App\Console\Commands\BackupVerifyCommand;
 use App\Console\Commands\DatabaseCheckCommand;
 use App\Console\Commands\DistributionPackageBuildCommand;
+use App\Console\Commands\DistributionPackageVerifyCommand;
 use App\Console\Commands\DoctorCommand;
 use App\Console\Commands\InstallCheckCommand;
 use App\Console\Commands\MailCheckCommand;
@@ -65,6 +66,7 @@ $databaseIndependentCommands = [
     'maintenance:off',
     'maintenance:status',
     'package:build',
+    'package:verify',
     'scheduler:check',
     'upgrade:check',
     'upgrade:plan',
@@ -472,6 +474,16 @@ $console->register(
         'Preview or build a verified IQwurksPunch distribution archive.',
         static fn (): CommandInterface =>
             new DistributionPackageBuildCommand()
+    )
+);
+
+
+$console->register(
+    new LazyCommand(
+        'package:verify',
+        'Independently verify an IQwurksPunch distribution archive.',
+        static fn (): CommandInterface =>
+            new DistributionPackageVerifyCommand()
     )
 );
 
