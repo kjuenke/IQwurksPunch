@@ -1565,6 +1565,7 @@ final class DistributionPackageVerificationService
             'composer.json',
             'composer.lock',
             'config/mail.example.php',
+            'deployment/README.md',
             'iqwurks',
             'LICENSE',
             'migrate.php',

@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 use App\Services\DistributionPackageArchiveService;
 use App\Services\DistributionPackageVerificationService;
+use App\Services\ProcessRunnerService;
 use PHPUnit\Framework\TestCase;
 
 final class DistributionPackageVerificationServiceTest extends TestCase
@@ -363,6 +364,181 @@ final class DistributionPackageVerificationServiceTest extends TestCase
         self::assertContains(
             'package_filename_mismatch',
             $failureCodes
+        );
+
+
+        self::assertTrue(
+            $result['temporary_workspace_removed']
+        );
+    }
+
+
+    public function testMissingDeploymentReadmeFailsVerification(): void
+    {
+        $build =
+            (
+                new DistributionPackageArchiveService(
+                    $this->projectRoot
+                )
+            )->build();
+
+
+        $tamperRoot =
+            $this->projectRoot
+            .
+            '/tampered-package';
+
+
+        self::assertTrue(
+            mkdir(
+                $tamperRoot,
+                0770,
+                true
+            )
+        );
+
+
+        $processes =
+            new ProcessRunnerService();
+
+
+        $extract =
+            $processes->run(
+                [
+                    'tar',
+                    '--extract',
+                    '--gzip',
+                    '--file',
+                    $build['archive_path'],
+                    '--directory',
+                    $tamperRoot,
+                    '--no-same-owner',
+                    '--same-permissions'
+                ],
+                $this->projectRoot,
+                [],
+                120.0
+            );
+
+
+        self::assertTrue(
+            (
+                $extract['successful']
+                ??
+                false
+            )
+            ===
+            true
+        );
+
+
+        $packageRoot =
+            $tamperRoot
+            .
+            '/iqwurkspunch-0.9.0-dev';
+
+
+        self::assertTrue(
+            unlink(
+                $packageRoot
+                .
+                '/deployment/README.md'
+            )
+        );
+
+
+        self::assertTrue(
+            unlink(
+                $build['archive_path']
+            )
+        );
+
+
+        $create =
+            $processes->run(
+                [
+                    'tar',
+                    '--create',
+                    '--gzip',
+                    '--file',
+                    $build['archive_path'],
+                    '--directory',
+                    $tamperRoot,
+                    'iqwurkspunch-0.9.0-dev'
+                ],
+                $this->projectRoot,
+                [],
+                120.0
+            );
+
+
+        self::assertTrue(
+            (
+                $create['successful']
+                ??
+                false
+            )
+            ===
+            true
+        );
+
+
+        $result =
+            (
+                new DistributionPackageVerificationService(
+                    $this->projectRoot
+                )
+            )->verify(
+                $build['archive_path']
+            );
+
+
+        self::assertFalse(
+            $result['successful']
+        );
+
+
+        self::assertSame(
+            'FAIL',
+            $result['overall_status']
+        );
+
+
+        $deploymentFailures =
+            array_values(
+                array_filter(
+                    $result['failures'],
+                    static fn (
+                        array $failure
+                    ): bool =>
+                        (
+                            $failure['code']
+                            ??
+                            ''
+                        )
+                        ===
+                        'required_path_missing'
+                        &&
+                        (
+                            $failure['path']
+                            ??
+                            ''
+                        )
+                        ===
+                        'deployment/README.md'
+                )
+            );
+
+
+        self::assertCount(
+            1,
+            $deploymentFailures
+        );
+
+
+        self::assertSame(
+            'deployment/README.md',
+            $deploymentFailures[0]['path']
         );
 
 
