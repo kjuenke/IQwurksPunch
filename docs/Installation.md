@@ -901,12 +901,12 @@ Test Bootstrap assets:
 
 ```bash
 curl --head \
-    http://127.0.0.1/assets/vendor/bootstrap/5.3.8/css/bootstrap.min.css
+    http://127.0.0.1/assets/vendor/bootstrap/5.3.7/css/bootstrap.min.css
 ```
 
 ```bash
 curl --head \
-    http://127.0.0.1/assets/vendor/bootstrap/5.3.8/js/bootstrap.bundle.min.js
+    http://127.0.0.1/assets/vendor/bootstrap/5.3.7/js/bootstrap.bundle.min.js
 ```
 
 Test Bootstrap Icons:
