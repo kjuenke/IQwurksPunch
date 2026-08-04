@@ -1,0 +1,14 @@
+#!/bin/sh
+
+/usr/bin/xset s off
+/usr/bin/xset s noblank
+/usr/bin/xset -dpms
+
+/usr/bin/xsetroot \
+    -solid black
+
+/usr/bin/unclutter \
+    -idle 1 \
+    -root &
+
+/usr/local/bin/iqwurks-kiosk-browser &

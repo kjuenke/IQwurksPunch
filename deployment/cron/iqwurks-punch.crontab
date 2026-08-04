@@ -1,0 +1,14 @@
+# BEGIN IQWURKSPUNCH
+
+CRON_TZ={{TIMEZONE}}
+
+# Evaluate scheduled payroll reports once per minute.
+* * * * * cd {{APPLICATION_ROOT}} && /usr/bin/flock -n /tmp/iqwurks-scheduler.lock /usr/bin/php iqwurks schedule:run >> storage/logs/cron-scheduler.log 2>&1
+
+# Retry eligible failed payroll-report deliveries once per minute.
+* * * * * cd {{APPLICATION_ROOT}} && /usr/bin/flock -n /tmp/iqwurks-mail-retry.lock /usr/bin/php iqwurks mail:retry --send >> storage/logs/cron-mail-retry.log 2>&1
+
+# Create and verify a database backup daily at 01:15.
+15 1 * * * cd {{APPLICATION_ROOT}} && /usr/bin/flock -n /tmp/iqwurks-backup-cron.lock /usr/bin/php iqwurks backup:run >> storage/logs/cron-backup.log 2>&1
+
+# END IQWURKSPUNCH

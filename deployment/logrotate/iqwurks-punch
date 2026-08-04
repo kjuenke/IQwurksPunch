@@ -1,0 +1,27 @@
+{{APPLICATION_ROOT}}/storage/logs/*.log {
+    daily
+    rotate 30
+    maxsize 5M
+    missingok
+    notifempty
+    compress
+    delaycompress
+    dateext
+    dateformat -%Y%m%d-%H%M%S
+    create 0660 www-data www-data
+    su www-data www-data
+}
+
+{{KIOSK_HOME}}/.local/state/iqwurks-kiosk/browser.log {
+    daily
+    rotate 14
+    maxsize 5M
+    missingok
+    notifempty
+    compress
+    delaycompress
+    dateext
+    dateformat -%Y%m%d-%H%M%S
+    copytruncate
+    su {{KIOSK_USER}} {{KIOSK_USER}}
+}

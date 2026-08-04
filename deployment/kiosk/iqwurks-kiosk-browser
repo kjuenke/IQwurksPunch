@@ -1,0 +1,61 @@
+#!/usr/bin/env bash
+set -u
+
+readonly KIOSK_URL="{{KIOSK_URL}}"
+readonly CHROMIUM_BINARY="{{CHROMIUM_BINARY}}"
+readonly LOG_DIRECTORY="${HOME}/.local/state/iqwurks-kiosk"
+readonly LOG_FILE="${LOG_DIRECTORY}/browser.log"
+
+mkdir -p "${LOG_DIRECTORY}"
+chmod 700 "${LOG_DIRECTORY}"
+
+while true
+do
+    until /usr/bin/curl \
+        --fail \
+        --silent \
+        --show-error \
+        --max-time 3 \
+        "${KIOSK_URL}" \
+        >/dev/null
+    do
+        printf \
+            '[%s] Waiting for IQwurksPunch at %s\n' \
+            "$(/usr/bin/date --iso-8601=seconds)" \
+            "${KIOSK_URL}" \
+            >> "${LOG_FILE}"
+
+        /usr/bin/sleep 2
+    done
+
+    printf \
+        '[%s] Starting Chromium kiosk browser.\n' \
+        "$(/usr/bin/date --iso-8601=seconds)" \
+        >> "${LOG_FILE}"
+
+    "${CHROMIUM_BINARY}" \
+        --kiosk \
+        --incognito \
+        --no-first-run \
+        --no-default-browser-check \
+        --noerrdialogs \
+        --disable-session-crashed-bubble \
+        --disable-translate \
+        --disable-features=Translate,TranslateUI \
+        --password-store=basic \
+        --disable-pinch \
+        --overscroll-history-navigation=0 \
+        "${KIOSK_URL}" \
+        >> "${LOG_FILE}" \
+        2>&1
+
+    exitCode=$?
+
+    printf \
+        '[%s] Chromium exited with code %s. Restarting in two seconds.\n' \
+        "$(/usr/bin/date --iso-8601=seconds)" \
+        "${exitCode}" \
+        >> "${LOG_FILE}"
+
+    /usr/bin/sleep 2
+done
