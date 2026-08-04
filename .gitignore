@@ -54,3 +54,10 @@ Thumbs.db
 *.before-*
 *.bak
 *~
+
+# Legacy storage-root database protection
+/storage/*.sqlite
+/storage/*.sqlite-shm
+/storage/*.sqlite-wal
+/storage/*.sqlite-journal
+/storage/*.db
