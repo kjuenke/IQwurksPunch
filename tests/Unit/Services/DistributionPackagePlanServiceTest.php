@@ -42,6 +42,7 @@ final class DistributionPackagePlanServiceTest extends TestCase
                 'config',
                 'database/migrations',
                 'database/seeds',
+                'deployment',
                 'docs',
                 'plugins',
                 'public',
@@ -154,6 +155,18 @@ final class DistributionPackagePlanServiceTest extends TestCase
         );
 
 
+        self::assertContains(
+            'deployment',
+            $plan['include_paths']
+        );
+
+
+        self::assertContains(
+            'deployment',
+            $plan['required_directories']
+        );
+
+
         self::assertFalse(
             $plan['changes_made']
         );
@@ -224,6 +237,85 @@ final class DistributionPackagePlanServiceTest extends TestCase
         self::assertSame(
             'FAIL',
             $composerLockCheck[0]['status']
+        );
+    }
+
+
+    public function testMissingDeploymentDirectoryBlocksPackaging(): void
+    {
+        self::assertTrue(
+            rmdir(
+                $this->projectRoot
+                .
+                '/deployment'
+            )
+        );
+
+
+        $plan =
+            (
+                new DistributionPackagePlanService(
+                    $this->projectRoot
+                )
+            )->plan();
+
+
+        self::assertSame(
+            'FAIL',
+            $plan['overall_status']
+        );
+
+
+        self::assertTrue(
+            $plan['blocked']
+        );
+
+
+        self::assertFalse(
+            $plan['can_build']
+        );
+
+
+        self::assertSame(
+            1,
+            $plan['summary']['failures']
+        );
+
+
+        $deploymentCheck =
+            array_values(
+                array_filter(
+                    $plan['required_path_checks'],
+                    static fn (
+                        array $check
+                    ): bool =>
+                        $check['path']
+                        ===
+                        'deployment'
+                )
+            );
+
+
+        self::assertCount(
+            1,
+            $deploymentCheck
+        );
+
+
+        self::assertSame(
+            'directory',
+            $deploymentCheck[0]['type']
+        );
+
+
+        self::assertFalse(
+            $deploymentCheck[0]['exists']
+        );
+
+
+        self::assertSame(
+            'FAIL',
+            $deploymentCheck[0]['status']
         );
     }
 
