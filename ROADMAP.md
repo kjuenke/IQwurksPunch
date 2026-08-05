@@ -1348,6 +1348,63 @@ Target requirements:
 
 ---
 
+### Payroll Period Management
+
+Version 1.0 will introduce persisted payroll-period records and controlled
+administrative lifecycle management.
+
+Completion requirements:
+
+- Administrators can create payroll periods with defined start and end dates.
+- The system prevents overlapping periods unless an explicitly approved
+  operating rule permits them.
+- Draft payroll periods can be edited before they are finalized.
+- Draft payroll periods can be permanently deleted after confirmation.
+- Deleting a payroll-period record does not delete the underlying employee
+  punches.
+- Finalized or closed payroll periods cannot be silently deleted.
+- Finalized periods can be voided or archived with a required reason.
+- Generated CSV and PDF artifacts can be removed separately from payroll data.
+- Confirmation screens show the date range, employee count, punch count,
+  generated reports, and current period status.
+- Destructive actions require explicit administrator confirmation.
+- Payroll-period creation, editing, finalization, deletion, voiding, and
+  archival are recorded in the audit log.
+- Tests cover authorization, status transitions, deletion protection, punch
+  retention, and audit history.
+
+### Supervisor User Management
+
+Version 1.0 will provide administrator-controlled supervisor account
+management using the existing user authentication foundation.
+
+Completion requirements:
+
+- Administrators can create supervisor accounts.
+- New accounts support username, email address, password, role, and active
+  status.
+- Usernames remain unique and are validated before an account is created.
+- Passwords are securely hashed and are never stored or displayed as plain
+  text.
+- Administrators can edit supervisor account details.
+- Administrators can reset supervisor passwords.
+- Administrators can activate or deactivate supervisor accounts.
+- Supervisors with operational or audit history are deactivated rather than
+  silently deleted.
+- The system prevents deactivation or removal of the final active
+  administrator.
+- The system prevents an administrator from accidentally locking out their
+  own active session.
+- Role changes require administrator authorization.
+- Supervisor users cannot create administrators or elevate their own role
+  unless a future permission policy explicitly grants that authority.
+- Account creation, role changes, password resets, activation, and
+  deactivation are recorded in the audit log.
+- The management interface displays account status, role, email address,
+  creation information, and last-login information.
+- Tests cover authorization, validation, password handling, last-administrator
+  protection, account status, and audit history.
+
 ## Future Possibilities
 
 These ideas are not committed to a specific release:
