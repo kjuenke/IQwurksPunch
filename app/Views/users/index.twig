@@ -1,0 +1,311 @@
+{% extends "layouts/base.twig" %}
+
+{% block content %}
+
+<div class="d-flex flex-wrap justify-content-between align-items-center mb-4">
+
+    <div>
+
+        <h1 class="mb-1">
+            Supervisor Users
+        </h1>
+
+        <div class="text-muted">
+            Create and manage accounts that can access supervisor pages.
+        </div>
+
+    </div>
+
+
+    <a
+        href="/admin/users/create"
+        class="btn btn-primary"
+    >
+
+        <i class="bi bi-person-plus me-1"></i>
+
+        Create User
+
+    </a>
+
+</div>
+
+
+<div class="row g-3 mb-4">
+
+    <div class="col-md-6">
+
+        <div class="card shadow-sm h-100">
+
+            <div class="card-body">
+
+                <div class="small text-muted">
+                    Total Accounts
+                </div>
+
+                <div class="display-6">
+                    {{ users|length }}
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <div class="col-md-6">
+
+        <div class="card shadow-sm h-100">
+
+            <div class="card-body">
+
+                <div class="small text-muted">
+                    Active Administrators
+                </div>
+
+                <div class="display-6">
+                    {{ activeAdministratorCount }}
+                </div>
+
+                {% if activeAdministratorCount <= 1 %}
+
+                    <div class="small text-warning mt-2">
+
+                        <i class="bi bi-exclamation-triangle me-1"></i>
+
+                        The final active administrator is protected from
+                        deactivation or role removal.
+
+                    </div>
+
+                {% endif %}
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<div class="card shadow-sm">
+
+    <div class="card-header bg-body-tertiary">
+
+        <span class="fw-semibold">
+            User Accounts
+        </span>
+
+    </div>
+
+
+    <div class="card-body p-0">
+
+        {% if users %}
+
+            <div class="table-responsive">
+
+                <table class="table table-hover align-middle mb-0">
+
+                    <thead>
+
+                        <tr>
+
+                            <th scope="col">
+                                Username
+                            </th>
+
+                            <th scope="col">
+                                Email
+                            </th>
+
+                            <th scope="col">
+                                Role
+                            </th>
+
+                            <th scope="col">
+                                Status
+                            </th>
+
+                            <th scope="col">
+                                Created
+                            </th>
+
+                            <th scope="col">
+                                Last Login
+                            </th>
+
+                            <th
+                                scope="col"
+                                class="text-end"
+                            >
+                                Protection
+                            </th>
+
+                        </tr>
+
+                    </thead>
+
+
+                    <tbody>
+
+                        {% for user in users %}
+
+                            <tr>
+
+                                <td>
+
+                                    <div class="fw-semibold">
+                                        {{ user.username }}
+                                    </div>
+
+                                    {% if user.is_self %}
+
+                                        <span class="badge text-bg-primary">
+                                            Current account
+                                        </span>
+
+                                    {% endif %}
+
+                                </td>
+
+
+                                <td>
+                                    {{ user.email|default('—') }}
+                                </td>
+
+
+                                <td>
+
+                                    {% if user.role == 'admin' %}
+
+                                        <span class="badge text-bg-dark">
+                                            Administrator
+                                        </span>
+
+                                    {% else %}
+
+                                        <span class="badge text-bg-info">
+                                            Supervisor
+                                        </span>
+
+                                    {% endif %}
+
+                                </td>
+
+
+                                <td>
+
+                                    {% if user.active %}
+
+                                        <span class="badge text-bg-success">
+                                            Active
+                                        </span>
+
+                                    {% else %}
+
+                                        <span class="badge text-bg-secondary">
+                                            Inactive
+                                        </span>
+
+                                    {% endif %}
+
+                                </td>
+
+
+                                <td>
+                                    {{ user.created_at|default('—') }}
+                                </td>
+
+
+                                <td>
+                                    {{ user.last_login|default('Never') }}
+                                </td>
+
+
+                                <td class="text-end">
+
+                                    {% if user.is_final_active_administrator %}
+
+                                        <span
+                                            class="badge text-bg-warning"
+                                            title="This is the final active administrator."
+                                        >
+
+                                            <i class="bi bi-shield-lock me-1"></i>
+
+                                            Protected
+
+                                        </span>
+
+                                    {% elseif user.is_self %}
+
+                                        <span
+                                            class="badge text-bg-light border"
+                                            title="The signed-in account cannot deactivate itself."
+                                        >
+                                            Self
+                                        </span>
+
+                                    {% else %}
+
+                                        <span class="text-muted">
+                                            —
+                                        </span>
+
+                                    {% endif %}
+
+                                </td>
+
+                            </tr>
+
+                        {% endfor %}
+
+                    </tbody>
+
+                </table>
+
+            </div>
+
+        {% else %}
+
+            <div class="p-4 text-center text-muted">
+                No user accounts were found.
+            </div>
+
+        {% endif %}
+
+    </div>
+
+</div>
+
+
+<div class="alert alert-info mt-4 mb-0">
+
+    <div class="d-flex gap-3">
+
+        <i class="bi bi-info-circle fs-4"></i>
+
+        <div>
+
+            <strong>
+                Account-management safeguards
+            </strong>
+
+            <div class="mt-1">
+
+                Password hashes are never displayed. The signed-in administrator
+                cannot deactivate their own account, and the final active
+                administrator cannot be removed or downgraded.
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+{% endblock %}

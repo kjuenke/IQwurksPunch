@@ -18,6 +18,7 @@ use App\Controllers\ReportController;
 use App\Controllers\ReportEmailController;
 use App\Controllers\SettingsController;
 use App\Controllers\SetupController;
+use App\Controllers\UserManagementController;
 
 
 /*
@@ -511,4 +512,29 @@ $router->get(
 $router->post(
     '/admin/labor-rules',
     [$laborRules, 'update']
+);
+
+
+/*
+|--------------------------------------------------------------------------
+| Supervisor User Management
+|--------------------------------------------------------------------------
+*/
+
+$userManagement =
+    new UserManagementController();
+
+$router->get(
+    '/admin/users',
+    [$userManagement, 'index']
+);
+
+$router->get(
+    '/admin/users/create',
+    [$userManagement, 'create']
+);
+
+$router->post(
+    '/admin/users/create',
+    [$userManagement, 'store']
 );

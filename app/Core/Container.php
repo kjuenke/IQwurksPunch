@@ -28,6 +28,7 @@ use App\Repositories\ReportScheduleRepository;
 use App\Repositories\UserRepository;
 use App\Services\AuditService;
 use App\Services\AuthService;
+use App\Services\UserManagementService;
 use App\Services\CompanySettingsService;
 use App\Services\DashboardService;
 use App\Services\EmployeeService;
@@ -545,6 +546,14 @@ final class Container
 
 
         return self::$mailService;
+    }
+
+
+    public static function userManagementService(): UserManagementService
+    {
+        return new UserManagementService(
+            self::userRepository()
+        );
     }
 
 

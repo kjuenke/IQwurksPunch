@@ -1,0 +1,354 @@
+{% extends "layouts/base.twig" %}
+
+{% block content %}
+
+<div class="d-flex flex-wrap justify-content-between align-items-center mb-4">
+
+    <div>
+
+        <h1 class="mb-1">
+            Create User
+        </h1>
+
+        <div class="text-muted">
+            Create a supervisor account or an additional administrator.
+        </div>
+
+    </div>
+
+
+    <a
+        href="/admin/users"
+        class="btn btn-outline-secondary"
+    >
+
+        <i class="bi bi-arrow-left me-1"></i>
+
+        Back to Users
+
+    </a>
+
+</div>
+
+
+{% if errors %}
+
+    <div class="alert alert-danger">
+
+        <strong>
+            The account could not be created.
+        </strong>
+
+        <ul class="mb-0 mt-2">
+
+            {% for error in errors %}
+
+                <li>
+                    {{ error }}
+                </li>
+
+            {% endfor %}
+
+        </ul>
+
+    </div>
+
+{% endif %}
+
+
+<div class="row g-4">
+
+    <div class="col-xl-8">
+
+        <div class="card shadow-sm">
+
+            <div class="card-header bg-body-tertiary">
+
+                <span class="fw-semibold">
+                    Account Information
+                </span>
+
+            </div>
+
+
+            <div class="card-body">
+
+                <form
+                    method="post"
+                    action="/admin/users/create"
+                >
+
+                    <div class="row g-3">
+
+                        <div class="col-md-6">
+
+                            <label
+                                for="username"
+                                class="form-label"
+                            >
+                                Username
+                            </label>
+
+                            <input
+                                type="text"
+                                id="username"
+                                name="username"
+                                class="form-control"
+                                value="{{ form.username|default('') }}"
+                                minlength="3"
+                                maxlength="64"
+                                pattern="[A-Za-z0-9._-]+"
+                                autocomplete="off"
+                                required
+                                autofocus
+                            >
+
+                            <div class="form-text">
+                                Letters, numbers, periods, underscores, and
+                                hyphens are allowed.
+                            </div>
+
+                        </div>
+
+
+                        <div class="col-md-6">
+
+                            <label
+                                for="email"
+                                class="form-label"
+                            >
+                                Email Address
+                            </label>
+
+                            <input
+                                type="email"
+                                id="email"
+                                name="email"
+                                class="form-control"
+                                value="{{ form.email|default('') }}"
+                                maxlength="254"
+                                autocomplete="off"
+                                required
+                            >
+
+                        </div>
+
+
+                        <div class="col-md-6">
+
+                            <label
+                                for="role"
+                                class="form-label"
+                            >
+                                Role
+                            </label>
+
+                            <select
+                                id="role"
+                                name="role"
+                                class="form-select"
+                                required
+                            >
+
+                                <option
+                                    value="supervisor"
+                                    {% if form.role|default('supervisor') == 'supervisor' %}
+                                        selected
+                                    {% endif %}
+                                >
+                                    Supervisor
+                                </option>
+
+                                <option
+                                    value="admin"
+                                    {% if form.role|default('supervisor') == 'admin' %}
+                                        selected
+                                    {% endif %}
+                                >
+                                    Administrator
+                                </option>
+
+                            </select>
+
+                            <div class="form-text">
+
+                                Supervisors can use authorized operational
+                                pages. Administrators can also manage user
+                                accounts and protected settings.
+
+                            </div>
+
+                        </div>
+
+
+                        <div class="col-md-6">
+
+                            <label class="form-label d-block">
+                                Initial Status
+                            </label>
+
+                            <div class="form-check form-switch mt-2">
+
+                                <input
+                                    class="form-check-input"
+                                    type="checkbox"
+                                    role="switch"
+                                    id="active"
+                                    name="active"
+                                    value="1"
+                                    {% if form.active|default(true) %}
+                                        checked
+                                    {% endif %}
+                                >
+
+                                <label
+                                    class="form-check-label"
+                                    for="active"
+                                >
+                                    Account is active
+                                </label>
+
+                            </div>
+
+                            <div class="form-text">
+                                Inactive accounts cannot sign in.
+                            </div>
+
+                        </div>
+
+
+                        <div class="col-md-6">
+
+                            <label
+                                for="password"
+                                class="form-label"
+                            >
+                                Password
+                            </label>
+
+                            <input
+                                type="password"
+                                id="password"
+                                name="password"
+                                class="form-control"
+                                minlength="12"
+                                autocomplete="new-password"
+                                required
+                            >
+
+                            <div class="form-text">
+                                The password must contain at least 12 characters.
+                            </div>
+
+                        </div>
+
+
+                        <div class="col-md-6">
+
+                            <label
+                                for="confirm_password"
+                                class="form-label"
+                            >
+                                Confirm Password
+                            </label>
+
+                            <input
+                                type="password"
+                                id="confirm_password"
+                                name="confirm_password"
+                                class="form-control"
+                                minlength="12"
+                                autocomplete="new-password"
+                                required
+                            >
+
+                        </div>
+
+
+                        <div class="col-12">
+
+                            <hr>
+
+                            <div class="d-flex flex-wrap gap-2">
+
+                                <button
+                                    type="submit"
+                                    class="btn btn-primary"
+                                >
+
+                                    <i class="bi bi-person-plus me-1"></i>
+
+                                    Create User
+
+                                </button>
+
+
+                                <a
+                                    href="/admin/users"
+                                    class="btn btn-outline-secondary"
+                                >
+                                    Cancel
+                                </a>
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                </form>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <div class="col-xl-4">
+
+        <div class="card shadow-sm">
+
+            <div class="card-header bg-body-tertiary">
+
+                <span class="fw-semibold">
+                    Role Guidance
+                </span>
+
+            </div>
+
+
+            <div class="card-body">
+
+                <h2 class="h6">
+                    Supervisor
+                </h2>
+
+                <p class="small text-muted">
+
+                    Use this role for managers who review punches, payroll
+                    exceptions, reports, and payroll periods.
+
+                </p>
+
+
+                <h2 class="h6 mt-4">
+                    Administrator
+                </h2>
+
+                <p class="small text-muted mb-0">
+
+                    Use this role only for people authorized to manage system
+                    settings and other supervisor accounts.
+
+                </p>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+{% endblock %}
