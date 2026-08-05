@@ -933,71 +933,390 @@ The following items remain planned for later releases:
 
 ## Version 0.9 — Installation, Upgrade, and Packaging
 
-**Status: Planned**
+**Status: Completed — August 5, 2026**
 
-Version 0.9 is expected to convert the validated production deployment into a repeatable installation and upgrade process.
+Version 0.9 converts the validated production deployment into a repeatable installation, controlled-upgrade, release-packaging, and recovery workflow.
 
-Planned work:
+Completed work:
 
-### Guided Installation
+### Installation Diagnostics
 
-- Environment validation
-- PHP requirement validation
-- Extension validation
-- Directory-permission validation
-- Database initialization
-- Initial supervisor creation
-- Initial company configuration
-- SMTP configuration guidance
-- Cron installation guidance
-- Web-server configuration guidance
+- Installation preflight service
+- `install:check` console command
+- Operating-system validation
+- PHP availability and version validation
+- Required PHP-extension validation
+- Required system-command validation
+- Application-source validation
+- Composer dependency validation
+- Runtime-directory validation
+- Runtime-directory permission validation
+- Available-disk-space validation
+- PASS, WARN, and FAIL readiness reporting
+- Read-only installation diagnostics
 
-### Upgrade Workflow
+### Upgrade Readiness and Planning
 
-- Upgrade preflight checks
-- Automatic pre-upgrade backup
-- Migration preview
-- Migration execution
-- Post-upgrade database validation
-- Application version verification
-- Upgrade rollback guidance
-- Maintenance-mode automation
-- Upgrade logs
+- Upgrade-readiness service
+- `upgrade:check` console command
+- Installed-version inspection
+- Database availability and integrity review
+- Migration-state review
+- Composer-state review
+- Maintenance-mode review
+- Backup-readiness review
+- Upgrade-journal review
+- Blocking-failure reporting
+- Nonblocking warning reporting
+- Read-only upgrade planning
+- `upgrade:plan` console command
+- Planned-operation sequencing
+- Controlled upgrade preview
+- `upgrade:preview` console command
+- Required confirmation-phrase reporting
 
-### Deployment Documentation
+### Controlled Upgrade Execution
 
-- Nginx configuration template
-- PHP-FPM configuration template
-- Scheduler cron template
-- Backup cron template
-- Logrotate template
-- Firewall guidance
-- Local kiosk configuration
-- LightDM configuration
-- Openbox configuration
-- Chromium launcher
-- Reboot-recovery checklist
+- Safe process-runner interface
+- Shell-bypassing process execution
+- Argument-array command execution
+- Standard-output capture
+- Standard-error capture
+- Exit-code capture
+- Working-directory support
+- Environment-variable overrides
+- Controlled process timeouts
+- Exit code `124` for timed-out processes
+- Guarded upgrade operations
+- Ordered upgrade execution
+- Exact confirmation enforcement
+- Blocking-operation failure handling
+- `upgrade:apply` console command
 
-### Release Packaging
+### Upgrade Journaling and Recovery
 
-- Versioned release archive
-- Dependency installation guidance
-- Checksum files
-- Release manifest
-- Upgrade notes
-- Fresh-install notes
-- Supported-platform documentation
-- Configuration examples
+- Persistent upgrade-execution journal
+- Execution identifiers
+- Start and completion timestamps
+- Current and target version metadata
+- Planned-operation counts
+- Completed-operation counts
+- Failure metadata
+- Final execution status
+- `upgrade:status` console command
+- Persisted-status correction
+- Interrupted-upgrade assessment
+- Recovery-required state
+- `upgrade:recovery-check` console command
+- Read-only recovery diagnostics
 
-### Administrative Documentation
+### Distribution Package Planning
 
-- Backup administration guide
-- Restore procedure
-- Disaster-recovery checklist
-- Diagnostic-command guide
-- Operations troubleshooting guide
-- Kiosk recovery guide
-- Supervisor security guide
+- Authoritative package-inclusion plan
+- Required source-path validation
+- Required root-file validation
+- Deployment-directory inclusion
+- Empty runtime-directory inclusion
+- Private-data exclusions
+- Generated-data exclusions
+- Unsafe-entry detection
+- Source-file counts
+- Directory counts
+- Source-byte totals
+- Read-only package preview
+
+### Portable Package Manifest
+
+- `PACKAGE-MANIFEST.json`
+- Manifest schema version
+- Application version
+- Package base name
+- Package filename
+- Deterministic manifest ordering
+- Entry-type metadata
+- Packaged permission modes
+- SHA-256 file digests
+- File and directory inventory
+
+### Controlled Package Staging
+
+- Temporary release-staging workspace
+- Normalized source-directory permissions
+- Normalized runtime-directory permissions
+- Normalized source-file permissions
+- Preserved executable application entry points
+- Empty generated runtime directories
+- Temporary-workspace cleanup
+
+Normalized package modes:
+
+```text
+Source directories:             0755
+Generated runtime directories:  0770
+Normal source files:            0644
+Application entry points:       0750
+```
+
+### Versioned Distribution Archives
+
+- GNU TAR archive generation
+- Versioned archive filenames
+- Deterministic ownership metadata
+- Deterministic timestamp handling
+- Controlled permission preservation
+- `package:build` console command
+- Preview-only default mode
+- Explicit `--build` execution
+- Generated-package Git ignore rules
+- Package output under `storage/exports/packages`
+
+Version 0.9 development package baseline:
+
+```text
+386 manifest entries
+313 source files
+73 directories
+6 generated runtime directories
+```
+
+Final release counts may change when final release-document content is packaged.
+
+### Independent Package Verification
+
+- `package:verify` console command
+- Optional expected SHA-256 verification
+- Archive readability checks
+- Safe relative-path validation
+- Single top-level package-root enforcement
+- Package-root validation
+- Archive-filename validation
+- Manifest JSON validation
+- Manifest-schema validation
+- Application-version validation
+- Required installation-path validation
+- File SHA-256 validation
+- File permission validation
+- Directory permission validation
+- Unlisted-entry detection
+- Empty runtime-directory validation
+- Forbidden-path validation
+- Symbolic-link rejection
+- Temporary extraction-workspace cleanup
+- Required deployment-documentation validation
+- Rejection of stale packages without deployment templates
+
+Required package paths include:
+
+```text
+PACKAGE-MANIFEST.json
+CHANGELOG.md
+composer.json
+composer.lock
+config/mail.example.php
+deployment/README.md
+iqwurks
+LICENSE
+migrate.php
+README.md
+ROADMAP.md
+VERSION
+```
+
+### Package Privacy and Safety
+
+Excluded package content includes:
+
+```text
+.git
+.env
+config/mail.php
+firewall-rules.txt
+installed-packages.txt
+vendor
+```
+
+Runtime exclusions include:
+
+- Active SQLite databases
+- SQLite WAL files
+- SQLite shared-memory files
+- SQLite journal files
+- Backups
+- Cached data
+- Generated exports
+- Application logs
+- Session data
+
+Additional protections include:
+
+- No symbolic links
+- No unsafe archive paths
+- No world-writable archive entries
+- Exactly one top-level package directory
+- Verified packaged permission modes
+- Verified file checksums
+
+### Deployment Templates
+
+Added reusable templates:
+
+```text
+deployment/README.md
+deployment/cron/iqwurks-punch.crontab
+deployment/kiosk/iqwurks-kiosk-browser
+deployment/lightdm/50-iqwurks-kiosk.conf
+deployment/logrotate/iqwurks-punch
+deployment/nginx/iqwurks-punch.conf
+deployment/openbox/autostart
+deployment/php-fpm/99-iqwurks-punch.ini
+deployment/ufw/README.md
+```
+
+Deployment placeholders include:
+
+```text
+{{APPLICATION_ROOT}}
+{{CHROMIUM_BINARY}}
+{{KIOSK_HOME}}
+{{KIOSK_URL}}
+{{KIOSK_USER}}
+{{PHP_FPM_SOCKET}}
+{{SERVER_NAMES}}
+{{TIMEZONE}}
+{{TRUSTED_SUBNET}}
+```
+
+Template coverage includes:
+
+- Nginx
+- PHP-FPM
+- Scheduler cron
+- Email-retry cron
+- Backup cron
+- Log rotation
+- Trusted-network firewall guidance
+- LightDM automatic login
+- Openbox kiosk startup
+- Chromium kiosk launching
+- Browser restart and recovery
+
+### Installation and Administrative Documentation
+
+- Package-oriented installation guide
+- Release-checksum verification
+- Independent package verification
+- Archive extraction
+- Composer dependency installation
+- Filesystem ownership and permissions
+- Installation preflight
+- SMTP configuration
+- Database initialization and migration
+- PHP-FPM configuration
+- Nginx configuration
+- Initial supervisor setup
+- Company configuration
+- Scheduler cron
+- Email-retry cron
+- Backup cron
+- Log rotation
+- Firewall configuration
+- Kiosk deployment
+- Diagnostic commands
+- Automated testing
+- Controlled upgrade workflow
+- Upgrade status
+- Interrupted-upgrade recovery
+- Rollback guidance
+- Package creation
+- Package verification
+- Release validation
+- Security review
+- Runtime-file documentation
+- System-file documentation
+- Known limitations
+
+Primary documentation:
+
+```text
+docs/Installation.md
+releases/0.9.0.md
+```
+
+### GitHub Distribution
+
+- GitHub repository created
+- Main branch uploaded
+- Maintained release branches uploaded
+- Historical release tags uploaded
+- Version 0.9 feature branch uploaded
+- Dedicated server SSH key configured
+- Local and remote branch identity verified
+- Repository security audit completed
+- Obsolete empty development database removed from tracking
+- Active production database confirmed ignored
+- SMTP configuration confirmed ignored
+- Machine inventory files confirmed untracked
+- Explicit storage-root SQLite ignore rules added
+
+### Automated Testing
+
+Version 0.9 adds tests for:
+
+- Installation preflight
+- Upgrade readiness
+- Upgrade planning
+- Upgrade preview
+- Exact confirmation
+- Safe process execution
+- Process output capture
+- Process timeouts
+- Guarded upgrade operations
+- Controlled upgrade application
+- Upgrade journals
+- Upgrade status
+- Interrupted-upgrade assessment
+- Recovery checks
+- Package planning
+- Package manifests
+- Controlled staging
+- Permission normalization
+- Archive generation
+- Deterministic archive metadata
+- Independent archive verification
+- Archive checksum validation
+- Archive filename validation
+- Required deployment documentation
+- Forbidden package paths
+- Runtime-data exclusion
+- Symbolic-link rejection
+- Temporary-workspace cleanup
+- Package command argument validation
+
+Final Version 0.9 test baseline:
+
+```text
+361 tests
+2850 assertions
+```
+
+### Deferred Beyond Version 0.9
+
+The following remain planned for Version 1.0 or later:
+
+- Browser-based installation wizard
+- Automatic operating-system package installation
+- Automatic deployment-template installation
+- Automatic Nginx site activation
+- Automatic PHP-FPM template activation
+- Automatic firewall-rule installation
+- Automatic kiosk software installation
+- Automatic remote release discovery
+- Automatic release downloading
+- Cryptographic archive signing beyond SHA-256 publication
+- Fully automatic source rollback without administrator review
+- Universal per-command `--help`
+- Multiple-company deployment management
+- Multiple-location deployment management
 
 ---
 

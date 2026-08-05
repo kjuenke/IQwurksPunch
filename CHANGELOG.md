@@ -6,6 +6,431 @@ The project follows Semantic Versioning for stable releases and generally follow
 
 ---
 
+## [0.9.0] - 2026-08-05
+
+### Added
+
+#### Installation Preflight Diagnostics
+
+- Added installation environment validation.
+- Added operating-system compatibility checks.
+- Added PHP availability and version checks.
+- Added required PHP-extension checks.
+- Added required system-command checks.
+- Added application-source validation.
+- Added Composer dependency validation.
+- Added runtime-directory validation.
+- Added runtime-directory permission checks.
+- Added available-disk-space validation.
+- Added the `install:check` console command.
+- Added PASS, WARN, and FAIL installation-readiness reporting.
+
+#### Upgrade Readiness and Planning
+
+- Added upgrade-readiness diagnostics.
+- Added application-version review.
+- Added database availability and integrity review.
+- Added migration-state review.
+- Added maintenance-mode review.
+- Added backup-readiness review.
+- Added Composer-state review.
+- Added upgrade-journal review.
+- Added the `upgrade:check` console command.
+- Added read-only upgrade planning.
+- Added planned-operation sequencing.
+- Added the `upgrade:plan` console command.
+- Added controlled upgrade preview.
+- Added the `upgrade:preview` console command.
+
+#### Controlled Upgrade Execution
+
+- Added exact-confirmation enforcement before upgrade execution.
+- Added guarded upgrade operations.
+- Added ordered upgrade execution.
+- Added blocking-failure handling.
+- Added operation result reporting.
+- Added process timeout handling.
+- Added standard-output and standard-error capture.
+- Added execution-directory support.
+- Added controlled environment overrides.
+- Added shell-bypassing process execution.
+- Added the `upgrade:apply` console command.
+- Added exit code `124` reporting for timed-out child processes.
+
+#### Upgrade Journaling and Recovery
+
+- Added persistent upgrade-execution journals.
+- Added execution identifiers.
+- Added start and completion timestamps.
+- Added current and target version metadata.
+- Added planned-operation counts.
+- Added completed-operation counts.
+- Added failed-operation metadata.
+- Added final execution status.
+- Added interruption assessment.
+- Added recovery-required state.
+- Added the `upgrade:status` console command.
+- Added the `upgrade:recovery-check` console command.
+- Added detection of executions that started but did not record normal completion.
+
+#### Distribution Package Planning
+
+- Added an authoritative package-inclusion plan.
+- Added required source-directory validation.
+- Added required root-file validation.
+- Added explicit runtime-directory handling.
+- Added private and generated data exclusions.
+- Added unsafe-entry detection.
+- Added package source-file and directory counts.
+- Added package source-size reporting.
+
+#### Portable Package Manifest
+
+- Added `PACKAGE-MANIFEST.json`.
+- Added manifest schema versioning.
+- Added application-version metadata.
+- Added package base-name metadata.
+- Added archive-filename metadata.
+- Added manifest-listed files and directories.
+- Added packaged permission modes.
+- Added SHA-256 digests for packaged files.
+- Added deterministic manifest ordering.
+
+#### Controlled Package Staging
+
+- Added temporary release staging.
+- Added normalized source-directory permissions.
+- Added normalized runtime-directory permissions.
+- Added normalized source-file permissions.
+- Added executable permissions for `iqwurks`.
+- Added executable permissions for `migrate.php`.
+- Added empty generated runtime directories.
+- Added cleanup of temporary staging workspaces.
+
+Package modes are normalized as follows:
+
+- Source directories: `0755`
+- Generated runtime directories: `0770`
+- Normal files: `0644`
+- Application entry points: `0750`
+
+#### Versioned Distribution Archives
+
+- Added versioned GNU TAR distribution archives.
+- Added the `package:build` console command.
+- Added read-only package preview mode.
+- Added explicit `--build` archive creation.
+- Added deterministic archive ownership metadata.
+- Added deterministic archive timestamp handling.
+- Added preservation of controlled package permissions.
+- Added package output under `storage/exports/packages`.
+- Added Git ignore rules for generated distribution packages.
+
+#### Independent Package Verification
+
+- Added the `package:verify` console command.
+- Added optional expected SHA-256 validation.
+- Added archive readability validation.
+- Added safe archive-path validation.
+- Added single top-level package-root validation.
+- Added package-root name validation.
+- Added package-filename validation.
+- Added manifest JSON validation.
+- Added manifest-schema validation.
+- Added application-version validation.
+- Added required installation-path validation.
+- Added file checksum validation.
+- Added file permission validation.
+- Added directory permission validation.
+- Added unlisted-entry detection.
+- Added empty runtime-directory validation.
+- Added forbidden-path validation.
+- Added symbolic-link rejection.
+- Added temporary extraction-workspace cleanup.
+- Added mandatory `deployment/README.md` verification.
+
+Required installation paths include:
+
+- `PACKAGE-MANIFEST.json`
+- `CHANGELOG.md`
+- `composer.json`
+- `composer.lock`
+- `config/mail.example.php`
+- `deployment/README.md`
+- `iqwurks`
+- `LICENSE`
+- `migrate.php`
+- `README.md`
+- `ROADMAP.md`
+- `VERSION`
+
+#### Deployment Templates
+
+- Added reusable production deployment templates under `deployment`.
+- Added an Nginx server-block template.
+- Added a PHP-FPM configuration template.
+- Added a scheduler, retry, and backup cron template.
+- Added an application logrotate template.
+- Added a LightDM kiosk-login template.
+- Added an Openbox kiosk-autostart template.
+- Added a Chromium kiosk-launcher template.
+- Added UFW trusted-network guidance.
+- Added deployment-template placeholder documentation.
+
+Supported deployment placeholders include:
+
+- `{{APPLICATION_ROOT}}`
+- `{{CHROMIUM_BINARY}}`
+- `{{KIOSK_HOME}}`
+- `{{KIOSK_URL}}`
+- `{{KIOSK_USER}}`
+- `{{PHP_FPM_SOCKET}}`
+- `{{SERVER_NAMES}}`
+- `{{TIMEZONE}}`
+- `{{TRUSTED_SUBNET}}`
+
+#### Installation and Upgrade Documentation
+
+- Expanded `docs/Installation.md` into a package-oriented installation and upgrade guide.
+- Added release-archive verification instructions.
+- Added archive extraction instructions.
+- Added Composer installation guidance.
+- Added ownership and permission guidance.
+- Added SMTP configuration guidance.
+- Added database initialization and migration guidance.
+- Added PHP-FPM installation guidance.
+- Added Nginx installation guidance.
+- Added scheduler and retry cron guidance.
+- Added backup cron guidance.
+- Added logrotate guidance.
+- Added firewall guidance.
+- Added kiosk deployment guidance.
+- Added diagnostic-command guidance.
+- Added controlled upgrade instructions.
+- Added upgrade-status instructions.
+- Added interrupted-upgrade recovery guidance.
+- Added rollback guidance.
+- Added package-building and verification guidance.
+- Added release-security validation guidance.
+- Added Version 0.9 release notes under `releases/0.9.0.md`.
+
+#### GitHub Distribution Baseline
+
+- Added the project repository to GitHub.
+- Added the maintained main branch.
+- Added maintained release branches.
+- Added historical release tags.
+- Added the Version 0.9 feature branch.
+- Added dedicated server SSH authentication for GitHub.
+- Added explicit storage-root SQLite ignore rules.
+- Removed an obsolete empty tracked development database before publication.
+- Confirmed that the active production database remains ignored and untracked.
+- Confirmed that SMTP configuration remains ignored and untracked.
+- Confirmed that machine inventory files remain untracked.
+
+#### Automated Tests
+
+- Added installation-preflight service and command tests.
+- Added upgrade-readiness service and command tests.
+- Added upgrade-plan service and command tests.
+- Added upgrade-preview tests.
+- Added exact-confirmation tests.
+- Added safe process-runner tests.
+- Added process-timeout tests.
+- Added guarded upgrade-operation tests.
+- Added controlled upgrade-apply tests.
+- Added upgrade-journal tests.
+- Added persisted upgrade-status tests.
+- Added interrupted-upgrade assessment tests.
+- Added recovery-check tests.
+- Added package-plan tests.
+- Added package-manifest tests.
+- Added package-staging tests.
+- Added archive-builder tests.
+- Added package-verification tests.
+- Added archive-checksum tests.
+- Added archive-filename tests.
+- Added required deployment-documentation tests.
+- Added package command argument-validation tests.
+
+The Version 0.9 test suite contains:
+
+- 361 tests
+- 2850 assertions
+
+### Changed
+
+- Updated the application version to `0.9.0`.
+- Changed installation validation from undocumented manual inspection to a repeatable console workflow.
+- Changed upgrade preparation from manual sequencing to explicit readiness, planning, and preview stages.
+- Changed upgrade execution to require an exact confirmation phrase.
+- Changed child-process execution to bypass the shell.
+- Changed controlled operations to capture output, errors, exit status, and duration.
+- Changed upgrade execution to preserve a persistent operation journal.
+- Changed incomplete upgrade handling to require explicit recovery assessment.
+- Changed release creation from source-tree copying to controlled package staging.
+- Changed package creation to use GNU TAR with deterministic ownership and timestamp metadata.
+- Changed package permissions to be normalized and independently verified.
+- Changed release archives to include a portable SHA-256 manifest.
+- Changed package verification to reject archives missing deployment documentation.
+- Changed release archives to include reusable deployment templates.
+- Changed installation documentation to use versioned package distribution as the primary installation workflow.
+- Changed generated release archives to remain outside Git version control.
+- Changed the project distribution workflow to use GitHub branches, tags, and release artifacts.
+
+### Fixed
+
+- Fixed distribution directories being archived with unintended `0777` permissions.
+- Fixed archive verification relying only on source-side assumptions.
+- Fixed stale packages without deployment templates being accepted by older verification rules.
+- Fixed package verification not requiring deployment documentation.
+- Fixed release archives lacking reusable production deployment examples.
+- Fixed installation documentation containing an incorrect Bootstrap asset path.
+- Fixed an obsolete SQLite database remaining tracked in the repository.
+- Fixed storage-root SQLite files not being covered by explicit ignore rules.
+- Fixed an invalid server-only SSH directive being present in the system SSH client configuration.
+- Fixed the dedicated GitHub SSH key not being selected automatically for normal Git operations.
+
+### Security and Data Integrity
+
+- Upgrade execution requires exact typed confirmation.
+- Upgrade readiness is revalidated before controlled execution.
+- Child processes are started without shell interpolation.
+- Process timeouts prevent indefinitely blocked controlled operations.
+- Upgrade journals preserve incomplete and failed execution state.
+- Interrupted upgrades are not silently treated as successful.
+- Distribution archive paths reject absolute and traversal paths.
+- Distribution archives reject symbolic links.
+- Distribution archives reject forbidden private paths.
+- Distribution archives exclude SMTP credentials.
+- Distribution archives exclude active SQLite databases.
+- Distribution archives exclude SQLite sidecar files.
+- Distribution archives exclude logs, sessions, caches, exports, and backups.
+- Distribution archives exclude Git metadata.
+- Distribution archives exclude machine inventory files.
+- Distribution archives exclude Composer-installed dependencies.
+- Packaged file SHA-256 values are verified.
+- Packaged permission modes are verified.
+- World-writable archive entries are rejected during release validation.
+- Release archives require exactly one top-level package directory.
+- Temporary verification workspaces are removed after use.
+- Deployment templates use placeholders rather than live machine values.
+- The repository security audit found no tracked live SMTP credentials.
+- The active production database remains ignored and untracked.
+- Git object integrity validation passes.
+
+### Database Changes
+
+Version 0.9 does not add an application database migration.
+
+Existing Version 0.8 application data remains compatible, including:
+
+- Employees
+- Users
+- Punches
+- Punch-correction history
+- Company settings
+- Labor rules
+- Payroll periods
+- Payroll workflow history
+- Payroll review notes
+- Payroll exception resolutions
+- Email history
+- Report delivery schedules
+- Email delivery attempts
+- Notification recipients
+- Retry history
+
+### Upgrade Notes
+
+Installations upgrading from Version 0.8.0 should:
+
+1. Verify the currently installed application version.
+2. Create and verify a current database backup.
+3. Review `docs/Installation.md`.
+4. Obtain the Version 0.9.0 release archive.
+5. Obtain the published archive SHA-256 digest.
+6. Verify the archive checksum.
+7. Run independent package verification.
+8. Extract the release into a separate staging location.
+9. Install Composer dependencies as documented.
+10. Confirm ownership and runtime-directory permissions.
+11. Run `./iqwurks upgrade:check`.
+12. Resolve all blocking failures.
+13. Review all warnings.
+14. Run `./iqwurks upgrade:plan`.
+15. Run `./iqwurks upgrade:preview`.
+16. Record and review the exact confirmation phrase.
+17. Execute the controlled upgrade only after reviewing the preview.
+18. Run `./iqwurks upgrade:status`.
+19. Run `./iqwurks upgrade:recovery-check`.
+20. Run database diagnostics.
+21. Run scheduler diagnostics.
+22. Run mail diagnostics.
+23. Run the System Doctor.
+24. Run the complete automated test suite.
+25. Confirm employee-kiosk operation.
+26. Confirm supervisor access.
+27. Confirm scheduled report delivery.
+28. Confirm automatic retry processing.
+29. Confirm automatic backups.
+30. Confirm reboot recovery.
+
+Administrators should not bypass readiness failures or manually mark an incomplete upgrade journal as successful.
+
+### Known Limitations
+
+- Version 0.9 does not provide a browser-based installation wizard.
+- Operating-system packages are not installed automatically.
+- Deployment templates are not installed automatically.
+- Deployment placeholders must be reviewed and replaced manually.
+- Nginx configuration is not activated automatically.
+- PHP-FPM configuration is not activated automatically.
+- Firewall rules are not applied automatically.
+- LightDM, Openbox, and Chromium are not installed automatically.
+- Remote releases are not discovered or downloaded automatically.
+- Release archives use published SHA-256 verification but are not cryptographically signed.
+- Source rollback requires administrator review.
+- The console does not yet provide a universal per-command `--help` option.
+- Multiple companies and physical locations are not yet supported.
+- The validated production deployment uses HTTP on a trusted local network.
+- HTTPS should be added before exposure through an untrusted network.
+
+### Release Validation
+
+Final Version 0.9 automated-test result:
+
+- 361 tests
+- 2850 assertions
+
+Validated release conditions include:
+
+- Installation preflight passes on the production host.
+- Upgrade readiness has no blocking failure.
+- Upgrade planning passes.
+- Upgrade preview passes.
+- Exact confirmation enforcement passes.
+- Upgrade journaling passes.
+- Interrupted-upgrade assessment passes.
+- Recovery checking passes.
+- Distribution package preview passes.
+- Distribution archive creation passes.
+- Independent package verification passes.
+- Required deployment-documentation verification passes.
+- Archive permission validation passes.
+- No world-writable archive entries are present.
+- The archive contains one top-level package root.
+- No forbidden private content is present.
+- Deployment templates are included.
+- PHP syntax validation passes.
+- Git whitespace validation passes.
+- Repository security review passes.
+- Git object integrity validation passes.
+- The local and GitHub Version 0.9 feature branches match.
+
+
+---
+
 ## [0.8.0] - 2026-07-31
 
 ### Added

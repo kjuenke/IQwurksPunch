@@ -13,14 +13,12 @@ IQwurksPunch is built with PHP, Twig, SQLite, Bootstrap, and a custom MVC framew
 ## Current Version
 
 ```text
-0.8.0
+0.9.0
 ```
 
-Version 0.8 expands payroll reporting automation with manual and scheduled weekly reports, scheduled exception reports, approval and operational notifications, CSV and PDF email attachments, delivery-attempt history, controlled automatic retries, permanent-failure quarantine, and attachment-size safeguards.
+Version 0.9 adds repeatable installation diagnostics, controlled upgrade planning and execution, upgrade journals and recovery checks, deterministic distribution packaging, independent archive verification, reusable deployment templates, and expanded installation and upgrade documentation.
 
-Version 0.8.0 has completed implementation, automated validation, release acceptance, and final release preparation.
-
----
+Version 0.9.0 has completed implementation and automated validation. Final archive creation, checksum publication, merge, tagging, and GitHub release publication are completed during the remaining release steps.
 
 ## Primary Features
 
@@ -825,6 +823,72 @@ Detailed documentation is stored under:
 docs/
 ```
 
+### Version 0.9 Installation, Upgrade, and Packaging
+
+Version 0.9 provides supported console workflows for installation readiness, controlled upgrades, recovery review, release-package creation, and independent archive verification.
+
+Primary installation and upgrade commands:
+
+```bash
+./iqwurks install:check
+./iqwurks upgrade:check
+./iqwurks upgrade:plan
+./iqwurks upgrade:preview
+./iqwurks upgrade:apply
+./iqwurks upgrade:status
+./iqwurks upgrade:recovery-check
+```
+
+Primary package commands:
+
+```bash
+./iqwurks package:build
+./iqwurks package:build --build
+./iqwurks package:verify --archive=PATH
+./iqwurks package:verify --archive=PATH --sha256=DIGEST
+```
+
+The installation and upgrade guide is:
+
+```text
+docs/Installation.md
+```
+
+Reusable deployment templates are stored under:
+
+```text
+deployment/
+```
+
+The Version 0.9 release notes are:
+
+```text
+releases/0.9.0.md
+```
+
+Distribution packages include a portable `PACKAGE-MANIFEST.json`, controlled permission modes, file SHA-256 digests, empty runtime directories, and reusable deployment templates.
+
+Packages exclude private and generated content such as:
+
+- `config/mail.php`
+- Active SQLite databases
+- SQLite sidecar files
+- Application logs
+- Backups
+- Sessions
+- Cached data
+- Generated exports
+- Git metadata
+- Composer-installed dependencies
+- Machine inventory files
+
+The Version 0.9 automated-test baseline is:
+
+```text
+361 tests
+2850 assertions
+```
+
 Release notes are stored under:
 
 ```text
@@ -923,7 +987,7 @@ tests/
 
 ## Project Status
 
-Version 0.8 is the current stable release.
+Version 0.9 is the current stable release.
 
 It completes the Reporting Automation and Delivery Reliability milestone, including:
 
@@ -946,12 +1010,14 @@ It completes the Reporting Automation and Delivery Reliability milestone, includ
 - Internal and external retry execution locks
 - Employee-kiosk Enter-key operation
 
-The validated Version 0.8 baseline is:
+The validated Version 0.9 baseline is:
 
 ```text
-Application version: 0.8.0
-Tests: 251
-Assertions: 1138
+Application version: 0.9.0
+PHP version: 8.5.4
+PHPUnit version: 12.5.31
+Tests: 361
+Assertions: 2850
 Database tables: 18
 Applied migrations: 16
 SQLite journal mode: wal
@@ -959,23 +1025,33 @@ Database integrity: ok
 Foreign-key violations: 0
 ```
 
-Items deferred beyond Version 0.8 include:
+Items deferred beyond Version 0.9 include:
 
+- Browser-based installation wizard
+- Automatic operating-system package installation
+- Automatic installation and activation of deployment templates
+- Automatic Nginx site activation
+- Automatic PHP-FPM template activation
+- Automatic firewall-rule installation
+- Automatic kiosk software installation
+- Automatic remote release discovery and downloading
+- Cryptographic release signing beyond published SHA-256 verification
+- Fully automatic source rollback without administrator review
+- Employee time-card email attachments
+- User-selectable email attachment formats
+- Long-term attachment archives
+- Standalone delivery-status dashboard
+- Multiple delivery times for one report type
+- Named recipient groups
 - Advanced payroll-period filtering
 - Department-level payroll-review summaries
 - Employee-level review-completion tracking
-- Workflow-aware export filename suffixes
-- Employee time-card email attachments
-- User-selectable attachment formats
-- Long-term report attachment archives
-- Standalone delivery-status administration dashboard
-- Multiple delivery times for one report type
-- Named recipient groups
+- Workflow-status suffixes in export filenames
 - External payroll-provider export profiles
-- Guided installation and upgrade automation
-- Release packaging
-
----
+- Configurable payroll export mappings
+- Universal per-command `--help`
+- Multiple-company deployment management
+- Multiple-location deployment management
 
 ## Project Goals
 
