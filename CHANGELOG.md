@@ -213,6 +213,8 @@ Supported deployment placeholders include:
 - Added package-building and verification guidance.
 - Added release-security validation guidance.
 - Added Version 0.9 release notes under `releases/0.9.0.md`.
+- Included the complete tracked `releases/` directory in distribution archives.
+- Required `releases/<application-version>.md` during package planning and independent archive verification.
 
 #### GitHub Distribution Baseline
 
@@ -255,8 +257,8 @@ Supported deployment placeholders include:
 
 The Version 0.9 test suite contains:
 
-- 361 tests
-- 2850 assertions
+- 363 tests
+- 2979 assertions
 
 ### Changed
 
@@ -400,8 +402,8 @@ Administrators should not bypass readiness failures or manually mark an incomple
 
 Final Version 0.9 automated-test result:
 
-- 361 tests
-- 2850 assertions
+- 363 tests
+- 2979 assertions
 
 Validated release conditions include:
 

@@ -726,7 +726,9 @@ final class DistributionPackageVerificationService
 
 
         foreach (
-            $this->requiredPaths()
+            $this->requiredPaths(
+                $applicationVersion
+            )
             as
             $requiredPath
         ) {
@@ -1557,7 +1559,9 @@ final class DistributionPackageVerificationService
      *
      * @return array<int,string>
      */
-    private function requiredPaths(): array
+    private function requiredPaths(
+        string $applicationVersion
+    ): array
     {
         return [
             'PACKAGE-MANIFEST.json',
@@ -1570,6 +1574,11 @@ final class DistributionPackageVerificationService
             'LICENSE',
             'migrate.php',
             'README.md',
+            'releases/'
+            .
+            $applicationVersion
+            .
+            '.md',
             'ROADMAP.md',
             'VERSION'
         ];

@@ -46,6 +46,7 @@ final class DistributionPackagePlanServiceTest extends TestCase
                 'docs',
                 'plugins',
                 'public',
+                'releases',
                 'routes',
                 'tests'
             ]
@@ -78,6 +79,7 @@ final class DistributionPackagePlanServiceTest extends TestCase
                 'migrate.php',
                 'phpunit.xml',
                 'README.md',
+                'releases/0.9.0-dev.md',
                 'ROADMAP.md',
                 'VERSION'
             ]
@@ -167,6 +169,24 @@ final class DistributionPackagePlanServiceTest extends TestCase
         );
 
 
+        self::assertContains(
+            'releases',
+            $plan['include_paths']
+        );
+
+
+        self::assertContains(
+            'releases',
+            $plan['required_directories']
+        );
+
+
+        self::assertContains(
+            'releases/0.9.0-dev.md',
+            $plan['required_files']
+        );
+
+
         self::assertFalse(
             $plan['changes_made']
         );
@@ -237,6 +257,89 @@ final class DistributionPackagePlanServiceTest extends TestCase
         self::assertSame(
             'FAIL',
             $composerLockCheck[0]['status']
+        );
+    }
+
+
+    public function testMissingReleaseNoteBlocksPackaging(): void
+    {
+        self::assertTrue(
+            unlink(
+                $this->projectRoot
+                .
+                '/releases/0.9.0-dev.md'
+            )
+        );
+
+
+        $plan =
+            (
+                new DistributionPackagePlanService(
+                    $this->projectRoot
+                )
+            )->plan();
+
+
+        self::assertSame(
+            'FAIL',
+            $plan['overall_status']
+        );
+
+
+        self::assertTrue(
+            $plan['blocked']
+        );
+
+
+        self::assertFalse(
+            $plan['can_build']
+        );
+
+
+        self::assertSame(
+            1,
+            $plan['summary']['failures']
+        );
+
+
+        $releaseNoteChecks =
+            array_values(
+                array_filter(
+                    $plan['required_path_checks'],
+                    static fn (
+                        array $check
+                    ): bool =>
+                        (
+                            $check['path']
+                            ??
+                            ''
+                        )
+                        ===
+                        'releases/0.9.0-dev.md'
+                )
+            );
+
+
+        self::assertCount(
+            1,
+            $releaseNoteChecks
+        );
+
+
+        self::assertSame(
+            'file',
+            $releaseNoteChecks[0]['type']
+        );
+
+
+        self::assertFalse(
+            $releaseNoteChecks[0]['exists']
+        );
+
+
+        self::assertSame(
+            'FAIL',
+            $releaseNoteChecks[0]['status']
         );
     }
 

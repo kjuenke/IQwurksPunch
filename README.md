@@ -866,7 +866,7 @@ The Version 0.9 release notes are:
 releases/0.9.0.md
 ```
 
-Distribution packages include a portable `PACKAGE-MANIFEST.json`, controlled permission modes, file SHA-256 digests, empty runtime directories, and reusable deployment templates.
+Distribution packages include a portable `PACKAGE-MANIFEST.json`, controlled permission modes, file SHA-256 digests, empty runtime directories, version-matched release notes, and reusable deployment templates.
 
 Packages exclude private and generated content such as:
 
@@ -885,8 +885,8 @@ Packages exclude private and generated content such as:
 The Version 0.9 automated-test baseline is:
 
 ```text
-361 tests
-2850 assertions
+363 tests
+2979 assertions
 ```
 
 Release notes are stored under:
@@ -1016,8 +1016,8 @@ The validated Version 0.9 baseline is:
 Application version: 0.9.0
 PHP version: 8.5.4
 PHPUnit version: 12.5.31
-Tests: 361
-Assertions: 2850
+Tests: 363
+Assertions: 2979
 Database tables: 18
 Applied migrations: 16
 SQLite journal mode: wal

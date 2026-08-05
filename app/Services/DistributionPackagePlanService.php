@@ -103,7 +103,9 @@ final class DistributionPackagePlanService
 
 
         $requiredFiles =
-            $this->requiredFiles();
+            $this->requiredFiles(
+                $version
+            );
 
 
         $directoryChecks =
@@ -389,6 +391,7 @@ final class DistributionPackagePlanService
             'docs',
             'plugins',
             'public',
+            'releases',
             'routes',
             'tests',
             '.gitignore',
@@ -420,6 +423,7 @@ final class DistributionPackagePlanService
             'docs',
             'plugins',
             'public',
+            'releases',
             'routes',
             'tests'
         ];
@@ -429,7 +433,9 @@ final class DistributionPackagePlanService
     /**
      * @return array<int,string>
      */
-    private function requiredFiles(): array
+    private function requiredFiles(
+        string $version
+    ): array
     {
         return [
             'CHANGELOG.md',
@@ -440,6 +446,11 @@ final class DistributionPackagePlanService
             'LICENSE',
             'migrate.php',
             'README.md',
+            'releases/'
+            .
+            $version
+            .
+            '.md',
             'ROADMAP.md',
             'VERSION'
         ];

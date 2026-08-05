@@ -1070,16 +1070,16 @@ Application entry points:       0750
 - Generated-package Git ignore rules
 - Package output under `storage/exports/packages`
 
-Version 0.9 development package baseline:
+Version 0.9 corrected release-package preview baseline:
 
 ```text
-386 manifest entries
-313 source files
-73 directories
+395 manifest entries
+321 source files
+74 directories
 6 generated runtime directories
 ```
 
-Final release counts may change when final release-document content is packaged.
+These counts include the complete tracked `releases/` directory and the required Version 0.9 release note.
 
 ### Independent Package Verification
 
@@ -1103,6 +1103,7 @@ Final release counts may change when final release-document content is packaged.
 - Symbolic-link rejection
 - Temporary extraction-workspace cleanup
 - Required deployment-documentation validation
+- Required version-matched release-note validation
 - Rejection of stale packages without deployment templates
 
 Required package paths include:
@@ -1295,8 +1296,8 @@ Version 0.9 adds tests for:
 Final Version 0.9 test baseline:
 
 ```text
-361 tests
-2850 assertions
+363 tests
+2979 assertions
 ```
 
 ### Deferred Beyond Version 0.9

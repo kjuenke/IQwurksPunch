@@ -47,6 +47,7 @@ final class DistributionPackageManifestServiceTest extends TestCase
                 'docs',
                 'plugins',
                 'public',
+                'releases',
                 'routes',
                 'storage/backups',
                 'storage/cache',
@@ -85,6 +86,7 @@ final class DistributionPackageManifestServiceTest extends TestCase
                 'migrate.php',
                 'phpunit.xml',
                 'README.md',
+                'releases/0.9.0-dev.md',
                 'ROADMAP.md',
                 'VERSION'
             ]
