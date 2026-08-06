@@ -8,6 +8,7 @@ use App\Core\Flash;
 use App\Repositories\PayrollExceptionResolutionRepository;
 use App\Repositories\PayrollPeriodHistoryRepository;
 use App\Repositories\PayrollReviewNoteRepository;
+use App\Repositories\UserRepository;
 use App\Services\ApprovalNotificationEmailService;
 use App\Services\AuditService;
 use App\Services\AuthGuardService;
@@ -15,6 +16,7 @@ use App\Services\CompanySettingsService;
 use App\Services\PayrollApprovalService;
 use App\Services\PayrollExceptionResolutionService;
 use App\Services\PayrollExceptionService;
+use App\Services\PayrollPeriodRemovalService;
 use App\Services\PayrollPeriodService;
 use App\Services\PayrollReviewNoteService;
 use DateTimeImmutable;
@@ -24,6 +26,8 @@ use Throwable;
 final class PayrollPeriodController extends Controller
 {
     private PayrollPeriodService $payrollPeriods;
+
+    private PayrollPeriodRemovalService $removal;
 
     private PayrollApprovalService $approval;
 
@@ -45,6 +49,8 @@ final class PayrollPeriodController extends Controller
 
     private AuditService $audit;
 
+    private UserRepository $users;
+
     private AuthGuardService $authGuard;
 
 
@@ -52,6 +58,10 @@ final class PayrollPeriodController extends Controller
     {
         $this->payrollPeriods =
             Container::payrollPeriodService();
+
+
+        $this->removal =
+            Container::payrollPeriodRemovalService();
 
 
         $this->approval =
@@ -94,9 +104,13 @@ final class PayrollPeriodController extends Controller
             Container::auditService();
 
 
+        $this->users =
+            Container::userRepository();
+
+
         $this->authGuard =
             new AuthGuardService(
-                Container::userRepository()
+                $this->users
             );
     }
 
@@ -192,7 +206,8 @@ final class PayrollPeriodController extends Controller
         int $id
     ): void
     {
-        $this->requireSupervisor();
+        $actingUserId =
+            $this->requireSupervisor();
 
 
         try {
@@ -211,6 +226,35 @@ final class PayrollPeriodController extends Controller
 
 
             $this->redirectToIndex();
+        }
+
+
+        $removalAnalysis =
+            null;
+
+
+        if (
+            $this->isActiveAdministrator(
+                $actingUserId
+            )
+        ) {
+            try {
+
+                $removalAnalysis =
+                    $this->removal
+                        ->analyze(
+                            $id,
+                            $actingUserId
+                        );
+
+            } catch (Throwable $exception) {
+
+                Flash::warning(
+                    'Removal and retention analysis is temporarily unavailable: '
+                    .
+                    $exception->getMessage()
+                );
+            }
         }
 
 
@@ -248,7 +292,10 @@ final class PayrollPeriodController extends Controller
                     $this->exceptions
                         ->countOpenForPeriod(
                             $id
-                        )
+                        ),
+
+                'removalAnalysis' =>
+                    $removalAnalysis
             ]
         );
     }
@@ -962,6 +1009,52 @@ final class PayrollPeriodController extends Controller
 
 
         return $timezone;
+    }
+
+
+    private function isActiveAdministrator(
+        int $userId
+    ): bool
+    {
+        if ($userId < 1) {
+
+            return false;
+        }
+
+
+        $user =
+            $this->users
+                ->findById(
+                    $userId
+                );
+
+
+        if (!is_array($user)) {
+
+            return false;
+        }
+
+
+        return
+            (int)(
+                $user['active']
+                ??
+                0
+            )
+            ===
+            1
+            &&
+            strtolower(
+                trim(
+                    (string)(
+                        $user['role']
+                        ??
+                        ''
+                    )
+                )
+            )
+            ===
+            'admin';
     }
 
 

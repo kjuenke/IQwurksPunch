@@ -375,6 +375,293 @@
 </div>
 
 
+
+{# BEGIN PAYROLL PERIOD REMOVAL ANALYSIS #}
+
+{% if removalAnalysis %}
+
+    {% set removalDependencies = removalAnalysis.dependencies|default({}) %}
+
+
+    <div class="card shadow-sm border-warning mb-4">
+
+        <div class="card-header bg-warning-subtle">
+
+            <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-2">
+
+                <span class="fw-semibold">
+
+                    <i class="bi bi-archive me-1"></i>
+
+                    Removal &amp; Retention Analysis
+
+                </span>
+
+
+                <span class="badge text-bg-warning">
+                    Administrator Only
+                </span>
+
+            </div>
+
+        </div>
+
+
+        <div class="card-body">
+
+            <p class="text-muted">
+
+                This read-only analysis explains which retention options are currently eligible.
+                No removal action is available from this page yet.
+
+            </p>
+
+
+            <div class="mb-4">
+
+                <span class="small text-muted me-2">
+                    Current disposition
+                </span>
+
+
+                {% if removalAnalysis.is_voided %}
+
+                    <span class="badge text-bg-danger">
+                        Voided
+                    </span>
+
+                {% elseif removalAnalysis.is_archived %}
+
+                    <span class="badge text-bg-secondary">
+                        Archived
+                    </span>
+
+                {% else %}
+
+                    <span class="badge text-bg-success">
+                        Active
+                    </span>
+
+                {% endif %}
+
+            </div>
+
+
+            <div class="row g-3 mb-4">
+
+                <div class="col-lg-4">
+
+                    <div class="border rounded p-3 h-100">
+
+                        <div class="d-flex justify-content-between align-items-start gap-2 mb-2">
+
+                            <h2 class="h6 mb-0">
+                                Delete Draft
+                            </h2>
+
+
+                            {% if removalAnalysis.can_delete_draft %}
+
+                                <span class="badge text-bg-success">
+                                    Eligible
+                                </span>
+
+                            {% else %}
+
+                                <span class="badge text-bg-secondary">
+                                    Unavailable
+                                </span>
+
+                            {% endif %}
+
+                        </div>
+
+
+                        <p class="small text-muted mb-0">
+
+                            {% if removalAnalysis.can_delete_draft %}
+
+                                This is an untouched open draft whose only workflow event is its original creation.
+
+                            {% else %}
+
+                                Permanent deletion is blocked because the period is no longer an untouched open draft or has dependent records.
+
+                            {% endif %}
+
+                        </p>
+
+                    </div>
+
+                </div>
+
+
+                <div class="col-lg-4">
+
+                    <div class="border rounded p-3 h-100">
+
+                        <div class="d-flex justify-content-between align-items-start gap-2 mb-2">
+
+                            <h2 class="h6 mb-0">
+                                Archive
+                            </h2>
+
+
+                            {% if removalAnalysis.can_archive %}
+
+                                <span class="badge text-bg-success">
+                                    Eligible
+                                </span>
+
+                            {% else %}
+
+                                <span class="badge text-bg-secondary">
+                                    Unavailable
+                                </span>
+
+                            {% endif %}
+
+                        </div>
+
+
+                        <p class="small text-muted mb-0">
+
+                            {% if removalAnalysis.can_archive %}
+
+                                Archiving will preserve the period, history, notes, exceptions, and audit information while removing it from active use.
+
+                            {% elseif removalAnalysis.is_archived %}
+
+                                This payroll period is already archived.
+
+                            {% elseif removalAnalysis.is_voided %}
+
+                                A voided payroll period cannot also be archived.
+
+                            {% else %}
+
+                                Archiving is not currently available.
+
+                            {% endif %}
+
+                        </p>
+
+                    </div>
+
+                </div>
+
+
+                <div class="col-lg-4">
+
+                    <div class="border rounded p-3 h-100">
+
+                        <div class="d-flex justify-content-between align-items-start gap-2 mb-2">
+
+                            <h2 class="h6 mb-0">
+                                Void
+                            </h2>
+
+
+                            {% if removalAnalysis.can_void %}
+
+                                <span class="badge text-bg-success">
+                                    Eligible
+                                </span>
+
+                            {% else %}
+
+                                <span class="badge text-bg-secondary">
+                                    Unavailable
+                                </span>
+
+                            {% endif %}
+
+                        </div>
+
+
+                        <p class="small text-muted mb-0">
+
+                            {% if removalAnalysis.can_void %}
+
+                                This approved or locked period may be voided while preserving its complete historical record.
+
+                            {% elseif removalAnalysis.is_voided %}
+
+                                This payroll period is already voided.
+
+                            {% elseif removalAnalysis.is_archived %}
+
+                                An archived payroll period cannot also be voided.
+
+                            {% else %}
+
+                                Only an approved or locked payroll period may be voided.
+
+                            {% endif %}
+
+                        </p>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            <h2 class="h6">
+                Dependent Records
+            </h2>
+
+
+            <div class="row g-2">
+
+                {% for dependencyName, dependencyCount in removalDependencies %}
+
+                    <div class="col-sm-6 col-lg-3">
+
+                        <div class="border rounded px-3 py-2 d-flex justify-content-between align-items-center gap-2">
+
+                            <span class="small">
+
+                                {{ dependencyName|replace({
+                                    '_count': '',
+                                    '_': ' '
+                                })|title }}
+
+                            </span>
+
+
+                            <strong>
+                                {{ dependencyCount }}
+                            </strong>
+
+                        </div>
+
+                    </div>
+
+                {% else %}
+
+                    <div class="col-12">
+
+                        <div class="text-muted small">
+                            No dependent-record information is available.
+                        </div>
+
+                    </div>
+
+                {% endfor %}
+
+            </div>
+
+        </div>
+
+    </div>
+
+{% endif %}
+
+{# END PAYROLL PERIOD REMOVAL ANALYSIS #}
+
+
 <div class="card shadow-sm mb-4">
 
     <div class="card-header bg-body-tertiary">
