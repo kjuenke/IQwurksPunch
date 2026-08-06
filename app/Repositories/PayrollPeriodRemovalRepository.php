@@ -97,7 +97,7 @@ class PayrollPeriodRemovalRepository
 
                     (
                         SELECT COUNT(*)
-                        FROM payroll_exceptions
+                        FROM payroll_exception_resolutions
 
                         WHERE payroll_period_id =
                             :exception_period_id
@@ -109,6 +109,12 @@ class PayrollPeriodRemovalRepository
 
                         WHERE payroll_period_id =
                             :resolution_period_id
+
+                          AND resolution_status IN
+                            (
+                                "resolved",
+                                "accepted"
+                            )
                     ) AS resolution_count
                 '
             );

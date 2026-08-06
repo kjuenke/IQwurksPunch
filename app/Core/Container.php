@@ -21,6 +21,7 @@ use App\Repositories\NotificationRecipientRepository;
 use App\Repositories\PayrollExceptionResolutionRepository;
 use App\Repositories\PayrollPeriodHistoryRepository;
 use App\Repositories\PayrollPeriodRepository;
+use App\Repositories\PayrollPeriodRemovalRepository;
 use App\Repositories\PayrollReviewNoteRepository;
 use App\Repositories\PunchCorrectionHistoryRepository;
 use App\Repositories\PunchRepository;
@@ -40,6 +41,7 @@ use App\Services\PayrollExceptionResolutionService;
 use App\Services\PayrollExceptionService;
 use App\Services\PayrollPeriodProtectionService;
 use App\Services\PayrollPeriodService;
+use App\Services\PayrollPeriodRemovalService;
 use App\Services\PayrollReportPeriodMetadataService;
 use App\Services\PayrollReviewNoteService;
 use App\Services\PayrollWorkspaceService;
@@ -81,6 +83,8 @@ final class Container
 
     private static ?PayrollPeriodRepository $payrollPeriodRepository = null;
 
+    private static ?PayrollPeriodRemovalRepository $payrollPeriodRemovalRepository = null;
+
     private static ?PayrollPeriodHistoryRepository $payrollPeriodHistoryRepository = null;
 
     private static ?PayrollReviewNoteRepository $payrollReviewNoteRepository = null;
@@ -116,6 +120,8 @@ final class Container
     private static ?LaborRulesService $laborRulesService = null;
 
     private static ?PayrollPeriodService $payrollPeriodService = null;
+
+    private static ?PayrollPeriodRemovalService $payrollPeriodRemovalService = null;
 
     private static ?PayrollApprovalService $payrollApprovalService = null;
 
@@ -340,6 +346,20 @@ final class Container
 
 
         return self::$payrollPeriodRepository;
+    }
+
+
+    public static function payrollPeriodRemovalRepository(): PayrollPeriodRemovalRepository
+    {
+        if (self::$payrollPeriodRemovalRepository === null) {
+            self::$payrollPeriodRemovalRepository =
+                new PayrollPeriodRemovalRepository(
+                    self::db()
+                );
+        }
+
+
+        return self::$payrollPeriodRemovalRepository;
     }
 
 
@@ -619,6 +639,24 @@ final class Container
     }
 
 
+    public static function payrollPeriodRemovalService(): PayrollPeriodRemovalService
+    {
+        if (self::$payrollPeriodRemovalService === null) {
+            self::$payrollPeriodRemovalService =
+                new PayrollPeriodRemovalService(
+                    self::db(),
+                    self::payrollPeriodRemovalRepository(),
+                    self::payrollPeriodHistoryRepository(),
+                    self::userRepository(),
+                    self::auditRepository()
+                );
+        }
+
+
+        return self::$payrollPeriodRemovalService;
+    }
+
+
     public static function payrollApprovalService(): PayrollApprovalService
     {
         if (self::$payrollApprovalService === null) {
@@ -879,6 +917,8 @@ final class Container
 
         self::$payrollPeriodRepository = null;
 
+        self::$payrollPeriodRemovalRepository = null;
+
         self::$payrollPeriodHistoryRepository = null;
 
         self::$payrollReviewNoteRepository = null;
@@ -914,6 +954,8 @@ final class Container
         self::$laborRulesService = null;
 
         self::$payrollPeriodService = null;
+
+        self::$payrollPeriodRemovalService = null;
 
         self::$payrollApprovalService = null;
 

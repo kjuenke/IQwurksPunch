@@ -285,14 +285,14 @@ final class PayrollPeriodRemovalServiceTest extends TestCase
                 (
                     payroll_period_id,
                     note,
-                    user_id
+                    created_by_user_id
                 )
 
                 VALUES
                 (
                     :payroll_period_id,
                     :note,
-                    :user_id
+                    :created_by_user_id
                 )
                 '
             );
@@ -306,7 +306,7 @@ final class PayrollPeriodRemovalServiceTest extends TestCase
                 'note' =>
                     'This draft has operational history.',
 
-                'user_id' =>
+                'created_by_user_id' =>
                     $this->supervisorId
             ]
         );
@@ -326,6 +326,64 @@ final class PayrollPeriodRemovalServiceTest extends TestCase
         self::assertSame(
             1,
             $analysis['dependencies']['review_note_count']
+        );
+    }
+
+
+    public function testOpenPeriodWithExceptionRecordCannotBeDeleted(): void
+    {
+        $periodId =
+            $this->createPeriod(
+                'Exception Draft',
+                'open'
+            );
+
+
+        $statement =
+            $this->db->prepare(
+                '
+                INSERT INTO payroll_exception_resolutions
+                (
+                    payroll_period_id,
+                    resolution_status
+                )
+
+                VALUES
+                (
+                    :payroll_period_id,
+                    "open"
+                )
+                '
+            );
+
+
+        $statement->execute(
+            [
+                'payroll_period_id' =>
+                    $periodId
+            ]
+        );
+
+
+        $analysis =
+            $this->service->analyze(
+                $periodId,
+                $this->administratorId
+            );
+
+
+        self::assertFalse(
+            $analysis['can_delete_draft']
+        );
+
+        self::assertSame(
+            1,
+            $analysis['dependencies']['exception_count']
+        );
+
+        self::assertSame(
+            0,
+            $analysis['dependencies']['resolution_count']
         );
     }
 
@@ -646,18 +704,7 @@ final class PayrollPeriodRemovalServiceTest extends TestCase
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 payroll_period_id INTEGER NOT NULL,
                 note TEXT NOT NULL,
-                user_id INTEGER NOT NULL
-            )
-            '
-        );
-
-
-        $this->db->exec(
-            '
-            CREATE TABLE payroll_exceptions
-            (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                payroll_period_id INTEGER NOT NULL
+                created_by_user_id INTEGER NOT NULL
             )
             '
         );
@@ -668,7 +715,9 @@ final class PayrollPeriodRemovalServiceTest extends TestCase
             CREATE TABLE payroll_exception_resolutions
             (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
-                payroll_period_id INTEGER NOT NULL
+                payroll_period_id INTEGER NOT NULL,
+                resolution_status TEXT NOT NULL
+                    DEFAULT "open"
             )
             '
         );
