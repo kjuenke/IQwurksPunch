@@ -538,3 +538,34 @@ $router->post(
     '/admin/users/create',
     [$userManagement, 'store']
 );
+
+
+$router->get(
+    '/admin/users/edit/{id}',
+    [$userManagement, 'edit']
+);
+
+$router->post(
+    '/admin/users/edit/{id}',
+    [$userManagement, 'update']
+);
+
+$router->get(
+    '/admin/users/password/{id}',
+    [$userManagement, 'password']
+);
+
+$router->post(
+    '/admin/users/password/{id}',
+    [$userManagement, 'resetPassword']
+);
+
+$router->post(
+    '/admin/users/activate',
+    [$userManagement, 'activate']
+);
+
+$router->post(
+    '/admin/users/deactivate',
+    [$userManagement, 'deactivate']
+);
