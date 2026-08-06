@@ -134,6 +134,11 @@ final class PayrollReviewNoteService
                     }
 
 
+                    PayrollPeriodLifecycle::assertActive(
+                        $period
+                    );
+
+
                     $status =
                         (string)(
                             $period['status']

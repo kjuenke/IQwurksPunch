@@ -300,6 +300,11 @@ final class PayrollExceptionService
         }
 
 
+        PayrollPeriodLifecycle::assertActive(
+            $period
+        );
+
+
         $status =
             (string)(
                 $period['status']

@@ -9,6 +9,8 @@ final class PayrollPeriodRepository
 {
     private PDO $db;
 
+    private ?bool $removalLifecycleColumnsAvailable = null;
+
 
     public function __construct(
         PDO $db
@@ -248,6 +250,11 @@ final class PayrollPeriodRepository
         ?int $excludePeriodId = null
     ): ?array
     {
+
+
+        $activeLifecyclePredicate =
+            $this->activeLifecyclePredicate();
+
         $sql =
             "
             SELECT
@@ -259,7 +266,9 @@ final class PayrollPeriodRepository
 
             FROM payroll_periods
 
-            WHERE start_date <= :end_date
+            WHERE
+                {$activeLifecyclePredicate}
+                AND start_date <= :end_date
               AND end_date >= :start_date
             ";
 
@@ -327,6 +336,11 @@ final class PayrollPeriodRepository
         string $localDate
     ): ?array
     {
+
+
+        $activeLifecyclePredicate =
+            $this->activeLifecyclePredicate();
+
         $statement =
             $this->db->prepare(
                 "
@@ -348,7 +362,9 @@ final class PayrollPeriodRepository
 
                 FROM payroll_periods
 
-                WHERE start_date <= :local_date
+                WHERE
+                    {$activeLifecyclePredicate}
+                    AND start_date <= :local_date
                   AND end_date >= :local_date
 
                 ORDER BY
@@ -387,6 +403,11 @@ final class PayrollPeriodRepository
         string $localDate
     ): ?array
     {
+
+
+        $activeLifecyclePredicate =
+            $this->activeLifecyclePredicate();
+
         $statement =
             $this->db->prepare(
                 "
@@ -403,7 +424,9 @@ final class PayrollPeriodRepository
 
                 FROM payroll_periods
 
-                WHERE start_date <= :local_date
+                WHERE
+                    {$activeLifecyclePredicate}
+                    AND start_date <= :local_date
                   AND end_date >= :local_date
 
                   AND status IN
@@ -775,4 +798,100 @@ final class PayrollPeriodRepository
             (int)$statement
                 ->fetchColumn();
     }
+
+
+    private function activeLifecyclePredicate(): string
+    {
+        if (
+            !$this->removalLifecycleColumnsAvailable()
+        ) {
+            return '1 = 1';
+        }
+
+
+        return
+            'archived_at IS NULL'
+            .
+            ' AND '
+            .
+            'voided_at IS NULL';
+    }
+
+
+    private function removalLifecycleColumnsAvailable(): bool
+    {
+        if (
+            $this->removalLifecycleColumnsAvailable
+            !==
+            null
+        ) {
+            return
+                $this->removalLifecycleColumnsAvailable;
+        }
+
+
+        $statement =
+            $this->db->query(
+                '
+                PRAGMA table_info(
+                    payroll_periods
+                )
+                '
+            );
+
+
+        if ($statement === false) {
+            $this->removalLifecycleColumnsAvailable =
+                false;
+
+
+            return false;
+        }
+
+
+        $columns =
+            $statement->fetchAll(
+                PDO::FETCH_ASSOC
+            );
+
+
+        $names = [];
+
+
+        foreach ($columns as $column) {
+            $name =
+                trim(
+                    (string)(
+                        $column['name']
+                        ??
+                        ''
+                    )
+                );
+
+
+            if ($name !== '') {
+                $names[] =
+                    $name;
+            }
+        }
+
+
+        $this->removalLifecycleColumnsAvailable =
+            in_array(
+                'archived_at',
+                $names,
+                true
+            )
+            &&
+            in_array(
+                'voided_at',
+                $names,
+                true
+            );
+
+
+        return
+            $this->removalLifecycleColumnsAvailable;
+    }
+
 }

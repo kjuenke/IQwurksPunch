@@ -611,6 +611,11 @@ final class PayrollApprovalService
         }
 
 
+        PayrollPeriodLifecycle::assertActive(
+            $period
+        );
+
+
         return $period;
     }
 
