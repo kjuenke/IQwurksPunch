@@ -71,6 +71,51 @@ class UserManagementController extends Controller
     }
 
 
+    public function activity(): void
+    {
+        $actorUserId =
+            $this->actorUserId();
+
+        $authorization =
+            $this->users->list(
+                $actorUserId
+            );
+
+
+        if (!$authorization['success']) {
+            Flash::error(
+                $this->errorMessage(
+                    $authorization,
+                    'Only active administrators can review user-management activity.'
+                )
+            );
+
+
+            $this->redirect(
+                '/dashboard'
+            );
+        }
+
+
+        $this->render(
+            'users/activity.twig',
+            [
+                'title' =>
+                    'User-Management Activity',
+
+                'activeMenu' =>
+                    'settings',
+
+                'actions' =>
+                    $this->audit
+                        ->recentUserManagementActions(
+                            100
+                        )
+            ]
+        );
+    }
+
+
     public function create(): void
     {
         $authorization =

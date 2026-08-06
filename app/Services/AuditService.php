@@ -14,8 +14,10 @@ class AuditService
         AuditRepository $audit
     )
     {
-        $this->audit = $audit;
+        $this->audit =
+            $audit;
     }
+
 
     public function log(
         string $action,
@@ -24,20 +26,44 @@ class AuditService
     ): void
     {
         file_put_contents(
-            __DIR__ . '/../../storage/logs/audit-debug.log',
-            date('Y-m-d H:i:s') .
-            " | " .
-            $action .
-            " | " .
-            $details .
+            __DIR__
+            .
+            '/../../storage/logs/audit-debug.log',
+            date(
+                'Y-m-d H:i:s'
+            )
+            .
+            ' | '
+            .
+            $action
+            .
+            ' | '
+            .
+            $details
+            .
             PHP_EOL,
             FILE_APPEND
         );
+
 
         $this->audit->create(
             $action,
             $details,
             $userId
         );
+    }
+
+
+    /**
+     * @return array<int,array<string,mixed>>
+     */
+    public function recentUserManagementActions(
+        int $limit = 100
+    ): array
+    {
+        return $this->audit
+            ->recentUserManagementActions(
+                $limit
+            );
     }
 }

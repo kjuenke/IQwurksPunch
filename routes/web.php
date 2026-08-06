@@ -529,6 +529,12 @@ $router->get(
     [$userManagement, 'index']
 );
 
+
+$router->get(
+    '/admin/users/activity',
+    [$userManagement, 'activity']
+);
+
 $router->get(
     '/admin/users/create',
     [$userManagement, 'create']
