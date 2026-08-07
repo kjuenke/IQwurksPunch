@@ -4,6 +4,9 @@
 {% block content %}
 
 {% set status = period.status|default('open') %}
+{% set isArchived = period.archived_at|default('') %}
+{% set isVoided = period.voided_at|default('') %}
+{% set isInactive = isArchived or isVoided %}
 
 
 <div class="d-flex flex-column flex-lg-row justify-content-between align-items-lg-start gap-3 mb-4">
@@ -49,6 +52,21 @@
 
             {% endif %}
 
+
+            {% if isVoided %}
+
+                <span class="badge text-bg-danger">
+                    Voided
+                </span>
+
+            {% elseif isArchived %}
+
+                <span class="badge text-bg-secondary">
+                    Archived
+                </span>
+
+            {% endif %}
+
         </div>
 
 
@@ -81,6 +99,22 @@
         </a>
 
 
+        {% if status == 'open' and not isInactive %}
+
+            <a
+                href="/payroll-periods/{{ period.id }}/edit"
+                class="btn btn-outline-primary"
+            >
+
+                <i class="bi bi-pencil-square me-1"></i>
+
+                Edit Draft
+
+            </a>
+
+        {% endif %}
+
+
         <a
             href="/reports/payroll/workspace?start_date={{ period.start_date }}&end_date={{ period.end_date }}"
             class="btn btn-outline-primary"
@@ -97,7 +131,7 @@
 </div>
 
 
-{% if status == 'approved' or status == 'locked' %}
+{% if (status == 'approved' or status == 'locked') and not isInactive %}
 
     <div class="alert alert-warning">
 
@@ -841,7 +875,21 @@
 
     <div class="card-body">
 
-        {% if status == 'open' %}
+        {% if isInactive %}
+
+            <div class="alert alert-secondary mb-0">
+
+                <i class="bi bi-archive me-1"></i>
+
+                <strong>
+                    This payroll period is read-only.
+                </strong>
+
+                Workflow, review-note, and exception actions are unavailable for archived or voided records.
+
+            </div>
+
+        {% elseif status == 'open' %}
 
             <div class="row align-items-center g-3">
 
@@ -1264,7 +1312,7 @@
             </div>
 
 
-            {% if status == 'open' or status == 'under_review' %}
+            {% if (status == 'open' or status == 'under_review') and not isInactive %}
 
                 <form
                     method="post"
@@ -1466,6 +1514,8 @@
                                     {% if
                                         exception.resolution_status == 'open'
                                         and
+                                        not isInactive
+                                        and
                                         (
                                             status == 'open'
                                             or
@@ -1643,7 +1693,7 @@
 
             <div class="card-body">
 
-                {% if status == 'open' or status == 'under_review' %}
+                {% if (status == 'open' or status == 'under_review') and not isInactive %}
 
                     <form
                         method="post"

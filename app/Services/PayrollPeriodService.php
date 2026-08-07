@@ -87,6 +87,65 @@ final class PayrollPeriodService
     }
 
 
+    public function requireEditableDraft(
+        int $payrollPeriodId
+    ): array
+    {
+        $period =
+            $this->requirePeriod(
+                $payrollPeriodId
+            );
+
+
+        if (
+            (
+                $period['archived_at']
+                ??
+                null
+            )
+            !==
+            null
+        ) {
+            throw new InvalidArgumentException(
+                'Archived payroll periods cannot be edited.'
+            );
+        }
+
+
+        if (
+            (
+                $period['voided_at']
+                ??
+                null
+            )
+            !==
+            null
+        ) {
+            throw new InvalidArgumentException(
+                'Voided payroll periods cannot be edited.'
+            );
+        }
+
+
+        if (
+            (
+                $period['status']
+                ??
+                ''
+            )
+            !==
+            'open'
+        ) {
+            throw new InvalidArgumentException(
+                'Only active open payroll periods can be edited.'
+            );
+        }
+
+
+        return $period;
+    }
+
+
     public function create(
         array $data,
         int $createdByUserId
@@ -217,6 +276,209 @@ final class PayrollPeriodService
                 $this->db->inTransaction()
             ) {
 
+                $this->db
+                    ->rollBack();
+            }
+
+
+            throw $exception;
+        }
+    }
+
+
+    public function updateDraft(
+        int $payrollPeriodId,
+        array $data,
+        int $updatedByUserId
+    ): bool
+    {
+        if ($updatedByUserId < 1) {
+            throw new InvalidArgumentException(
+                'A valid updating user is required.'
+            );
+        }
+
+
+        $validatedData =
+            $this->validateCreateData(
+                $data
+            );
+
+        $startedTransaction =
+            !$this->db->inTransaction();
+
+
+        try {
+            if ($startedTransaction) {
+                $this->db
+                    ->beginTransaction();
+            }
+
+
+            $period =
+                $this->requireEditableDraft(
+                    $payrollPeriodId
+                );
+
+            $changes = [];
+
+            foreach (
+                [
+                    'period_name',
+                    'start_date',
+                    'end_date'
+                ]
+                as
+                $field
+            ) {
+                $previousValue =
+                    (string)(
+                        $period[$field]
+                        ??
+                        ''
+                    );
+
+                $updatedValue =
+                    (string)$validatedData[$field];
+
+                if (
+                    $previousValue
+                    ===
+                    $updatedValue
+                ) {
+                    continue;
+                }
+
+                $changes[$field] = [
+                    'from' =>
+                        $previousValue,
+
+                    'to' =>
+                        $updatedValue
+                ];
+            }
+
+
+            if ($changes === []) {
+                if ($startedTransaction) {
+                    $this->db
+                        ->commit();
+                }
+
+                return false;
+            }
+
+
+            $overlappingPeriod =
+                $this->payrollPeriodRepository
+                    ->findOverlapping(
+                        $validatedData['start_date'],
+                        $validatedData['end_date'],
+                        $payrollPeriodId
+                    );
+
+
+            if ($overlappingPeriod !== null) {
+                throw new InvalidArgumentException(
+                    sprintf(
+                        'The payroll period overlaps "%s" (%s through %s).',
+                        (string)$overlappingPeriod['period_name'],
+                        (string)$overlappingPeriod['start_date'],
+                        (string)$overlappingPeriod['end_date']
+                    )
+                );
+            }
+
+
+            $updated =
+                $this->payrollPeriodRepository
+                    ->updateDraft(
+                        $payrollPeriodId,
+                        [
+                            'period_name' =>
+                                $validatedData['period_name'],
+
+                            'start_date' =>
+                                $validatedData['start_date'],
+
+                            'end_date' =>
+                                $validatedData['end_date']
+                        ]
+                    );
+
+
+            if (!$updated) {
+                throw new RuntimeException(
+                    'The payroll period could not be updated. It may no longer be an editable draft.'
+                );
+            }
+
+
+            $historyReason =
+                json_encode(
+                    [
+                        'changes' =>
+                            $changes
+                    ],
+                    JSON_UNESCAPED_SLASHES
+                    |
+                    JSON_UNESCAPED_UNICODE
+                );
+
+
+            if ($historyReason === false) {
+                throw new RuntimeException(
+                    'The payroll period update history could not be encoded.'
+                );
+            }
+
+
+            $historyId =
+                $this->historyRepository
+                    ->create(
+                        [
+                            'payroll_period_id' =>
+                                $payrollPeriodId,
+
+                            'action' =>
+                                'updated',
+
+                            'previous_status' =>
+                                'open',
+
+                            'new_status' =>
+                                'open',
+
+                            'reason' =>
+                                $historyReason,
+
+                            'user_id' =>
+                                $updatedByUserId
+                        ]
+                    );
+
+
+            if ($historyId < 1) {
+                throw new RuntimeException(
+                    'The payroll period update history could not be recorded.'
+                );
+            }
+
+
+            if ($startedTransaction) {
+                $this->db
+                    ->commit();
+            }
+
+
+            return true;
+
+        } catch (Throwable $exception) {
+            if (
+                $startedTransaction
+                &&
+                $this->db->inTransaction()
+            ) {
                 $this->db
                     ->rollBack();
             }

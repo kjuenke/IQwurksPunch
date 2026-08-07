@@ -291,6 +291,16 @@ $router->post(
 );
 
 $router->get(
+    '/payroll-periods/{id}/edit',
+    [$payrollPeriods, 'edit']
+);
+
+$router->post(
+    '/payroll-periods/{id}/edit',
+    [$payrollPeriods, 'update']
+);
+
+$router->get(
     '/payroll-periods/{id}',
     [$payrollPeriods, 'show']
 );

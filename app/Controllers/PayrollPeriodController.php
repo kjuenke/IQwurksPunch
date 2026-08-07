@@ -232,6 +232,129 @@ final class PayrollPeriodController extends Controller
     }
 
 
+    public function edit(
+        int $id
+    ): void
+    {
+        $this->requireSupervisor();
+
+
+        try {
+            $period =
+                $this->payrollPeriods
+                    ->requireEditableDraft(
+                        $id
+                    );
+
+        } catch (Throwable $exception) {
+            Flash::error(
+                $exception->getMessage()
+            );
+
+
+            $this->redirectToShow(
+                $id
+            );
+        }
+
+
+        $this->renderEditForm(
+            $id,
+            $period
+        );
+    }
+
+
+    public function update(
+        int $id
+    ): void
+    {
+        $userId =
+            $this->requireSupervisor();
+
+
+        try {
+            $previousPeriod =
+                $this->payrollPeriods
+                    ->requireEditableDraft(
+                        $id
+                    );
+
+            $changed =
+                $this->payrollPeriods
+                    ->updateDraft(
+                        $id,
+                        $_POST,
+                        $userId
+                    );
+
+        } catch (Throwable $exception) {
+            try {
+                $this->payrollPeriods
+                    ->requireEditableDraft(
+                        $id
+                    );
+
+            } catch (Throwable) {
+                Flash::error(
+                    $exception->getMessage()
+                );
+
+
+                $this->redirectToShow(
+                    $id
+                );
+            }
+
+
+            $this->renderEditForm(
+                $id,
+                $_POST,
+                [
+                    'payroll_period' =>
+                        $exception->getMessage()
+                ]
+            );
+
+            return;
+        }
+
+
+        $period =
+            $this->payrollPeriods
+                ->requirePeriod(
+                    $id
+                );
+
+
+        if ($changed) {
+            $this->audit->log(
+                'payroll_period.updated',
+                $this->periodUpdateAuditDetails(
+                    $previousPeriod,
+                    $period
+                ),
+                $userId
+            );
+
+
+            Flash::success(
+                'Payroll period updated successfully.'
+            );
+
+        } else {
+            Flash::info(
+                'No payroll-period changes were necessary.'
+            );
+        }
+
+
+        $this->redirectToShow(
+            $id
+        );
+    }
+
+
     public function show(
         int $id
     ): void
@@ -1065,6 +1188,62 @@ final class PayrollPeriodController extends Controller
      * @param array<string,mixed> $old
      * @param array<string,string> $errors
      */
+    private function renderEditForm(
+        int $payrollPeriodId,
+        array $old,
+        array $errors = []
+    ): void
+    {
+        $company =
+            $this->companySettings
+                ->get()
+            ??
+            [];
+
+
+        $this->render(
+            'payroll-periods/create.twig',
+            [
+                'title' =>
+                    'Edit Payroll Period',
+
+                'activeMenu' =>
+                    'payroll-periods',
+
+                'old' =>
+                    $old,
+
+                'errors' =>
+                    $errors,
+
+                'companyTimezone' =>
+                    $this->companyTimezone(
+                        $company
+                    ),
+
+                'formMode' =>
+                    'edit',
+
+                'formAction' =>
+                    '/payroll-periods/'
+                    .
+                    $payrollPeriodId
+                    .
+                    '/edit',
+
+                'formBackUrl' =>
+                    '/payroll-periods/'
+                    .
+                    $payrollPeriodId
+            ]
+        );
+    }
+
+
+    /**
+     * @param array<string,mixed> $old
+     * @param array<string,string> $errors
+     */
     private function renderCreateForm(
         array $old,
         array $errors = []
@@ -1258,6 +1437,77 @@ final class PayrollPeriodController extends Controller
                         'GET'
                     )
                 );
+    }
+
+
+    /**
+     * @param array<string,mixed> $previousPeriod
+     * @param array<string,mixed> $updatedPeriod
+     */
+    private function periodUpdateAuditDetails(
+        array $previousPeriod,
+        array $updatedPeriod
+    ): string
+    {
+        return
+            $this->auditDetails(
+                [
+                    'payroll_period_id' =>
+                        (int)(
+                            $updatedPeriod['id']
+                            ??
+                            0
+                        ),
+
+                    'previous' =>
+                        [
+                            'period_name' =>
+                                (string)(
+                                    $previousPeriod['period_name']
+                                    ??
+                                    ''
+                                ),
+
+                            'start_date' =>
+                                (string)(
+                                    $previousPeriod['start_date']
+                                    ??
+                                    ''
+                                ),
+
+                            'end_date' =>
+                                (string)(
+                                    $previousPeriod['end_date']
+                                    ??
+                                    ''
+                                )
+                        ],
+
+                    'updated' =>
+                        [
+                            'period_name' =>
+                                (string)(
+                                    $updatedPeriod['period_name']
+                                    ??
+                                    ''
+                                ),
+
+                            'start_date' =>
+                                (string)(
+                                    $updatedPeriod['start_date']
+                                    ??
+                                    ''
+                                ),
+
+                            'end_date' =>
+                                (string)(
+                                    $updatedPeriod['end_date']
+                                    ??
+                                    ''
+                                )
+                        ]
+                ]
+            );
     }
 
 

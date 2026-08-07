@@ -326,6 +326,68 @@ final class PayrollPeriodRepository
     }
 
 
+    public function updateDraft(
+        int $id,
+        array $data
+    ): bool
+    {
+        $activeLifecyclePredicate =
+            $this->activeLifecyclePredicate();
+
+        $statement =
+            $this->db->prepare(
+                "
+                UPDATE payroll_periods
+
+                SET
+                    period_name =
+                        :period_name,
+
+                    start_date =
+                        :start_date,
+
+                    end_date =
+                        :end_date,
+
+                    updated_at =
+                        CURRENT_TIMESTAMP
+
+                WHERE id =
+                    :id
+
+                  AND status =
+                    'open'
+
+                  AND
+                    {$activeLifecyclePredicate}
+                "
+            );
+
+
+        $statement->execute(
+            [
+                'id' =>
+                    $id,
+
+                'period_name' =>
+                    $data['period_name'],
+
+                'start_date' =>
+                    $data['start_date'],
+
+                'end_date' =>
+                    $data['end_date']
+            ]
+        );
+
+
+        return
+            $statement->rowCount()
+            ===
+            1;
+    }
+
+
     public function findOverlapping(
         string $startDate,
         string $endDate,
