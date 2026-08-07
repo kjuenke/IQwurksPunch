@@ -393,7 +393,7 @@
 
                     <i class="bi bi-archive me-1"></i>
 
-                    Removal &amp; Retention Analysis
+                    Removal &amp; Retention Actions
 
                 </span>
 
@@ -411,8 +411,8 @@
 
             <p class="text-muted">
 
-                This read-only analysis explains which retention options are currently eligible.
-                No removal action is available from this page yet.
+                Only actions that are currently eligible are shown.
+                Every action is revalidated by the server before any change is made.
 
             </p>
 
@@ -477,19 +477,63 @@
                         </div>
 
 
-                        <p class="small text-muted mb-0">
+                        {% if removalAnalysis.can_delete_draft %}
 
-                            {% if removalAnalysis.can_delete_draft %}
+                            <p class="small text-muted">
 
-                                This is an untouched open draft whose only workflow event is its original creation.
+                                Permanently deletes this untouched open draft.
+                                Its creation audit record remains available.
 
-                            {% else %}
+                            </p>
+
+
+                            <form
+                                method="post"
+                                action="/payroll-periods/{{ period.id }}/delete-draft"
+                            >
+
+                                <div class="mb-3">
+
+                                    <label
+                                        class="form-label"
+                                        for="delete-draft-confirmation"
+                                    >
+                                        Type DELETE to confirm
+                                    </label>
+
+
+                                    <input
+                                        type="text"
+                                        class="form-control"
+                                        id="delete-draft-confirmation"
+                                        name="confirmation"
+                                        required
+                                        maxlength="6"
+                                        pattern="DELETE"
+                                        autocomplete="off"
+                                    >
+
+                                </div>
+
+
+                                <button
+                                    type="submit"
+                                    class="btn btn-outline-danger w-100"
+                                >
+                                    Permanently Delete Draft
+                                </button>
+
+                            </form>
+
+                        {% else %}
+
+                            <p class="small text-muted mb-0">
 
                                 Permanent deletion is blocked because the period is no longer an untouched open draft or has dependent records.
 
-                            {% endif %}
+                            </p>
 
-                        </p>
+                        {% endif %}
 
                     </div>
 
@@ -524,27 +568,76 @@
                         </div>
 
 
-                        <p class="small text-muted mb-0">
+                        {% if removalAnalysis.can_archive %}
 
-                            {% if removalAnalysis.can_archive %}
+                            <p class="small text-muted">
 
-                                Archiving will preserve the period, history, notes, exceptions, and audit information while removing it from active use.
+                                Preserves the complete record while removing the period from active payroll use.
 
-                            {% elseif removalAnalysis.is_archived %}
+                            </p>
 
+
+                            <form
+                                method="post"
+                                action="/payroll-periods/{{ period.id }}/archive"
+                            >
+
+                                <div class="mb-3">
+
+                                    <label
+                                        class="form-label"
+                                        for="archive-reason"
+                                    >
+                                        Archive reason
+                                    </label>
+
+
+                                    <textarea
+                                        class="form-control"
+                                        id="archive-reason"
+                                        name="reason"
+                                        rows="4"
+                                        minlength="10"
+                                        maxlength="1000"
+                                        required
+                                    ></textarea>
+
+
+                                    <div class="form-text">
+                                        Enter 10–1000 characters.
+                                    </div>
+
+                                </div>
+
+
+                                <button
+                                    type="submit"
+                                    class="btn btn-outline-secondary w-100"
+                                >
+                                    Archive Payroll Period
+                                </button>
+
+                            </form>
+
+                        {% elseif removalAnalysis.is_archived %}
+
+                            <p class="small text-muted mb-0">
                                 This payroll period is already archived.
+                            </p>
 
-                            {% elseif removalAnalysis.is_voided %}
+                        {% elseif removalAnalysis.is_voided %}
 
+                            <p class="small text-muted mb-0">
                                 A voided payroll period cannot also be archived.
+                            </p>
 
-                            {% else %}
+                        {% else %}
 
+                            <p class="small text-muted mb-0">
                                 Archiving is not currently available.
+                            </p>
 
-                            {% endif %}
-
-                        </p>
+                        {% endif %}
 
                     </div>
 
@@ -579,27 +672,100 @@
                         </div>
 
 
-                        <p class="small text-muted mb-0">
+                        {% if removalAnalysis.can_void %}
 
-                            {% if removalAnalysis.can_void %}
+                            <p class="small text-muted">
 
-                                This approved or locked period may be voided while preserving its complete historical record.
+                                Invalidates this finalized period while preserving its complete history and audit trail.
 
-                            {% elseif removalAnalysis.is_voided %}
+                            </p>
 
+
+                            <form
+                                method="post"
+                                action="/payroll-periods/{{ period.id }}/void"
+                            >
+
+                                <div class="mb-3">
+
+                                    <label
+                                        class="form-label"
+                                        for="void-reason"
+                                    >
+                                        Void reason
+                                    </label>
+
+
+                                    <textarea
+                                        class="form-control"
+                                        id="void-reason"
+                                        name="reason"
+                                        rows="4"
+                                        minlength="10"
+                                        maxlength="1000"
+                                        required
+                                    ></textarea>
+
+
+                                    <div class="form-text">
+                                        Enter 10–1000 characters.
+                                    </div>
+
+                                </div>
+
+
+                                <div class="mb-3">
+
+                                    <label
+                                        class="form-label"
+                                        for="void-confirmation"
+                                    >
+                                        Type VOID to confirm
+                                    </label>
+
+
+                                    <input
+                                        type="text"
+                                        class="form-control"
+                                        id="void-confirmation"
+                                        name="confirmation"
+                                        required
+                                        maxlength="4"
+                                        pattern="VOID"
+                                        autocomplete="off"
+                                    >
+
+                                </div>
+
+
+                                <button
+                                    type="submit"
+                                    class="btn btn-danger w-100"
+                                >
+                                    Void Payroll Period
+                                </button>
+
+                            </form>
+
+                        {% elseif removalAnalysis.is_voided %}
+
+                            <p class="small text-muted mb-0">
                                 This payroll period is already voided.
+                            </p>
 
-                            {% elseif removalAnalysis.is_archived %}
+                        {% elseif removalAnalysis.is_archived %}
 
+                            <p class="small text-muted mb-0">
                                 An archived payroll period cannot also be voided.
+                            </p>
 
-                            {% else %}
+                        {% else %}
 
+                            <p class="small text-muted mb-0">
                                 Only an approved or locked payroll period may be voided.
+                            </p>
 
-                            {% endif %}
-
-                        </p>
+                        {% endif %}
 
                     </div>
 

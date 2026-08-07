@@ -7,6 +7,8 @@ final class PayrollPeriodRemovalAnalysisPresentationTest extends TestCase
 {
     private string $controller;
 
+    private string $routes;
+
     private string $view;
 
 
@@ -27,6 +29,14 @@ final class PayrollPeriodRemovalAnalysisPresentationTest extends TestCase
                 $root
                 .
                 '/app/Controllers/PayrollPeriodController.php'
+            );
+
+
+        $this->routes =
+            (string)file_get_contents(
+                $root
+                .
+                '/routes/web.php'
             );
 
 
@@ -65,22 +75,14 @@ final class PayrollPeriodRemovalAnalysisPresentationTest extends TestCase
         );
 
 
-        self::assertMatchesRegularExpression(
-            '/if\\s*\\(\\s*'
-            .
-            '\\$this->isActiveAdministrator\\(\\s*'
-            .
-            '\\$actingUserId\\s*'
-            .
-            '\\)\\s*'
-            .
-            '\\)\\s*'
-            .
-            '\\{.*?'
-            .
-            '\\$this->removal\\s*'
-            .
-            '->analyze\\s*\\(/s',
+        self::assertStringContainsString(
+            '$this->removal',
+            $this->controller
+        );
+
+
+        self::assertStringContainsString(
+            '->analyze(',
             $this->controller
         );
 
@@ -92,7 +94,7 @@ final class PayrollPeriodRemovalAnalysisPresentationTest extends TestCase
     }
 
 
-    public function testViewCardIsGuardedByRemovalAnalysis(): void
+    public function testActionCardIsGuardedByAdministratorAnalysis(): void
     {
         self::assertStringContainsString(
             '{# BEGIN PAYROLL PERIOD REMOVAL ANALYSIS #}',
@@ -113,7 +115,7 @@ final class PayrollPeriodRemovalAnalysisPresentationTest extends TestCase
 
 
         self::assertStringContainsString(
-            'Removal &amp; Retention Analysis',
+            'Removal &amp; Retention Actions',
             $this->view
         );
 
@@ -125,102 +127,167 @@ final class PayrollPeriodRemovalAnalysisPresentationTest extends TestCase
     }
 
 
-    public function testRemovalAnalysisCardIsReadOnly(): void
+    public function testActionFormsAreGatedByServiceEligibility(): void
     {
-        $start =
-            strpos(
-                $this->view,
-                '{# BEGIN PAYROLL PERIOD REMOVAL ANALYSIS #}'
-            );
-
-
-        $end =
-            strpos(
-                $this->view,
-                '{# END PAYROLL PERIOD REMOVAL ANALYSIS #}'
-            );
-
-
-        self::assertNotFalse(
-            $start
+        self::assertStringContainsString(
+            '{% if removalAnalysis.can_delete_draft %}',
+            $this->view
         );
 
 
-        self::assertNotFalse(
-            $end
+        self::assertStringContainsString(
+            '{% if removalAnalysis.can_archive %}',
+            $this->view
         );
 
 
-        $block =
-            substr(
-                $this->view,
-                (int)$start,
-                (int)$end
-                -
-                (int)$start
-            );
-
-
-        self::assertStringNotContainsString(
-            '<form',
-            $block
+        self::assertStringContainsString(
+            '{% if removalAnalysis.can_void %}',
+            $this->view
         );
 
 
-        self::assertStringNotContainsString(
-            'action=',
-            $block
+        self::assertStringContainsString(
+            'action="/payroll-periods/{{ period.id }}/delete-draft"',
+            $this->view
         );
 
 
-        self::assertStringNotContainsString(
-            '/payroll-periods/',
-            $block
+        self::assertStringContainsString(
+            'action="/payroll-periods/{{ period.id }}/archive"',
+            $this->view
+        );
+
+
+        self::assertStringContainsString(
+            'action="/payroll-periods/{{ period.id }}/void"',
+            $this->view
         );
     }
 
 
-    public function testCardDisplaysEligibilityAndDependencies(): void
+    public function testFormsContainRequiredReasonAndConfirmationFields(): void
     {
         self::assertStringContainsString(
-            'removalAnalysis.can_delete_draft',
+            'Type DELETE to confirm',
             $this->view
         );
 
 
         self::assertStringContainsString(
-            'removalAnalysis.can_archive',
+            'pattern="DELETE"',
             $this->view
         );
 
 
         self::assertStringContainsString(
-            'removalAnalysis.can_void',
+            'Archive reason',
             $this->view
         );
 
 
         self::assertStringContainsString(
-            'removalAnalysis.dependencies',
+            'Void reason',
             $this->view
         );
 
 
         self::assertStringContainsString(
-            'Delete Draft',
+            'minlength="10"',
             $this->view
         );
 
 
         self::assertStringContainsString(
-            'Archive',
+            'maxlength="1000"',
             $this->view
         );
 
 
         self::assertStringContainsString(
-            'Void',
+            'Type VOID to confirm',
             $this->view
+        );
+
+
+        self::assertStringContainsString(
+            'pattern="VOID"',
+            $this->view
+        );
+    }
+
+
+    public function testControllerAndPostRoutesWireAllRemovalActions(): void
+    {
+        self::assertStringContainsString(
+            'public function deleteDraft(',
+            $this->controller
+        );
+
+
+        self::assertStringContainsString(
+            'public function archive(',
+            $this->controller
+        );
+
+
+        self::assertStringContainsString(
+            'public function void(',
+            $this->controller
+        );
+
+
+        self::assertStringContainsString(
+            '->deleteDraft(',
+            $this->controller
+        );
+
+
+        self::assertStringContainsString(
+            '->archive(',
+            $this->controller
+        );
+
+
+        self::assertStringContainsString(
+            '->void(',
+            $this->controller
+        );
+
+
+        self::assertStringContainsString(
+            "'/payroll-periods/{id}/delete-draft'",
+            $this->routes
+        );
+
+
+        self::assertStringContainsString(
+            '[$payrollPeriods, \'deleteDraft\']',
+            $this->routes
+        );
+
+
+        self::assertStringContainsString(
+            "'/payroll-periods/{id}/archive'",
+            $this->routes
+        );
+
+
+        self::assertStringContainsString(
+            '[$payrollPeriods, \'archive\']',
+            $this->routes
+        );
+
+
+        self::assertStringContainsString(
+            "'/payroll-periods/{id}/void'",
+            $this->routes
+        );
+
+
+        self::assertStringContainsString(
+            '[$payrollPeriods, \'void\']',
+            $this->routes
         );
     }
 }

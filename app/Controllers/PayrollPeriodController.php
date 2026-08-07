@@ -301,6 +301,160 @@ final class PayrollPeriodController extends Controller
     }
 
 
+
+    public function deleteDraft(
+        int $id
+    ): void
+    {
+        $actingUserId =
+            $this->requireSupervisor();
+
+
+        $confirmation =
+            (string)(
+                $_POST['confirmation']
+                ??
+                ''
+            );
+
+
+        try {
+
+            $period =
+                $this->removal
+                    ->deleteDraft(
+                        $id,
+                        $actingUserId,
+                        $confirmation
+                    );
+
+
+            Flash::success(
+                'Draft payroll period '
+                .
+                (string)(
+                    $period['period_name']
+                    ??
+                    ''
+                )
+                .
+                ' was permanently deleted.'
+            );
+
+
+            $this->redirectToIndex();
+
+        } catch (Throwable $exception) {
+
+            Flash::error(
+                $exception->getMessage()
+            );
+
+
+            $this->redirectToShow(
+                $id
+            );
+        }
+    }
+
+
+    public function archive(
+        int $id
+    ): void
+    {
+        $actingUserId =
+            $this->requireSupervisor();
+
+
+        $reason =
+            (string)(
+                $_POST['reason']
+                ??
+                ''
+            );
+
+
+        try {
+
+            $this->removal
+                ->archive(
+                    $id,
+                    $actingUserId,
+                    $reason
+                );
+
+
+            Flash::success(
+                'Payroll period archived successfully.'
+            );
+
+        } catch (Throwable $exception) {
+
+            Flash::error(
+                $exception->getMessage()
+            );
+        }
+
+
+        $this->redirectToShow(
+            $id
+        );
+    }
+
+
+    public function void(
+        int $id
+    ): void
+    {
+        $actingUserId =
+            $this->requireSupervisor();
+
+
+        $reason =
+            (string)(
+                $_POST['reason']
+                ??
+                ''
+            );
+
+
+        $confirmation =
+            (string)(
+                $_POST['confirmation']
+                ??
+                ''
+            );
+
+
+        try {
+
+            $this->removal
+                ->void(
+                    $id,
+                    $actingUserId,
+                    $reason,
+                    $confirmation
+                );
+
+
+            Flash::success(
+                'Payroll period voided successfully.'
+            );
+
+        } catch (Throwable $exception) {
+
+            Flash::error(
+                $exception->getMessage()
+            );
+        }
+
+
+        $this->redirectToShow(
+            $id
+        );
+    }
+
+
     public function beginReview(
         int $id
     ): void

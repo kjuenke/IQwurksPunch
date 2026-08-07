@@ -296,6 +296,21 @@ $router->get(
 );
 
 $router->post(
+    '/payroll-periods/{id}/delete-draft',
+    [$payrollPeriods, 'deleteDraft']
+);
+
+$router->post(
+    '/payroll-periods/{id}/archive',
+    [$payrollPeriods, 'archive']
+);
+
+$router->post(
+    '/payroll-periods/{id}/void',
+    [$payrollPeriods, 'void']
+);
+
+$router->post(
     '/payroll-periods/{id}/begin-review',
     [$payrollPeriods, 'beginReview']
 );
