@@ -12,7 +12,7 @@
         </h1>
 
         <p class="text-muted mb-0">
-            Create, review, approve, and lock payroll periods.
+            Manage active payroll processing and review archived or voided history.
         </p>
 
     </div>
@@ -36,6 +36,45 @@
 </div>
 
 
+<div
+    class="d-flex flex-wrap gap-2 mb-3"
+    role="navigation"
+    aria-label="Payroll period views"
+>
+    <a
+        href="/payroll-periods"
+        class="
+            btn
+            btn-sm
+            {% if listView == 'active' %}
+                btn-primary
+            {% else %}
+                btn-outline-primary
+            {% endif %}
+        "
+    >
+        <i class="bi bi-calendar2-check me-1"></i>
+        Active Periods
+    </a>
+
+    <a
+        href="/payroll-periods?view=removed"
+        class="
+            btn
+            btn-sm
+            {% if listView == 'removed' %}
+                btn-secondary
+            {% else %}
+                btn-outline-secondary
+            {% endif %}
+        "
+    >
+        <i class="bi bi-archive me-1"></i>
+        Removed History
+    </a>
+</div>
+
+
 <div class="card shadow-sm">
 
     <div class="card-header bg-body-tertiary">
@@ -43,7 +82,11 @@
         <div class="d-flex justify-content-between align-items-center">
 
             <span class="fw-semibold">
-                Payroll Period History
+                {% if listView == 'removed' %}
+                    Removed Payroll Period History
+                {% else %}
+                    Active Payroll Periods
+                {% endif %}
             </span>
 
             <span class="badge text-bg-secondary">
@@ -76,11 +119,19 @@
                 </div>
 
                 <h2 class="h5">
-                    No payroll periods have been created
+                    {% if listView == 'removed' %}
+                        No archived or voided payroll periods
+                    {% else %}
+                        No active payroll periods
+                    {% endif %}
                 </h2>
 
                 <p class="text-muted">
-                    Create the first payroll period to begin the review and approval workflow.
+                    {% if listView == 'removed' %}
+                        Removed payroll-period history will appear here.
+                    {% else %}
+                        Create a payroll period to begin the review and approval workflow.
+                    {% endif %}
                 </p>
 
                 <a
@@ -102,7 +153,11 @@
 
                 <i class="bi bi-cursor me-1"></i>
 
-                Select any payroll-period row to open its review page.
+                {% if listView == 'removed' %}
+                    Select any historical row to view its read-only detail page.
+                {% else %}
+                    Select any payroll-period row to open its review page.
+                {% endif %}
 
             </div>
 
@@ -124,7 +179,7 @@
                             </th>
 
                             <th scope="col">
-                                Status
+                                Workflow / Disposition
                             </th>
 
                             <th scope="col">
@@ -156,12 +211,14 @@
                         {% for payrollPeriod in payrollPeriods %}
 
                             {% set status = payrollPeriod.status|default('open') %}
+                            {% set isArchived = payrollPeriod.archived_at|default('') %}
+                            {% set isVoided = payrollPeriod.voided_at|default('') %}
 
                             <tr
                                 role="link"
                                 tabindex="0"
                                 style="cursor: pointer;"
-                                title="Open {{ payrollPeriod.period_name }}"
+                                title="View {{ payrollPeriod.period_name }}"
                                 onclick="window.location.href='/payroll-periods/{{ payrollPeriod.id }}';"
                                 onkeydown="
                                     if (
@@ -209,6 +266,21 @@
 
 
                                 <td>
+
+                                    {% if isVoided %}
+
+                                        <span class="badge text-bg-danger me-1">
+                                            Voided
+                                        </span>
+
+                                    {% elseif isArchived %}
+
+                                        <span class="badge text-bg-secondary me-1">
+                                            Archived
+                                        </span>
+
+                                    {% endif %}
+
 
                                     {% if status == 'open' %}
 
@@ -334,7 +406,11 @@
                                             btn
                                             btn-sm
 
-                                            {% if status == 'open' %}
+                                            {% if isVoided %}
+                                                btn-outline-danger
+                                            {% elseif isArchived %}
+                                                btn-outline-secondary
+                                            {% elseif status == 'open' %}
                                                 btn-outline-primary
                                             {% elseif status == 'under_review' %}
                                                 btn-primary
@@ -348,7 +424,19 @@
                                         "
                                     >
 
-                                        {% if status == 'open' %}
+                                        {% if isVoided %}
+
+                                            <i class="bi bi-slash-circle me-1"></i>
+
+                                            View Voided Record
+
+                                        {% elseif isArchived %}
+
+                                            <i class="bi bi-archive me-1"></i>
+
+                                            View Archived Record
+
+                                        {% elseif status == 'open' %}
 
                                             <i class="bi bi-folder2-open me-1"></i>
 

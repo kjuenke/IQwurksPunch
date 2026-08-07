@@ -162,6 +162,76 @@ final class PayrollPeriodLifecycleIntegrationTest extends TestCase
     }
 
 
+    public function testListViewsSeparateActiveAndRemovedPeriods(): void
+    {
+        $this->createPeriod(
+            'Active List Period',
+            '2026-12-01',
+            '2026-12-07',
+            'open'
+        );
+
+        $this->createPeriod(
+            'Archived List Period',
+            '2026-11-01',
+            '2026-11-07',
+            'open',
+            archivedAt:
+                '2026-11-08 08:00:00'
+        );
+
+        $this->createPeriod(
+            'Voided List Period',
+            '2026-10-01',
+            '2026-10-07',
+            'approved',
+            voidedAt:
+                '2026-10-08 08:00:00'
+        );
+
+
+        $activeNames =
+            array_column(
+                $this->periods->active(),
+                'period_name'
+            );
+
+        $removedNames =
+            array_column(
+                $this->periods->removed(),
+                'period_name'
+            );
+
+
+        self::assertSame(
+            [
+                'Active List Period'
+            ],
+            $activeNames
+        );
+
+        self::assertCount(
+            2,
+            $removedNames
+        );
+
+        self::assertContains(
+            'Archived List Period',
+            $removedNames
+        );
+
+        self::assertContains(
+            'Voided List Period',
+            $removedNames
+        );
+
+        self::assertNotContains(
+            'Active List Period',
+            $removedNames
+        );
+    }
+
+
     public function testInactivePeriodsDoNotBlockReplacementCreation(): void
     {
         $this->createPeriod(

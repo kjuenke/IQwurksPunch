@@ -120,6 +120,34 @@ final class PayrollPeriodController extends Controller
         $this->requireSupervisor();
 
 
+        $requestedView =
+            $_GET['view']
+            ??
+            null;
+
+        $listView =
+            (
+                is_string(
+                    $requestedView
+                )
+                &&
+                $requestedView
+                ===
+                'removed'
+            )
+                ? 'removed'
+                : 'active';
+
+        $payrollPeriods =
+            $listView
+            ===
+            'removed'
+                ? $this->payrollPeriods
+                    ->removed()
+                : $this->payrollPeriods
+                    ->active();
+
+
         $this->render(
             'payroll-periods/index.twig',
             [
@@ -129,9 +157,11 @@ final class PayrollPeriodController extends Controller
                 'activeMenu' =>
                     'payroll-periods',
 
+                'listView' =>
+                    $listView,
+
                 'payrollPeriods' =>
-                    $this->payrollPeriods
-                        ->all()
+                    $payrollPeriods
             ]
         );
     }

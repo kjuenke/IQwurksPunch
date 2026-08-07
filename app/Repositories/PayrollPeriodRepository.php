@@ -86,6 +86,88 @@ final class PayrollPeriodRepository
     }
 
 
+    /**
+     * @return array<int,array<string,mixed>>
+     */
+    public function active(): array
+    {
+        if (
+            !$this->removalLifecycleColumnsAvailable()
+        ) {
+            return $this->all();
+        }
+
+
+        return
+            array_values(
+                array_filter(
+                    $this->all(),
+                    static function (
+                        array $period
+                    ): bool {
+                        return
+                            (
+                                $period['archived_at']
+                                ??
+                                null
+                            )
+                            ===
+                            null
+                            &&
+                            (
+                                $period['voided_at']
+                                ??
+                                null
+                            )
+                            ===
+                            null;
+                    }
+                )
+            );
+    }
+
+
+    /**
+     * @return array<int,array<string,mixed>>
+     */
+    public function removed(): array
+    {
+        if (
+            !$this->removalLifecycleColumnsAvailable()
+        ) {
+            return [];
+        }
+
+
+        return
+            array_values(
+                array_filter(
+                    $this->all(),
+                    static function (
+                        array $period
+                    ): bool {
+                        return
+                            (
+                                $period['archived_at']
+                                ??
+                                null
+                            )
+                            !==
+                            null
+                            ||
+                            (
+                                $period['voided_at']
+                                ??
+                                null
+                            )
+                            !==
+                            null;
+                    }
+                )
+            );
+    }
+
+
     public function find(
         int $id
     ): ?array
