@@ -1,6 +1,6 @@
 # IQwurksPunch Administrator Guide
 
-**Applies to:** IQwurksPunch 1.0.0-dev
+**Applies to:** IQwurksPunch 1.0.0
 **Audience:** Administrators, supervisors, payroll staff, and system operators
 
 ---
@@ -1900,7 +1900,7 @@ cd /var/www/IQwurksPunch
 php vendor/bin/phpunit
 ```
 
-Current verified Version 1.0 development baseline:
+Verified Version 1.0 release baseline:
 
 ```text
 OK (448 tests, 3323 assertions)
@@ -1918,10 +1918,10 @@ Display the installed version:
 ./iqwurks version
 ```
 
-Expected Version 1.0 development output:
+Expected Version 1.0 output:
 
 ```text
-IQwurksPunch 1.0.0-dev
+IQwurksPunch 1.0.0
 ```
 
 The version is stored in:
@@ -1932,9 +1932,9 @@ VERSION
 
 ---
 
-## 39. Current Version 1.0 Development Limitations
+## 39. Current Version 1.0 Limitations
 
-Version 1.0 development does not include:
+Version 1.0 does not include:
 
 - A graphical guided installation wizard
 - Persistent payroll-period-linked CSV or PDF artifacts

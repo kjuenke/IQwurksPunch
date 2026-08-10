@@ -1,6 +1,6 @@
 # IQwurksPunch Developer Guide
 
-**Applies to:** IQwurksPunch 1.0.0-dev
+**Applies to:** IQwurksPunch 1.0.0
 **Audience:** Developers, maintainers, contributors, and release reviewers
 
 ---
@@ -2132,10 +2132,10 @@ Display it with:
 ./iqwurks version
 ```
 
-During Version 1.0 development:
+The Version 1.0 stable release uses:
 
 ```text
-1.0.0-dev
+1.0.0
 ```
 
 Before release:
@@ -2522,12 +2522,12 @@ Review:
 
 ---
 
-## 72. Version 1.0 Development Baseline
+## 72. Version 1.0 Release Baseline
 
-The current Version 1.0 development baseline is:
+The verified Version 1.0 release baseline is:
 
 ```text
-Application version: 1.0.0-dev
+Application version: 1.0.0
 Automated tests: 448
 Assertions: 3323
 Database tables: 18

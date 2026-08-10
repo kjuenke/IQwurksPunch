@@ -13,12 +13,17 @@ IQwurksPunch is built with PHP, Twig, SQLite, Bootstrap, and a custom MVC framew
 ## Current Version
 
 ```text
-0.9.0
+1.0.0
 ```
 
-Version 0.9 adds repeatable installation diagnostics, controlled upgrade planning and execution, upgrade journals and recovery checks, deterministic distribution packaging, independent archive verification, reusable deployment templates, and expanded installation and upgrade documentation.
+Version 1.0 is the stable public release. It adds controlled payroll-period
+lifecycle management, administrator-controlled supervisor account management,
+hardened authentication sessions, strengthened payroll and punch-integrity
+safeguards, and updated production documentation.
 
-Version 0.9.0 has completed implementation and automated validation. Final archive creation, checksum publication, merge, tagging, and GitHub release publication are completed during the remaining release steps.
+Version 1.0.0 has completed implementation, automated validation, security and
+data-integrity review, authenticated workflow testing, backup and recovery
+testing, and physical kiosk reboot-recovery testing.
 
 ## Primary Features
 
@@ -823,9 +828,9 @@ Detailed documentation is stored under:
 docs/
 ```
 
-### Version 0.9 Installation, Upgrade, and Packaging
+### Version 1.0 Installation, Upgrade, and Packaging
 
-Version 0.9 provides supported console workflows for installation readiness, controlled upgrades, recovery review, release-package creation, and independent archive verification.
+Version 1.0 provides supported console workflows for installation readiness, controlled upgrades, recovery review, release-package creation, and independent archive verification.
 
 Primary installation and upgrade commands:
 
@@ -860,10 +865,10 @@ Reusable deployment templates are stored under:
 deployment/
 ```
 
-The Version 0.9 release notes are:
+The Version 1.0 release notes are:
 
 ```text
-releases/0.9.0.md
+releases/1.0.0.md
 ```
 
 Distribution packages include a portable `PACKAGE-MANIFEST.json`, controlled permission modes, file SHA-256 digests, empty runtime directories, version-matched release notes, and reusable deployment templates.
@@ -882,11 +887,11 @@ Packages exclude private and generated content such as:
 - Composer-installed dependencies
 - Machine inventory files
 
-The Version 0.9 automated-test baseline is:
+The Version 1.0 automated-test baseline is:
 
 ```text
-363 tests
-2979 assertions
+448 tests
+3323 assertions
 ```
 
 Release notes are stored under:
@@ -987,45 +992,43 @@ tests/
 
 ## Project Status
 
-Version 0.9 is the current stable release.
+Version 1.0 is the current stable release.
 
-It completes the Reporting Automation and Delivery Reliability milestone, including:
+It completes the Stable Public Release milestone, including:
 
-- Manual weekly payroll email delivery
-- Scheduled weekly payroll delivery
-- Scheduled payroll-exception delivery
-- Payroll-approval notifications
-- Operational-failure notifications
-- CSV payroll email attachments
-- PDF payroll email attachments
-- Structured report-delivery schedules
-- Detailed email delivery-attempt history
-- Configurable retry policies
-- Delayed automatic retry eligibility
-- Retry-chain duplicate prevention
-- Exception-report retry closure
-- Malformed retry-record quarantine
-- Unsupported retry-type quarantine
-- Permanent oversized-attachment failure handling
-- Internal and external retry execution locks
-- Employee-kiosk Enter-key operation
+- Stable installation, upgrade, rollback, backup, and restore procedures
+- Deterministic release packaging and independent archive verification
+- Payroll-period creation, draft editing, lifecycle management, and protected
+  removal
+- Punch retention when payroll-period records are removed
+- Administrator-controlled supervisor account management
+- Last-administrator and active-session lockout protection
+- Explicit supervisor role-change audit events
+- Eight-hour supervisor inactivity expiration
+- CSRF-token rotation after successful authentication
+- Strengthened payroll-input and punch-mutation integrity checks
+- Patched Dompdf 3.1.6 dependency
+- Updated administrator, installation, architecture, and developer guides
+- Authenticated browser, export, backup, restore-preview, recovery, and
+  physical kiosk reboot validation
 
-The validated Version 0.9 baseline is:
+The validated Version 1.0 baseline is:
 
 ```text
-Application version: 0.9.0
+Application version: 1.0.0
 PHP version: 8.5.4
 PHPUnit version: 12.5.31
-Tests: 363
-Assertions: 2979
+Tests: 448
+Assertions: 3323
 Database tables: 18
-Applied migrations: 16
+Applied migrations: 17
 SQLite journal mode: wal
 Database integrity: ok
 Foreign-key violations: 0
+Scheduler checks: 9 passed
 ```
 
-Items deferred beyond Version 0.9 include:
+Items deferred beyond Version 1.0 include:
 
 - Browser-based installation wizard
 - Automatic operating-system package installation

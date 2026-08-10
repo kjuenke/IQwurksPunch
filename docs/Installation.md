@@ -2353,7 +2353,7 @@ Do not store SMTP passwords, supervisor passwords, employee PINs, or password ha
 
 ## 60. Current Limitations
 
-Version 0.9 does not currently provide:
+Version 1.0 does not currently provide:
 
 - A graphical operating-system installer
 - Automatic Ubuntu package installation

@@ -6,6 +6,74 @@ The project follows Semantic Versioning for stable releases and generally follow
 
 ---
 
+## [1.0.0] - 2026-08-10
+
+### Added
+
+#### Payroll Period Management
+
+- Added controlled payroll-period creation with defined date ranges.
+- Added overlap validation and company-timezone date handling.
+- Added draft payroll-period editing.
+- Added active and removed payroll-period lists.
+- Added protected draft deletion with explicit confirmation.
+- Added finalized-period archival and voiding with required reasons.
+- Added employee, punch, and report-artifact status details before destructive
+  actions.
+- Preserved employee punches when payroll-period records are removed.
+- Added payroll-period lifecycle and removal audit history.
+
+#### Supervisor User Management
+
+- Added administrator-controlled supervisor account creation.
+- Added account editing, password reset, activation, and deactivation.
+- Added role and status management.
+- Added username uniqueness validation.
+- Added last-administrator and active-session lockout protection.
+- Added user-management activity history.
+- Added dedicated audit events with before-and-after role details.
+
+#### Authentication and Session Security
+
+- Added an eight-hour supervisor inactivity timeout.
+- Added supervisor-session synchronization with current database state.
+- Added CSRF-token rotation after successful authentication.
+- Added tests for login, token rotation, inactive accounts, role changes, and
+  expired sessions.
+
+### Changed
+
+- Updated Dompdf from 3.1.5 to the patched 3.1.6 release.
+- Aligned overtime-threshold validation across company settings and payroll
+  calculation policy.
+- Treat unsupported payroll punch types as incomplete payroll data.
+- Require affected database rows for punch-update and punch-delete success.
+- Clarified that CSV and PDF exports are streamed on demand rather than retained
+  as payroll-period-linked artifacts.
+- Updated installation, administration, architecture, development, deployment,
+  backup, restore, recovery, and production-operation documentation.
+
+### Fixed
+
+- Restored the payroll-period active and removed list service contract.
+- Corrected packaged Dompdf font-metadata readability guidance for the web
+  service account.
+- Added explicit mutation-failure handling for missing punch records.
+
+### Validation
+
+- Passed 448 automated tests with 3323 assertions.
+- Passed PHP syntax validation and configured Twig-template compilation.
+- Passed Composer validation and locked-dependency security audit.
+- Passed SQLite integrity and foreign-key validation with 17 migrations.
+- Passed scheduler, backup verification, restore preview, HTTP access, CSV/PDF
+  export, and authenticated administrator workflow checks.
+- Passed automatic service recovery and physical kiosk recovery after a full
+  system reboot.
+- Passed distribution-package preview with no unsafe entries.
+
+---
+
 ## [0.9.0] - 2026-08-05
 
 ### Added

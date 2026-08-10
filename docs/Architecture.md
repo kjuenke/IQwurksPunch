@@ -1,6 +1,6 @@
 # IQwurksPunch Architecture Guide
 
-**Applies to:** IQwurksPunch 1.0.0-dev
+**Applies to:** IQwurksPunch 1.0.0
 **Audience:** Developers, maintainers, system administrators, and technical reviewers
 
 ---

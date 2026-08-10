@@ -1323,9 +1323,9 @@ The following remain planned for Version 1.0 or later:
 
 ## Version 1.0 — Stable Public Release
 
-**Status: Target**
+**Status: Complete**
 
-Target requirements:
+Completed requirements:
 
 - Stable installation process
 - Stable upgrade process
@@ -1350,7 +1350,7 @@ Target requirements:
 
 ### Payroll Period Management
 
-Version 1.0 will introduce persisted payroll-period records and controlled
+Version 1.0 introduces persisted payroll-period records and controlled
 administrative lifecycle management.
 
 Completion requirements:
@@ -1376,7 +1376,7 @@ Completion requirements:
 
 ### Supervisor User Management
 
-Version 1.0 will provide administrator-controlled supervisor account
+Version 1.0 provides administrator-controlled supervisor account
 management using the existing user authentication foundation.
 
 Completion requirements:
@@ -1405,6 +1405,20 @@ Completion requirements:
   creation information, and last-login information.
 - Tests cover authorization, validation, password handling, last-administrator
   protection, account status, and audit history.
+
+### Completion Evidence
+
+Version 1.0 completion was validated with:
+
+- 448 automated tests and 3323 assertions
+- PHP syntax and configured Twig-template validation
+- Composer validation and locked-dependency security review
+- SQLite integrity, migration-history, and foreign-key checks
+- Authenticated administrator, report, CSV, PDF, and kiosk workflows
+- Verified backup creation and restore preview
+- Scheduler and production-service diagnostics
+- Successful service and physical kiosk recovery after a full system reboot
+- Distribution-package planning with zero unsafe entries
 
 ## Future Possibilities
 
