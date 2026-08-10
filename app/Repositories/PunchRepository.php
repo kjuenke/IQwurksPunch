@@ -202,27 +202,36 @@ class PunchRepository
             );
 
 
-        return $statement->execute(
-            [
-                'punch_time' =>
-                    $punchTimeUtc,
+        $executed =
+            $statement->execute(
+                [
+                    'punch_time' =>
+                        $punchTimeUtc,
 
-                'punch_type' =>
-                    $punchType,
+                    'punch_type' =>
+                        $punchType,
 
-                'notes' =>
-                    $notes,
+                    'notes' =>
+                        $notes,
 
-                'corrected_by_user_id' =>
-                    $userId,
+                    'corrected_by_user_id' =>
+                        $userId,
 
-                'correction_reason' =>
-                    $reason,
+                    'correction_reason' =>
+                        $reason,
 
-                'id' =>
-                    $id
-            ]
-        );
+                    'id' =>
+                        $id
+                ]
+            );
+
+
+        return
+            $executed
+            &&
+            $statement->rowCount()
+            ===
+            1;
     }
 
 
@@ -240,12 +249,21 @@ class PunchRepository
             );
 
 
-        return $statement->execute(
-            [
-                'id' =>
-                    $id
-            ]
-        );
+        $executed =
+            $statement->execute(
+                [
+                    'id' =>
+                        $id
+                ]
+            );
+
+
+        return
+            $executed
+            &&
+            $statement->rowCount()
+            ===
+            1;
     }
 
 
