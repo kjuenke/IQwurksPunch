@@ -1,6 +1,6 @@
 # IQwurksPunch Administrator Guide
 
-**Applies to:** IQwurksPunch 0.6.0
+**Applies to:** IQwurksPunch 1.0.0-dev
 **Audience:** Administrators, supervisors, payroll staff, and system operators
 
 ---
@@ -33,6 +33,16 @@ Supervisors use the administration interface to:
 - Restore a verified backup
 - Run system diagnostics
 - Enable maintenance mode
+
+Active administrators can also:
+
+- Create and manage payroll periods
+- Delete eligible draft payroll periods
+- Archive or void payroll periods safely
+- Manage supervisor and administrator accounts
+- Reset account passwords
+- Activate or deactivate managed accounts
+- Review user-management activity
 
 ---
 
@@ -279,7 +289,7 @@ When the PIN is invalid:
 
 ## 7. Kiosk Inactivity Protection
 
-Version 0.6 automatically clears unfinished kiosk transactions when the kiosk is left unattended.
+IQwurksPunch automatically clears unfinished kiosk transactions when the kiosk is left unattended.
 
 This prevents the next employee from seeing or using another employee’s partially completed transaction.
 
@@ -789,7 +799,7 @@ A healthy result shows:
 Overall status: PASS
 ```
 
-Version 0.6 currently performs nine scheduler checks.
+The scheduler diagnostic currently performs nine checks.
 
 ---
 
@@ -1077,7 +1087,7 @@ Journal mode: wal
 
 ## 21. SQLite WAL Mode
 
-Version 0.6 uses SQLite WAL mode.
+IQwurksPunch uses SQLite WAL mode.
 
 The application configures:
 
@@ -1283,7 +1293,7 @@ Display the command list:
 ./iqwurks help
 ```
 
-Available Version 0.6 commands:
+Available commands include:
 
 ```text
 help
@@ -1678,7 +1688,206 @@ Disable maintenance mode after recovery:
 
 ---
 
-## 36. Automated Tests
+## 36. Version 1.0 Administrative Workflows
+
+Version 1.0 adds controlled payroll-period management and administrator-only
+user management.
+
+### Payroll Period Management
+
+Open the payroll-period workspace at:
+
+```text
+http://SERVER_ADDRESS/payroll-periods
+```
+
+Active supervisors can review payroll-period records and use the established
+review, approval, locking, exception, and note workflows. Creation, editing,
+and removal actions apply additional authorization and lifecycle rules.
+
+#### Create a Payroll Period
+
+1. Open **Payroll Periods**.
+2. Select **Create Payroll Period**.
+3. Enter the period name, start date, and end date.
+4. Review the date range.
+5. Save the period.
+
+Payroll periods use company-local dates. The service validates the dates,
+limits the supported range, and rejects overlap with another active period.
+
+Creation records immutable payroll-period history and an audit event.
+
+#### Edit an Open Draft
+
+Only an active, open draft can be edited.
+
+1. Open the payroll-period detail page.
+2. Select **Edit Payroll Period**.
+3. Update the allowed fields.
+4. Save the changes.
+
+The application rejects edits to periods that have entered review, approval,
+locking, archival, or voiding workflows. It also prevents an edited range from
+overlapping another active period.
+
+A real change records history and an audit event. Submitting identical values
+does not create no-op history.
+
+#### Review Removal and Retention Information
+
+Active administrators see the removal and retention card on an eligible
+payroll-period detail page.
+
+Before an action is submitted, review:
+
+- Period name and date range
+- Current lifecycle status
+- Employees with punches in the period
+- Punch records in the period
+- Report-artifact tracking status
+- Lifecycle dependency records
+- The action currently allowed by the service
+
+Employee and punch counts use the configured company timezone and the
+period's inclusive local dates.
+
+CSV and PDF reports are generated in memory and downloaded on demand. They
+are not retained as payroll-period-linked artifacts.
+
+#### Delete an Eligible Draft
+
+Permanent deletion is limited to an untouched open draft and requires the
+exact confirmation shown by the interface.
+
+Deleting the payroll-period record:
+
+- Does not delete employee punch records
+- Does not delete employees
+- Does not erase unrelated audit records
+- Is rejected after the period enters a protected workflow
+- Is rejected when protected dependency records exist
+- Records the administrator action in the audit log
+
+If the service does not mark the period as deletable, do not bypass the
+protection through direct database changes.
+
+#### Archive a Payroll Period
+
+Archival preserves the payroll-period record as historical data.
+
+1. Open the period detail page.
+2. Review the removal and retention analysis.
+3. Enter a meaningful archival reason.
+4. Submit the archive action.
+
+Archived periods are separated from active periods and cannot continue through
+the active approval workflow.
+
+#### Void a Finalized Payroll Period
+
+Voiding is used for an eligible finalized period that must remain visible as
+historical data but must no longer operate as an active payroll period.
+
+1. Open the period detail page.
+2. Review the removal and retention analysis.
+3. Enter a meaningful void reason.
+4. Enter the exact confirmation shown by the interface.
+5. Submit the void action.
+
+An open draft cannot be voided. Voided periods are read-only and excluded from
+active payroll-period association.
+
+#### Removed Payroll Periods
+
+The payroll-period list separates active and removed records. Use the removed
+view to review archived and voided periods without treating them as active
+operational records.
+
+### Supervisor and Administrator Account Management
+
+User management is restricted to active administrators.
+
+Open the account list at:
+
+```text
+http://SERVER_ADDRESS/admin/users
+```
+
+Open user-management activity at:
+
+```text
+http://SERVER_ADDRESS/admin/users/activity
+```
+
+#### Create an Account
+
+1. Open **User Management**.
+2. Select **Create User**.
+3. Enter a unique username and email address.
+4. Select the supervisor or administrator role.
+5. Choose whether the account starts active.
+6. Enter and confirm a password of at least 12 characters.
+7. Save the account.
+
+Usernames are checked case-insensitively for uniqueness. Passwords are securely
+hashed and are never stored or displayed as plain text.
+
+Grant the administrator role only to people authorized to manage system
+accounts and protected administrative actions.
+
+#### Edit Account Details and Role
+
+Administrators can update a managed account's username, email address, and
+authorized role.
+
+Role changes are recorded with the previous and new role in the user-management
+audit history.
+
+The signed-in administrator cannot remove their own administrator role. The
+final active administrator is also protected from role removal.
+
+#### Reset a Password
+
+Use the account's **Reset Password** action. Enter and confirm a new password
+of at least 12 characters.
+
+The old password and password hash are never displayed or recovered. Successful
+and blocked password-reset actions are auditable without recording password
+contents.
+
+#### Activate or Deactivate an Account
+
+Deactivation is the supported way to remove access while retaining operational
+and audit history.
+
+The application prevents:
+
+- Deactivation of the signed-in administrator's own account
+- Deactivation of the final active administrator
+- Management actions by inactive administrators
+- Management actions by supervisors
+
+There is no permanent user-deletion route. Reactivate an account only after
+confirming that access should be restored.
+
+#### Review User-Management Activity
+
+The activity page lists `user.*` audit events, including:
+
+- Account creation
+- Account updates
+- Role changes
+- Password resets
+- Activation and deactivation
+- Blocked management attempts
+
+Review this history during monthly access reviews and after any unexpected
+account or privilege change.
+
+---
+
+## 37. Automated Tests
 
 Administrators performing an upgrade or release validation should run:
 
@@ -1688,17 +1897,17 @@ cd /var/www/IQwurksPunch
 php vendor/bin/phpunit
 ```
 
-Expected Version 0.6 result:
+Current verified Version 1.0 development baseline:
 
 ```text
-OK (36 tests, 188 assertions)
+OK (429 tests, 3258 assertions)
 ```
 
 A failed test should be investigated before the installation is considered release-ready.
 
 ---
 
-## 37. Version Information
+## 38. Version Information
 
 Display the installed version:
 
@@ -1706,10 +1915,10 @@ Display the installed version:
 ./iqwurks version
 ```
 
-Expected Version 0.6 output:
+Expected Version 1.0 development output:
 
 ```text
-IQwurksPunch 0.6.0
+IQwurksPunch 1.0.0-dev
 ```
 
 The version is stored in:
@@ -1720,30 +1929,27 @@ VERSION
 
 ---
 
-## 38. Known Version 0.6 Limitations
+## 39. Current Version 1.0 Development Limitations
 
-Version 0.6 does not yet include:
+Version 1.0 development does not include:
 
-- Manual weekly payroll email delivery
-- Scheduled weekly payroll email delivery
-- Scheduled exception-report delivery
-- PDF or CSV email attachments
-- Payroll-period approval
-- Payroll-period locking
-- Reopening approved payroll
-- Supervisor review notes
-- Third-party payroll export profiles
-- Guided installation wizard
-- Automated upgrade command
-- Release packaging
-- Universal per-command `--help`
+- A graphical guided installation wizard
+- Persistent payroll-period-linked CSV or PDF artifacts
+- Third-party payroll-provider export profiles
 - Multiple companies
 - Multiple physical locations
 - Multiple independently managed kiosks
+- Employee self-service
+- Mobile administration
+- A public REST API
+
+CSV and PDF payroll reports are generated and downloaded on demand. Stable
+Version 1.0 release promotion, final archive publication, tagging, and release
+publication occur only after the complete release-readiness review passes.
 
 ---
 
-## 39. Support Information to Collect
+## 40. Support Information to Collect
 
 When documenting or reporting a problem, collect:
 
