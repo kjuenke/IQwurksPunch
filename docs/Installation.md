@@ -1,7 +1,7 @@
 # IQwurksPunch Installation and Upgrade Guide
 
 **Application:** IQwurksPunch
-**Guide baseline:** Version 0.9
+**Guide baseline:** Version 1.0
 **Audience:** Linux administrators, deployment operators, and release maintainers
 
 ---
@@ -263,13 +263,13 @@ Place the release archive in a temporary installation location.
 Example:
 
 ```text
-/root/iqwurkspunch-0.9.0.tar.gz
+/root/iqwurkspunch-1.0.0.tar.gz
 ```
 
 Set shell variables:
 
 ```bash
-ARCHIVE="/root/iqwurkspunch-0.9.0.tar.gz"
+ARCHIVE="/root/iqwurkspunch-1.0.0.tar.gz"
 EXPECTED_SHA256="PUBLISHED_64_CHARACTER_SHA256"
 ```
 
@@ -345,7 +345,7 @@ Example:
 
 ```bash
 mv \
-    /var/www/iqwurkspunch-0.9.0 \
+    /var/www/iqwurkspunch-1.0.0 \
     /var/www/IQwurksPunch
 ```
 
@@ -386,6 +386,25 @@ COMPOSER_ALLOW_SUPERUSER=1 composer install \
     --prefer-dist \
     --no-interaction
 ```
+
+Normalize dependency read access after either Composer installation command.
+Some dependency archives preserve restrictive source-file modes that prevent
+PHP-FPM from reading required runtime resources:
+
+```bash
+chmod -R o+rX vendor
+```
+
+Confirm that no dependency file is unreadable by the web process:
+
+```bash
+find vendor \
+    -type f \
+    ! -perm -004 \
+    -print
+```
+
+The verification command should produce no output.
 
 Validate Composer metadata:
 
@@ -1507,14 +1526,14 @@ cd /var/www/IQwurksPunch
 php vendor/bin/phpunit
 ```
 
-The Version 0.9 development baseline at the time this guide was updated is:
+The Version 1.0 development baseline at the time this guide was updated is:
 
 ```text
 359 tests
 2734 assertions
 ```
 
-The release baseline may increase as Version 0.9 is completed.
+The release baseline may increase as Version 1.0 is completed.
 
 Do not approve a release when automated tests fail.
 
@@ -1812,7 +1831,7 @@ Record the exact confirmation phrase.
 Example:
 
 ```text
-UPGRADE 0.9.0
+UPGRADE 1.0.0
 ```
 
 Use the phrase displayed by the command, not the example.
