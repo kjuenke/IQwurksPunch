@@ -9,6 +9,10 @@ use RuntimeException;
 
 final class AuthGuardService
 {
+    public const SESSION_IDLE_TIMEOUT_SECONDS =
+        28800;
+
+
     private const PUBLIC_PATHS = [
         '/',
         '/login',
@@ -104,6 +108,9 @@ final class AuthGuardService
 
 
         try {
+
+            $this->requireActiveSession();
+
 
             $user =
                 $this->authorizedUserForId(
@@ -236,6 +243,44 @@ final class AuthGuardService
 
 
         return $user;
+    }
+
+
+    public function requireActiveSession(
+        ?int $currentTime = null
+    ): void
+    {
+        $lastActivity =
+            (int)(
+                $_SESSION['last_activity']
+                ??
+                0
+            );
+
+
+        $now =
+            $currentTime
+            ??
+            time();
+
+
+        if (
+            $lastActivity <= 0
+            ||
+            $now < $lastActivity
+            ||
+            (
+                $now
+                -
+                $lastActivity
+            )
+            >=
+            self::SESSION_IDLE_TIMEOUT_SECONDS
+        ) {
+            throw new RuntimeException(
+                'Your supervisor session has expired. Please log in again.'
+            );
+        }
     }
 
 

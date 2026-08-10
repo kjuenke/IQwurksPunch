@@ -257,6 +257,10 @@ final class AuthGuardServiceTest extends TestCase
             'admin';
 
 
+        $_SESSION['last_activity'] =
+            time();
+
+
         $verifiedUserId =
             $this->guard
                 ->requireAuthorizedUserId(
@@ -298,6 +302,95 @@ final class AuthGuardServiceTest extends TestCase
             0,
             $_SESSION['last_activity']
         );
+    }
+
+
+    public function testRecentSupervisorSessionIsAccepted(): void
+    {
+        $_SESSION['last_activity'] =
+            1000;
+
+
+        $this->guard
+            ->requireActiveSession(
+                1000
+                +
+                AuthGuardService::SESSION_IDLE_TIMEOUT_SECONDS
+                -
+                1
+            );
+
+
+        self::addToAssertionCount(
+            1
+        );
+    }
+
+
+    public function testSupervisorSessionExpiresAtIdleLimit(): void
+    {
+        $_SESSION['last_activity'] =
+            1000;
+
+
+        $this->expectException(
+            RuntimeException::class
+        );
+
+
+        $this->expectExceptionMessage(
+            'Your supervisor session has expired. Please log in again.'
+        );
+
+
+        $this->guard
+            ->requireActiveSession(
+                1000
+                +
+                AuthGuardService::SESSION_IDLE_TIMEOUT_SECONDS
+            );
+    }
+
+
+    public function testSupervisorSessionWithoutActivityIsRejected(): void
+    {
+        $this->expectException(
+            RuntimeException::class
+        );
+
+
+        $this->expectExceptionMessage(
+            'Your supervisor session has expired. Please log in again.'
+        );
+
+
+        $this->guard
+            ->requireActiveSession(
+                1000
+            );
+    }
+
+
+    public function testSupervisorSessionWithFutureActivityIsRejected(): void
+    {
+        $_SESSION['last_activity'] =
+            1001;
+
+
+        $this->expectException(
+            RuntimeException::class
+        );
+
+
+        $this->expectExceptionMessage(
+            'Your supervisor session has expired. Please log in again.'
+        );
+
+
+        $this->guard
+            ->requireActiveSession(
+                1000
+            );
     }
 
 

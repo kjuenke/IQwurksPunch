@@ -211,7 +211,7 @@ ini_set(
 
 ini_set(
     'session.gc_maxlifetime',
-    '28800'
+    (string)AuthGuardService::SESSION_IDLE_TIMEOUT_SECONDS
 );
 
 

@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace App\Services;
 
 use App\Repositories\UserRepository;
+use RuntimeException;
 
 class AuthService
 {
@@ -15,13 +16,22 @@ class AuthService
 
     private UserRepository $users;
 
+    private CsrfService $csrf;
+
 
     public function __construct(
-        UserRepository $users
+        UserRepository $users,
+        ?CsrfService $csrf = null
     )
     {
         $this->users =
             $users;
+
+
+        $this->csrf =
+            $csrf
+            ??
+            new CsrfService();
     }
 
 
@@ -45,6 +55,13 @@ class AuthService
                 $password,
                 PASSWORD_DEFAULT
             );
+
+
+        if (!is_string($hash)) {
+            throw new RuntimeException(
+                'The administrator password could not be secured.'
+            );
+        }
 
 
         return $this->users->create(
@@ -133,9 +150,19 @@ class AuthService
         }
 
 
-        session_regenerate_id(
-            true
-        );
+        if (
+            session_status()
+            ===
+            PHP_SESSION_ACTIVE
+        ) {
+            session_regenerate_id(
+                true
+            );
+        }
+
+
+        $this->csrf
+            ->rotate();
 
 
         $_SESSION['user_id'] =

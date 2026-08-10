@@ -109,6 +109,7 @@ Access is removed when:
 - The account has been deactivated
 - The user does not have an authorized role
 - The session is cleared
+- The supervisor session is idle for eight hours
 - The user logs out
 
 ### Logging In
@@ -153,6 +154,8 @@ Session protections include:
 - HTTP-only cookies
 - SameSite=Lax
 - Session regeneration after login
+- CSRF-token rotation after login
+- An eight-hour supervisor inactivity timeout
 
 ---
 
@@ -1900,7 +1903,7 @@ php vendor/bin/phpunit
 Current verified Version 1.0 development baseline:
 
 ```text
-OK (429 tests, 3258 assertions)
+OK (438 tests, 3293 assertions)
 ```
 
 A failed test should be investigated before the installation is considered release-ready.
