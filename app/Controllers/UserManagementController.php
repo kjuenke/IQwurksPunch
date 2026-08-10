@@ -521,8 +521,28 @@ class UserManagementController extends Controller
             );
 
 
+        $oldRole =
+            strtolower(
+                trim(
+                    (string)(
+                        $target['role']
+                        ??
+                        ''
+                    )
+                )
+            );
+
+
+        $roleChanged =
+            $oldRole
+            !==
+            $newRole;
+
+
         $this->audit->log(
-            'user.updated',
+            $roleChanged
+                ? 'user.role_changed'
+                : 'user.updated',
             'Updated user ID '
             .
             $userId
@@ -537,9 +557,17 @@ class UserManagementController extends Controller
             .
             $newUsername
             .
-            ' with role '
+            ' from role '
             .
-            $newRole
+            $this->auditValue(
+                $oldRole
+            )
+            .
+            ' to role '
+            .
+            $this->auditValue(
+                $newRole
+            )
             .
             '.',
             $actorUserId
