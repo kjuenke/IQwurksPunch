@@ -217,6 +217,69 @@ final class PayrollPeriodRemovalAnalysisPresentationTest extends TestCase
     }
 
 
+    public function testRemovalCardPresentsPeriodDataAndRetentionContext(): void
+    {
+        self::assertStringContainsString(
+            'removalAnalysis.operational_context|default({})',
+            $this->view
+        );
+
+
+        self::assertStringContainsString(
+            'Period Data Context',
+            $this->view
+        );
+
+
+        self::assertStringContainsString(
+            'employee_count',
+            $this->view
+        );
+
+
+        self::assertStringContainsString(
+            'punch_count',
+            $this->view
+        );
+
+
+        self::assertStringContainsString(
+            'Generated Reports',
+            $this->view
+        );
+
+
+        self::assertStringContainsString(
+            'generated_report_tracking',
+            $this->view
+        );
+
+
+        self::assertStringContainsString(
+            'Not tracked',
+            $this->view
+        );
+
+
+        self::assertStringContainsString(
+            'does not delete punch records',
+            $this->view
+        );
+
+
+        self::assertStringContainsString(
+            'not stored as payroll-period-linked artifacts',
+            $this->view
+        );
+
+
+        self::assertStringContainsString(
+            'Lifecycle Dependency Records',
+            $this->view
+        );
+    }
+
+
     public function testControllerAndPostRoutesWireAllRemovalActions(): void
     {
         self::assertStringContainsString(

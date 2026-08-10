@@ -2,6 +2,7 @@
 declare(strict_types=1);
 
 use App\Repositories\AuditRepository;
+use App\Repositories\CompanySettingsRepository;
 use App\Repositories\PayrollPeriodHistoryRepository;
 use App\Repositories\PayrollPeriodRemovalRepository;
 use App\Repositories\UserRepository;
@@ -88,6 +89,9 @@ final class PayrollPeriodRemovalServiceTest extends TestCase
                 $userRepository,
                 new AuditRepository(
                     $this->db
+                ),
+                new CompanySettingsRepository(
+                    $this->db
                 )
             );
     }
@@ -132,6 +136,100 @@ final class PayrollPeriodRemovalServiceTest extends TestCase
         self::assertSame(
             1,
             $analysis['dependencies']['history_count']
+        );
+    }
+
+
+    public function testAnalysisCountsPeriodPunchesUsingCompanyTimezoneBoundaries(): void
+    {
+        $this->db->exec(
+            '
+            INSERT INTO employees
+            (
+                employee_number
+            )
+
+            VALUES
+                ("EMP-001"),
+                ("EMP-002")
+            '
+        );
+
+
+        $this->db->exec(
+            '
+            INSERT INTO punches
+            (
+                employee_id,
+                punch_time,
+                punch_type
+            )
+
+            VALUES
+                (
+                    1,
+                    "2026-08-01 06:59:59",
+                    "in"
+                ),
+                (
+                    1,
+                    "2026-08-01 07:00:00",
+                    "in"
+                ),
+                (
+                    1,
+                    "2026-08-04 20:00:00",
+                    "out"
+                ),
+                (
+                    2,
+                    "2026-08-08 06:59:59",
+                    "in"
+                ),
+                (
+                    2,
+                    "2026-08-08 07:00:00",
+                    "out"
+                )
+            '
+        );
+
+
+        $periodId =
+            $this->createPeriod(
+                'Impact Analysis',
+                'open'
+            );
+
+
+        $analysis =
+            $this->service->analyze(
+                $periodId,
+                $this->administratorId
+            );
+
+
+        self::assertSame(
+            2,
+            $analysis['operational_context']['employee_count']
+        );
+
+        self::assertSame(
+            3,
+            $analysis['operational_context']['punch_count']
+        );
+
+        self::assertNull(
+            $analysis['operational_context']['generated_report_count']
+        );
+
+        self::assertFalse(
+            $analysis['operational_context']['generated_report_tracking']
+        );
+
+        self::assertTrue(
+            $analysis['can_delete_draft'],
+            'Date-associated punches must not block deletion of an untouched draft period.'
         );
     }
 
@@ -642,6 +740,59 @@ final class PayrollPeriodRemovalServiceTest extends TestCase
                 email TEXT,
                 active INTEGER NOT NULL DEFAULT 1,
                 last_login DATETIME
+            )
+            '
+        );
+
+
+        $this->db->exec(
+            '
+            CREATE TABLE company_settings
+            (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                timezone TEXT NOT NULL
+            )
+            '
+        );
+
+
+        $this->db->exec(
+            '
+            INSERT INTO company_settings
+            (
+                timezone
+            )
+
+            VALUES
+            (
+                "America/Los_Angeles"
+            )
+            '
+        );
+
+
+        $this->db->exec(
+            '
+            CREATE TABLE employees
+            (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                employee_number TEXT NOT NULL UNIQUE
+            )
+            '
+        );
+
+
+        $this->db->exec(
+            '
+            CREATE TABLE punches
+            (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                employee_id INTEGER NOT NULL,
+                punch_time DATETIME NOT NULL,
+                punch_type TEXT NOT NULL,
+
+                FOREIGN KEY(employee_id)
+                REFERENCES employees(id)
             )
             '
         );

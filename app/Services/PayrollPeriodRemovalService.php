@@ -4,9 +4,12 @@ declare(strict_types=1);
 namespace App\Services;
 
 use App\Repositories\AuditRepository;
+use App\Repositories\CompanySettingsRepository;
 use App\Repositories\PayrollPeriodHistoryRepository;
 use App\Repositories\PayrollPeriodRemovalRepository;
 use App\Repositories\UserRepository;
+use DateTimeImmutable;
+use DateTimeZone;
 use InvalidArgumentException;
 use PDO;
 use RuntimeException;
@@ -36,13 +39,16 @@ class PayrollPeriodRemovalService
 
     private AuditRepository $audit;
 
+    private CompanySettingsRepository $companySettings;
+
 
     public function __construct(
         PDO $db,
         PayrollPeriodRemovalRepository $periods,
         PayrollPeriodHistoryRepository $history,
         UserRepository $users,
-        AuditRepository $audit
+        AuditRepository $audit,
+        CompanySettingsRepository $companySettings
     )
     {
         $this->db =
@@ -59,6 +65,9 @@ class PayrollPeriodRemovalService
 
         $this->audit =
             $audit;
+
+        $this->companySettings =
+            $companySettings;
     }
 
 
@@ -86,12 +95,21 @@ class PayrollPeriodRemovalService
                 );
 
 
+        $operationalContext =
+            $this->operationalContext(
+                $period
+            );
+
+
         return [
             'period' =>
                 $period,
 
             'dependencies' =>
                 $dependencies,
+
+            'operational_context' =>
+                $operationalContext,
 
             'is_archived' =>
                 $this->isArchived(
@@ -460,6 +478,158 @@ class PayrollPeriodRemovalService
                 );
             }
         );
+    }
+
+
+    /**
+     * @param array<string,mixed> $period
+     *
+     * @return array<string,int|bool|null>
+     */
+    private function operationalContext(
+        array $period
+    ): array
+    {
+        $settings =
+            $this->companySettings
+                ->get();
+
+
+        $timezoneName =
+            trim(
+                (string)(
+                    $settings['timezone']
+                    ??
+                    ''
+                )
+            );
+
+
+        if ($timezoneName === '') {
+            throw new RuntimeException(
+                'A company timezone is required to analyze payroll period data.'
+            );
+        }
+
+
+        try {
+            $companyTimezone =
+                new DateTimeZone(
+                    $timezoneName
+                );
+        } catch (Throwable $exception) {
+            throw new RuntimeException(
+                sprintf(
+                    'The company timezone "%s" is invalid.',
+                    $timezoneName
+                ),
+                0,
+                $exception
+            );
+        }
+
+
+        $startDate =
+            trim(
+                (string)(
+                    $period['start_date']
+                    ??
+                    ''
+                )
+            );
+
+        $endDate =
+            trim(
+                (string)(
+                    $period['end_date']
+                    ??
+                    ''
+                )
+            );
+
+
+        $localStart =
+            DateTimeImmutable::createFromFormat(
+                '!Y-m-d',
+                $startDate,
+                $companyTimezone
+            );
+
+        $localEnd =
+            DateTimeImmutable::createFromFormat(
+                '!Y-m-d',
+                $endDate,
+                $companyTimezone
+            );
+
+
+        if (
+            $localStart === false
+            ||
+            $localEnd === false
+            ||
+            $localStart->format(
+                'Y-m-d'
+            )
+            !==
+            $startDate
+            ||
+            $localEnd->format(
+                'Y-m-d'
+            )
+            !==
+            $endDate
+        ) {
+            throw new RuntimeException(
+                'The payroll period date range is invalid.'
+            );
+        }
+
+
+        $localEndExclusive =
+            $localEnd->modify(
+                '+1 day'
+            );
+
+        $utcTimezone =
+            new DateTimeZone(
+                'UTC'
+            );
+
+
+        $impact =
+            $this->periods
+                ->punchImpactSummary(
+                    $localStart
+                        ->setTimezone(
+                            $utcTimezone
+                        )
+                        ->format(
+                            'Y-m-d H:i:s'
+                        ),
+                    $localEndExclusive
+                        ->setTimezone(
+                            $utcTimezone
+                        )
+                        ->format(
+                            'Y-m-d H:i:s'
+                        )
+                );
+
+
+        return [
+            'employee_count' =>
+                $impact['employee_count'],
+
+            'punch_count' =>
+                $impact['punch_count'],
+
+            'generated_report_count' =>
+                null,
+
+            'generated_report_tracking' =>
+                false
+        ];
     }
 
 

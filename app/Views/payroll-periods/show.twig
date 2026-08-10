@@ -415,6 +415,7 @@
 {% if removalAnalysis %}
 
     {% set removalDependencies = removalAnalysis.dependencies|default({}) %}
+    {% set removalOperationalContext = removalAnalysis.operational_context|default({}) %}
 
 
     <div class="card shadow-sm border-warning mb-4">
@@ -809,7 +810,95 @@
 
 
             <h2 class="h6">
-                Dependent Records
+                Period Data Context
+            </h2>
+
+
+            <p class="small text-muted">
+                Punch impact is calculated using the configured company timezone and this payroll period's inclusive local dates.
+            </p>
+
+
+            <div class="row g-2 mb-3">
+
+                <div class="col-md-4">
+
+                    <div class="border rounded p-3 h-100">
+
+                        <div class="small text-muted mb-1">
+                            Employees with Punches
+                        </div>
+
+                        <div class="h4 mb-0">
+                            {{ removalOperationalContext.employee_count|default(0) }}
+                        </div>
+
+                    </div>
+
+                </div>
+
+
+                <div class="col-md-4">
+
+                    <div class="border rounded p-3 h-100">
+
+                        <div class="small text-muted mb-1">
+                            Punch Records
+                        </div>
+
+                        <div class="h4 mb-0">
+                            {{ removalOperationalContext.punch_count|default(0) }}
+                        </div>
+
+                    </div>
+
+                </div>
+
+
+                <div class="col-md-4">
+
+                    <div class="border rounded p-3 h-100">
+
+                        <div class="small text-muted mb-1">
+                            Generated Reports
+                        </div>
+
+
+                        {% if removalOperationalContext.generated_report_tracking|default(false) %}
+
+                            <div class="h4 mb-0">
+                                {{ removalOperationalContext.generated_report_count|default(0) }}
+                            </div>
+
+                        {% else %}
+
+                            <div class="fw-semibold">
+                                Not tracked
+                            </div>
+
+                            <div class="small text-muted">
+                                Reports are generated on demand and are not stored as payroll-period-linked artifacts.
+                            </div>
+
+                        {% endif %}
+
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            <div class="alert alert-info small" role="alert">
+
+                Punch records are associated by date, not owned by the payroll period.
+                Deleting, archiving, or voiding this period does not delete punch records.
+
+            </div>
+
+
+            <h2 class="h6">
+                Lifecycle Dependency Records
             </h2>
 
 

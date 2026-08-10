@@ -185,6 +185,66 @@ class PayrollPeriodRemovalRepository
     }
 
 
+    /**
+     * @return array<string,int>
+     */
+    public function punchImpactSummary(
+        string $startUtc,
+        string $endUtc
+    ): array
+    {
+        $statement =
+            $this->db->prepare(
+                '
+                SELECT
+                    COUNT(*) AS punch_count,
+                    COUNT(
+                        DISTINCT employee_id
+                    ) AS employee_count
+
+                FROM punches
+
+                WHERE punch_time >= :start_utc
+                  AND punch_time < :end_utc
+                '
+            );
+
+
+        $statement->execute(
+            [
+                'start_utc' =>
+                    $startUtc,
+
+                'end_utc' =>
+                    $endUtc
+            ]
+        );
+
+
+        $summary =
+            $statement->fetch(
+                PDO::FETCH_ASSOC
+            );
+
+
+        return [
+            'employee_count' =>
+                (int)(
+                    $summary['employee_count']
+                    ??
+                    0
+                ),
+
+            'punch_count' =>
+                (int)(
+                    $summary['punch_count']
+                    ??
+                    0
+                )
+        ];
+    }
+
+
     public function markArchived(
         int $payrollPeriodId,
         int $actingUserId,

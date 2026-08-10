@@ -648,7 +648,8 @@ final class Container
                     self::payrollPeriodRemovalRepository(),
                     self::payrollPeriodHistoryRepository(),
                     self::userRepository(),
-                    self::auditRepository()
+                    self::auditRepository(),
+                    self::companySettingsRepository()
                 );
         }
 
