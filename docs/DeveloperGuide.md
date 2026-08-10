@@ -1,6 +1,6 @@
 # IQwurksPunch Developer Guide
 
-**Applies to:** IQwurksPunch 0.6.0
+**Applies to:** IQwurksPunch 1.0.0-dev
 **Audience:** Developers, maintainers, contributors, and release reviewers
 
 ---
@@ -68,7 +68,7 @@ Completion also includes:
 
 ## 3. Supported Development Environment
 
-The validated Version 0.6 environment includes:
+The validated Version 1.0 development environment includes:
 
 ```text
 Ubuntu Linux
@@ -600,7 +600,7 @@ Public routes include the minimum required for:
 - Initial setup
 - Employee kiosk operation
 
-Version 0.6 public paths include:
+Public paths include:
 
 ```text
 /
@@ -763,7 +763,7 @@ Primary interface assets are stored under:
 public/assets/vendor
 ```
 
-Version 0.6 includes:
+The frontend asset model includes:
 
 ```text
 Bootstrap 5.3.7
@@ -803,7 +803,7 @@ The primary connection is managed by:
 app/Core/Database.php
 ```
 
-Version 0.6 configures:
+The SQLite connection configures:
 
 ```sql
 PRAGMA foreign_keys = ON;
@@ -859,7 +859,7 @@ Naming convention:
 NNN_descriptive_name.php
 ```
 
-Version 0.6 examples:
+Migration examples include:
 
 ```text
 010_add_punch_correction_support.php
@@ -1115,7 +1115,7 @@ The kiosk beginning page must clear unfinished kiosk state.
 
 ## 30. Kiosk Session Keys
 
-Version 0.6 kiosk session state includes:
+Kiosk session state includes:
 
 ```text
 kiosk_employee_id
@@ -1404,7 +1404,7 @@ Console entry:
 iqwurks
 ```
 
-Version 0.6 commands include:
+Available commands include:
 
 ```text
 help
@@ -1502,7 +1502,7 @@ When adding argument support:
 
 High-risk commands should use multiple safeguards.
 
-Version 0.6 restore requires:
+A restore requires:
 
 ```text
 BACKUP_FILENAME
@@ -1740,10 +1740,10 @@ cd /var/www/IQwurksPunch
 php vendor/bin/phpunit
 ```
 
-Expected Version 0.6 result:
+Current Version 1.0 development result:
 
 ```text
-OK (36 tests, 188 assertions)
+OK (448 tests, 3323 assertions)
 ```
 
 The suite includes coverage for:
@@ -1760,6 +1760,10 @@ The suite includes coverage for:
 - Punch sequence validation
 - Immutable correction history
 - Transaction rollback
+- Payroll-period lifecycle and removal safeguards
+- Supervisor account-management authorization
+- Authentication and session expiration
+- Installation, upgrade, backup, restore, and package verification
 
 All tests must pass before release.
 
@@ -1875,7 +1879,7 @@ Run:
 ./iqwurks doctor
 ```
 
-Version 0.6 release expectations:
+Release expectations include:
 
 ```text
 Database: HEALTHY
@@ -1974,7 +1978,7 @@ git switch -c feature/DESCRIPTIVE-NAME
 For a release:
 
 ```bash
-git switch -c release/0.8.0
+git switch -c release/1.0.0
 ```
 
 During development:
@@ -2128,10 +2132,10 @@ Display it with:
 ./iqwurks version
 ```
 
-For Version 0.8:
+During Version 1.0 development:
 
 ```text
-0.8.0
+1.0.0-dev
 ```
 
 Before release:
@@ -2192,7 +2196,7 @@ Database migrations do not automatically require a major version when normal upg
 Example:
 
 ```bash
-git switch -c release/0.8.0
+git switch -c release/1.0.0
 ```
 
 Confirm:
@@ -2206,9 +2210,9 @@ cat VERSION
 Expected:
 
 ```text
-release/0.8.0
-0.8.0
-IQwurksPunch 0.8.0
+release/1.0.0
+1.0.0
+IQwurksPunch 1.0.0
 ```
 
 Complete documentation and validation on the release branch before committing or tagging.
@@ -2315,7 +2319,7 @@ git add \
     README.md \
     CHANGELOG.md \
     ROADMAP.md \
-    releases/0.6.0.md \
+    releases/1.0.0.md \
     docs \
     app \
     config/backup.php \
@@ -2347,15 +2351,15 @@ After complete validation:
 
 ```bash
 git commit \
-    -m "Release v0.6.0 production reliability and recovery"
+    -m "Release IQwurksPunch 1.0.0"
 ```
 
 Create an annotated tag:
 
 ```bash
 git tag \
-    -a v0.6.0 \
-    -m "IQwurksPunch v0.6.0"
+    -a v1.0.0 \
+    -m "IQwurksPunch v1.0.0"
 ```
 
 Verify:
@@ -2518,16 +2522,16 @@ Review:
 
 ---
 
-## 72. Version 0.6 Development Baseline
+## 72. Version 1.0 Development Baseline
 
-The Version 0.6 release baseline is:
+The current Version 1.0 development baseline is:
 
 ```text
-Application version: 0.6.0
-Automated tests: 36
-Assertions: 188
-Database tables: 12
-Applied migrations: 11
+Application version: 1.0.0-dev
+Automated tests: 448
+Assertions: 3323
+Database tables: 18
+Applied migrations: 17
 SQLite journal mode: wal
 Database integrity: ok
 Foreign-key violations: 0

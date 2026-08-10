@@ -1,6 +1,6 @@
 # IQwurksPunch Architecture Guide
 
-**Applies to:** IQwurksPunch 0.6.0
+**Applies to:** IQwurksPunch 1.0.0-dev
 **Audience:** Developers, maintainers, system administrators, and technical reviewers
 
 ---
@@ -634,7 +634,7 @@ Each migration provides an `up()` method.
 
 Some migrations also document a `down()` method, although SQLite column removal may require a table rebuild.
 
-Version 0.6 adds:
+The migration architecture includes:
 
 ```text
 010_add_punch_correction_support.php
@@ -1609,7 +1609,7 @@ Lazy loading is provided by:
 app/Console/LazyCommand.php
 ```
 
-Available Version 0.6 commands include:
+Available console commands include:
 
 ```text
 help
@@ -2014,11 +2014,11 @@ Automated tests are stored under:
 tests
 ```
 
-The Version 0.6 suite contains:
+The current Version 1.0 development suite contains:
 
 ```text
-36 tests
-188 assertions
+448 tests
+3323 assertions
 ```
 
 Test coverage includes:
@@ -2032,6 +2032,10 @@ Test coverage includes:
 - Sequence validation
 - Immutable history
 - Transaction rollback
+- Payroll-period lifecycle and removal safeguards
+- Supervisor account-management authorization
+- Authentication and session expiration
+- Installation, upgrade, backup, restore, and package verification
 
 Tests run with:
 
@@ -2101,7 +2105,7 @@ php-fpm8.5 -t
 
 ## 62. Current Architectural Limitations
 
-Version 0.6 does not yet include:
+The current architecture does not include:
 
 - Universal command-option parsing
 - Universal per-command help
@@ -2110,9 +2114,7 @@ Version 0.6 does not yet include:
 - Multiple locations
 - Independently configured multiple kiosks
 - Database abstraction for other engines
-- Payroll approval and locking
-- Automated application upgrades
-- Installation automation
+- Browser-based installation automation
 - Built-in HTTPS provisioning
 - Distributed worker processing
 - High-availability database operation
@@ -2121,23 +2123,24 @@ These are potential future architectural extensions.
 
 ---
 
-## 63. Planned Version 0.7 Architecture
+## 63. Version 1.0 Administrative Architecture
 
-Version 0.7 is expected to introduce:
+Version 1.0 extends the established architecture with:
 
-- Payroll-period records
-- Review states
-- Approval records
-- Lock states
-- Reopening workflow
-- Required approval and reopening reasons
-- Exception-resolution state
-- Supervisor review notes
-- Lock-aware punch correction
-- Lock-aware exports
-- Approval audit history
+- Persisted payroll-period records and lifecycle metadata
+- Active and removed payroll-period views
+- Review, approval, locking, reopening, archival, and voiding workflows
+- Protected deletion for untouched draft periods
+- Company-timezone employee and punch analysis
+- Lock-aware punch correction and payroll exports
+- Immutable payroll-period workflow history
+- Administrator-controlled supervisor account management
+- Last-administrator and active-session lockout protection
+- Dedicated account-management audit activity
+- Eight-hour supervisor-session inactivity expiration
+- CSRF-token rotation after authentication
 
-These features should preserve the existing principles of:
+These capabilities preserve the existing principles of:
 
 - Service-layer validation
 - Repository persistence
@@ -2175,7 +2178,7 @@ New IQwurksPunch work should follow these principles:
 
 ## 65. Final Architecture Summary
 
-IQwurksPunch 0.6 consists of:
+IQwurksPunch 1.0 consists of:
 
 ```text
 Custom PHP MVC application
