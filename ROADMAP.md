@@ -1364,9 +1364,10 @@ Completion requirements:
   punches.
 - Finalized or closed payroll periods cannot be silently deleted.
 - Finalized periods can be voided or archived with a required reason.
-- Generated CSV and PDF artifacts can be removed separately from payroll data.
+- Generated CSV and PDF exports are streamed on demand and are not retained as
+  payroll-period-linked artifacts.
 - Confirmation screens show the date range, employee count, punch count,
-  generated reports, and current period status.
+  report-artifact tracking status, and current period status.
 - Destructive actions require explicit administrator confirmation.
 - Payroll-period creation, editing, finalization, deletion, voiding, and
   archival are recorded in the audit log.
