@@ -38,6 +38,28 @@ final class PayrollPeriodService
     }
 
 
+    /**
+     * @return array<int,array<string,mixed>>
+     */
+    public function active(): array
+    {
+        return
+            $this->payrollPeriodRepository
+                ->active();
+    }
+
+
+    /**
+     * @return array<int,array<string,mixed>>
+     */
+    public function removed(): array
+    {
+        return
+            $this->payrollPeriodRepository
+                ->removed();
+    }
+
+
     public function find(
         int $payrollPeriodId
     ): ?array
