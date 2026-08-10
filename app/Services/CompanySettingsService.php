@@ -173,24 +173,24 @@ class CompanySettingsService
 
 
         if (
-            $dailyOvertimeHours < 0
+            $dailyOvertimeHours <= 0
             ||
             $dailyOvertimeHours > 24
         ) {
 
             $errors['daily_overtime_hours'] =
-                'Daily overtime hours must be between 0 and 24.';
+                'Daily overtime hours must be greater than 0 and no more than 24.';
         }
 
 
         if (
-            $weeklyOvertimeHours < 0
+            $weeklyOvertimeHours <= 0
             ||
             $weeklyOvertimeHours > 168
         ) {
 
             $errors['weekly_overtime_hours'] =
-                'Weekly overtime hours must be between 0 and 168.';
+                'Weekly overtime hours must be greater than 0 and no more than 168.';
         }
 
 

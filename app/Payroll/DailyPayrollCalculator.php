@@ -335,7 +335,14 @@ final class DailyPayrollCalculator
 
 
                 $breakOut = null;
+
+
+                continue;
             }
+
+
+            $errors[] =
+                'An unsupported punch type was encountered.';
         }
 
 
