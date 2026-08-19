@@ -8,9 +8,10 @@ return new class extends Migration
     public function up(): void
     {
         $this->db->exec("
-            CREATE TABLE migrations (
+            CREATE TABLE IF NOT EXISTS migrations (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 migration TEXT NOT NULL UNIQUE,
+                batch INTEGER NOT NULL DEFAULT 1,
                 executed_at DATETIME DEFAULT CURRENT_TIMESTAMP
             )
         ");
@@ -68,10 +69,21 @@ return new class extends Migration
                 created_at DATETIME DEFAULT CURRENT_TIMESTAMP
             )
         ");
+
+        $this->db->exec("
+            CREATE TABLE IF NOT EXISTS email_log (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                report_type TEXT NOT NULL,
+                recipients TEXT NOT NULL,
+                status TEXT NOT NULL,
+                sent_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            )
+        ");
     }
 
     public function down(): void
     {
+        $this->db->exec("DROP TABLE email_log");
         $this->db->exec("DROP TABLE audit_log");
         $this->db->exec("DROP TABLE settings");
         $this->db->exec("DROP TABLE punches");

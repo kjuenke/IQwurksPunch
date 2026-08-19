@@ -4,6 +4,7 @@ declare(strict_types=1);
 require __DIR__ . '/vendor/autoload.php';
 
 use App\Core\Database;
+use App\Core\Migrations\MigrationManager;
 
 
 $db = Database::connection();
@@ -20,20 +21,16 @@ $db->setAttribute(
 |--------------------------------------------------------------------------
 */
 
-$db->exec(
-    "
-    CREATE TABLE IF NOT EXISTS migrations
-    (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
+$migrationManager =
+    new MigrationManager(
+        $db,
+        __DIR__
+        .
+        '/database/migrations'
+    );
 
-        migration TEXT NOT NULL UNIQUE,
 
-        batch INTEGER DEFAULT 1,
-
-        executed_at DATETIME DEFAULT CURRENT_TIMESTAMP
-    )
-    "
-);
+$migrationManager->ensureMigrationTable();
 
 
 

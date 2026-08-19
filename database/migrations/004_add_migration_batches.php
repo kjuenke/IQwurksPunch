@@ -7,6 +7,36 @@ return new class
     {
         $db = \App\Core\Database::connection();
 
+
+        $columns =
+            $db
+                ->query(
+                    "
+                    PRAGMA table_info(
+                        migrations
+                    )
+                    "
+                )
+                ->fetchAll(
+                    \PDO::FETCH_ASSOC
+                );
+
+
+        foreach ($columns as $column) {
+
+            if (
+                (
+                    $column['name']
+                    ??
+                    null
+                )
+                ===
+                'batch'
+            ) {
+                return;
+            }
+        }
+
         $db->exec(
             "
             ALTER TABLE migrations

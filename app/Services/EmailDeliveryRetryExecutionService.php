@@ -18,7 +18,7 @@ final class EmailDeliveryRetryExecutionService
 
     private Closure $exceptionSender;
 
-    private EmailDeliveryRetryQuarantineRepository $quarantine;
+    private ?EmailDeliveryRetryQuarantineRepository $quarantine;
 
 
     public function __construct(
@@ -93,9 +93,7 @@ final class EmailDeliveryRetryExecutionService
 
 
         $this->quarantine =
-            $quarantine
-            ??
-            new EmailDeliveryRetryQuarantineRepository();
+            $quarantine;
     }
 
 
@@ -231,7 +229,11 @@ final class EmailDeliveryRetryExecutionService
         }
 
 
-        $this->quarantine
+        (
+            $this->quarantine
+            ??=
+            new EmailDeliveryRetryQuarantineRepository()
+        )
             ->markPermanentFailure(
                 $attemptId,
                 'Retry metadata is invalid: '
