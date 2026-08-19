@@ -40,6 +40,42 @@ class MigrationManager
             )
             "
         );
+
+
+        $columns =
+            $this->db
+                ->query(
+                    "
+                    PRAGMA table_info(
+                        migrations
+                    )
+                    "
+                )
+                ->fetchAll(PDO::FETCH_ASSOC);
+
+
+        foreach ($columns as $column) {
+
+            if (
+                (
+                    $column['name']
+                    ??
+                    null
+                )
+                ===
+                'batch'
+            ) {
+                return;
+            }
+        }
+
+
+        $this->db->exec(
+            "
+            ALTER TABLE migrations
+            ADD COLUMN batch INTEGER DEFAULT 1
+            "
+        );
     }
 
 
