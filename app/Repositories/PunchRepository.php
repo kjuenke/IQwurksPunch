@@ -343,6 +343,56 @@ class PunchRepository
 
 
     /**
+     * Returns an employee's punches whose UTC timestamps fall within:
+     *
+     *     start <= punch_time < end
+     *
+     * @return array<int,array<string,mixed>>
+     */
+    public function employeePunchesBetween(
+        int $employeeId,
+        string $startUtc,
+        string $endUtc
+    ): array
+    {
+        $statement =
+            $this->db->prepare(
+                "
+                SELECT *
+                FROM punches
+
+                WHERE employee_id = :employee_id
+                  AND punch_time >= :start_utc
+                  AND punch_time < :end_utc
+
+                ORDER BY
+                    punch_time DESC,
+                    id DESC
+                "
+            );
+
+
+        $statement->execute(
+            [
+                'employee_id' =>
+                    $employeeId,
+
+                'start_utc' =>
+                    $startUtc,
+
+                'end_utc' =>
+                    $endUtc
+            ]
+        );
+
+
+        return $statement->fetchAll(
+            PDO::FETCH_ASSOC
+        );
+    }
+
+
+    /**
      * @return array<int,array<string,mixed>>
      */
     public function employeePunchesExcept(

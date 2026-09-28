@@ -99,6 +99,106 @@
     </div>
 
 
+    <div class="card-body border-bottom">
+
+        <form
+            method="get"
+            action="/employees/punches/{{ employee.id }}"
+            class="row g-3 align-items-end"
+        >
+
+            <div class="col-md-4">
+
+                <label
+                    for="punch-history-start-date"
+                    class="form-label"
+                >
+                    From
+                </label>
+
+                <input
+                    type="date"
+                    class="form-control"
+                    id="punch-history-start-date"
+                    name="start_date"
+                    value="{{ punchFilters.start_date|e }}"
+                    required
+                >
+
+            </div>
+
+
+            <div class="col-md-4">
+
+                <label
+                    for="punch-history-end-date"
+                    class="form-label"
+                >
+                    Through
+                </label>
+
+                <input
+                    type="date"
+                    class="form-control"
+                    id="punch-history-end-date"
+                    name="end_date"
+                    value="{{ punchFilters.end_date|e }}"
+                    required
+                >
+
+            </div>
+
+
+            <div class="col-md-4">
+
+                <div class="d-flex gap-2">
+
+                    <button
+                        type="submit"
+                        class="btn btn-primary"
+                    >
+                        Apply
+                    </button>
+
+                    <a
+                        href="/employees/punches/{{ employee.id }}"
+                        class="btn btn-outline-secondary"
+                    >
+                        Reset
+                    </a>
+
+                </div>
+
+            </div>
+
+        </form>
+
+
+        {% if punchFilterError %}
+
+            <div
+                class="alert alert-danger mt-3 mb-0"
+                role="alert"
+            >
+                {{ punchFilterError }}
+            </div>
+
+        {% else %}
+
+            <div class="form-text mt-2">
+                Showing punch records from
+                {{ punchFilters.start_date }}
+                through
+                {{ punchFilters.end_date }}.
+                Punches outside this range remain stored and can be viewed
+                by changing the dates.
+            </div>
+
+        {% endif %}
+
+    </div>
+
+
     <div class="card-body">
 
         <div class="table-responsive">

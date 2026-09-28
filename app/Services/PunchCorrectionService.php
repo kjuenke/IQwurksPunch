@@ -146,6 +146,111 @@ final class PunchCorrectionService
 
 
     /**
+     * Returns punches for an inclusive company-local date range.
+     *
+     * @return array<int,array<string,mixed>>
+     */
+    public function punchesForEmployeeBetweenDates(
+        int $employeeId,
+        string $startDate,
+        string $endDate
+    ): array
+    {
+        $startDate =
+            trim(
+                $startDate
+            );
+
+
+        $endDate =
+            trim(
+                $endDate
+            );
+
+
+        $start =
+            DateTimeImmutable::createFromFormat(
+                '!Y-m-d',
+                $startDate,
+                $this->companyTimezone
+            );
+
+
+        $end =
+            DateTimeImmutable::createFromFormat(
+                '!Y-m-d',
+                $endDate,
+                $this->companyTimezone
+            );
+
+
+        if (
+            !$start
+            ||
+            $start->format('Y-m-d') !== $startDate
+            ||
+            !$end
+            ||
+            $end->format('Y-m-d') !== $endDate
+        ) {
+            throw new RuntimeException(
+                'Punch history dates must use YYYY-MM-DD format.'
+            );
+        }
+
+
+        if ($start > $end) {
+            throw new RuntimeException(
+                'Punch history start date cannot be after the end date.'
+            );
+        }
+
+
+        $startUtc =
+            $start
+                ->setTimezone(
+                    $this->utcTimezone
+                )
+                ->format(
+                    'Y-m-d H:i:s'
+                );
+
+
+        $endUtc =
+            $end
+                ->modify(
+                    '+1 day'
+                )
+                ->setTimezone(
+                    $this->utcTimezone
+                )
+                ->format(
+                    'Y-m-d H:i:s'
+                );
+
+
+        $punches =
+            $this->punches
+                ->employeePunchesBetween(
+                    $employeeId,
+                    $startUtc,
+                    $endUtc
+                );
+
+
+        return array_map(
+            fn (
+                array $punch
+            ): array =>
+                $this->preparePunchForDisplay(
+                    $punch
+                ),
+            $punches
+        );
+    }
+
+
+    /**
      * @return array<int,array<string,mixed>>
      */
     public function historyForEmployee(

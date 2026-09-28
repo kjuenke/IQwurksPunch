@@ -66,6 +66,71 @@ final class PunchCorrectionController extends Controller
         }
 
 
+        $today =
+            new \DateTimeImmutable(
+                'today'
+            );
+
+
+        $defaultStartDate =
+            $today
+                ->modify(
+                    '-29 days'
+                )
+                ->format(
+                    'Y-m-d'
+                );
+
+
+        $defaultEndDate =
+            $today
+                ->format(
+                    'Y-m-d'
+                );
+
+
+        $startDate =
+            trim(
+                (string)(
+                    $_GET['start_date']
+                    ??
+                    $defaultStartDate
+                )
+            );
+
+
+        $endDate =
+            trim(
+                (string)(
+                    $_GET['end_date']
+                    ??
+                    $defaultEndDate
+                )
+            );
+
+
+        $punches = [];
+
+        $filterError = null;
+
+
+        try {
+
+            $punches =
+                $this->corrections
+                    ->punchesForEmployeeBetweenDates(
+                        $employeeId,
+                        $startDate,
+                        $endDate
+                    );
+
+        } catch (\RuntimeException $exception) {
+
+            $filterError =
+                $exception->getMessage();
+        }
+
+
         $this->render(
             'employees/punches/index.twig',
             [
@@ -79,10 +144,18 @@ final class PunchCorrectionController extends Controller
                     $employee,
 
                 'punches' =>
-                    $this->corrections
-                        ->punchesForEmployee(
-                            $employeeId
-                        ),
+                    $punches,
+
+                'punchFilters' => [
+                    'start_date' =>
+                        $startDate,
+
+                    'end_date' =>
+                        $endDate
+                ],
+
+                'punchFilterError' =>
+                    $filterError,
 
                 'history' =>
                     $this->corrections
