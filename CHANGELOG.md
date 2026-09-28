@@ -6,6 +6,18 @@ The project follows Semantic Versioning for stable releases and generally follow
 
 ---
 
+## [Unreleased]
+
+### Changed
+
+- Improved employee punch-history management with a default 30-day view.
+- Added From and Through date filtering for reviewing older punch records.
+- Display punch records newest first within the selected date range.
+- Preserve punches outside the displayed date range; filtering does not delete
+  historical punch data.
+
+---
+
 ## [1.0.0] - 2026-08-10
 
 ### Added

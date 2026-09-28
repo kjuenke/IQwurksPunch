@@ -58,7 +58,9 @@ testing, and physical kiosk reboot-recovery testing.
 
 Supervisors can:
 
-- Review employee punch history
+- Review employee punch history with a default 30-day view
+- Filter punch history by From and Through dates
+- Review older retained punches without deleting historical records
 - Add missing punches
 - Edit incorrect punches
 - Delete incorrect punches

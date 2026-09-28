@@ -586,6 +586,16 @@ Employees
 
 Locate an employee and open the employee’s punch history.
 
+By default, the punch-history screen displays the most recent 30 days,
+including the current day. Punches are shown newest first.
+
+Use the **From** and **Through** date fields and select **Apply** to review a
+different date range. Select **Reset** to return to the default 30-day view.
+
+Punches outside the displayed date range remain stored in the database.
+Changing the date range only controls which punch records are displayed; it
+does not delete older punch history.
+
 Available correction actions include:
 
 - Add Punch
